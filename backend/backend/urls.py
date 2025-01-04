@@ -21,6 +21,6 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
   
-    path('', include('FitHub.urls')),
+    path('api/FitHub/', include('FitHub.urls')),
 
 ]
