@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import generics
-from .models import User
+from .models import CustomUser
 from .serializers import UserSerializer
 
 class HomePageData(APIView):
@@ -9,5 +9,5 @@ class HomePageData(APIView):
         return Response({"message": "Welcome to FitHub Fitness Dashboard!"})
     
 class UserRegisterView(generics.CreateAPIView):
-    queryset = User.objects.all()
+    queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
