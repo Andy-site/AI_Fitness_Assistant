@@ -1,18 +1,15 @@
-import axios from 'axios';
-
-const apiClient = axios.create({
-    baseURL: 'http://192.168.0.117:8000/api/FitHub/', // Replace with your Django API URL
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
+import instance from './axios'; // Import the generic Axios instance
 
 export const registerUser = async (userData) => {
     try {
-        const response = await apiClient.post('/register/', userData);
-        return response.data; // You can handle the response as needed
+        const response = await instance.post('/api/register/', userData); // Ensure correct endpoint
+        return response.data; // Handle response as needed
     } catch (error) {
         console.error('Registration error:', error.response || error);
         throw new Error('Registration failed!');
     }
+};
+
+export default {
+    registerUser,
 };

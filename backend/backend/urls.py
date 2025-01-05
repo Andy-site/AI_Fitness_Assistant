@@ -20,9 +20,6 @@ from dj_rest_auth.registration.views import RegisterView
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    # Make sure to include dj_rest_auth URLs for login, logout, password reset
-    path('auth/', include('dj_rest_auth.urls')),  # Handles login, logout, password change
-    # Make sure to include registration URLs from dj_rest_auth
-    path('auth/registration/', include('dj_rest_auth.registration.urls')),  # Handles registration
+    path('admin/', admin.site.urls),    
+    path("",include('FitHub.urls')),
 ]
