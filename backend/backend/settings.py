@@ -29,18 +29,31 @@ ALLOWED_HOSTS = []
 
 
 # Application definition
-
 INSTALLED_APPS = [
+    # Default Django apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'FitHub',
+
+    # Third-party apps
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',  # Optional, only if using social login
+    'dj_rest_auth',
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
+
+    # Your apps
+    'FitHub',
 ]
+
+REST_AUTH = {
+    'TOKEN_MODEL': None,
+}
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -52,6 +65,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+     'corsheaders.middleware.CorsMiddleware',
+
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -82,8 +98,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'GymCompanion',  # Name of the database you created
-        'USER': 'postgres',  # The user you created
-        'PASSWORD': 'Andy#@!',  # The password you assigned
+        'USER': 'ananda',  # The user you created
+        'PASSWORD': 'Andy#@!123',  # The password you assigned
         'HOST': 'localhost',
         'PORT': '5432',  # Default port for PostgreSQL
     }
@@ -93,21 +109,28 @@ DATABASES = {
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
+# Django-allauth settings
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_EMAIL_VERIFICATION = 'optional'  # Use 'mandatory' for production
 
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
+# REST Framework
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+# Custom registration serializer
+REST_AUTH_REGISTER_SERIALIZERS = {
+    'REGISTER_SERIALIZER': 'your_app.serializers.CustomRegisterSerializer',
+}
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 
 # Internationalization
@@ -132,6 +155,22 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# AUTH_USER_MODEL = 'FitHub.User'
+AUTH_USER_MODEL = 'FitHub.CustomUser'
 
-CORS_ALLOW_ALL_ORIGINS = True
+REST_AUTH_REGISTER_SERIALIZERS = {
+    'REGISTER_SERIALIZER': 'your_app.serializers.CustomRegisterSerializer',
+}
+
+REST_USE_JWT = True 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Default
+    'allauth.account.auth_backends.AuthenticationBackend',  # Allauth backend
+]
+
+SITE_ID = 1  # Required for django-allauth
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http:// 192.168.0.117:3000",  # Add your React Native app URL here
+    "http://127.0.0.1:8000",
+]

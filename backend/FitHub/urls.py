@@ -1,8 +1,9 @@
-from django.urls import path
+from django.urls import path, include
 from .views import HomePageData
-from .views import UserRegisterView
+from dj_rest_auth.registration.views import RegisterView
 
 urlpatterns = [
     path('api/home/', HomePageData.as_view(), name='home-api'),  # API endpoint
-    path('register/', UserRegisterView.as_view(), name='register'),
+    path('auth/registration/', RegisterView.as_view(), name='registration'),
+    path('auth/', include('dj_rest_auth.urls')),  # Login, Logout, Password Change
 ]

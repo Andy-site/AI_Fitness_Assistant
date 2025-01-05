@@ -1,68 +1,100 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
-import { registerUser } from '../api/fithubApi';
+import { View, TextInput, Button, StyleSheet, Alert, ScrollView } from 'react-native';
+import axios from '../api/axios';
 
-const RegisterScreen = () => {
-    const [form, setForm] = useState({
-        username: '',
+const RegisterScreen = ({ navigation }) => {
+    const [formData, setFormData] = useState({
         email: '',
-        password: '',
+        password1: '',
+        password2: '',
+        name: '',
         age: '',
         height: '',
         weight: '',
         goal: '',
     });
 
-    const handleChange = (field, value) => {
-        setForm({ ...form, [field]: value });
-    };
-
-    const handleSubmit = async () => {
-        // Simple form validation (ensure all fields are filled)
-        const { username, email, password, age, height, weight, goal } = form;
-        if (!username || !email || !password || !age || !height || !weight || !goal) {
-            Alert.alert('Validation Error', 'All fields are required!');
-            return;
-        }
-
+    const handleRegister = async () => {
         try {
-            const userData = { ...form }; // Prepare data for sending
-            const response = await registerUser(userData);
-            Alert.alert('Success', 'User registered successfully!');
+            const response = await axios.post('registration/', {
+                username: formData.email,  // Use email as username
+                password1: formData.password1,
+                password2: formData.password2,
+                email: formData.email,
+            });
+            console.log(response.data);
+            Alert.alert('Success', 'Registration successful!');
+            navigation.navigate('Login');
         } catch (error) {
-            console.error(error);
-            Alert.alert('Error', 'Registration failed. Please try again.');
+            console.error(error.response?.data || error.message);
+            Alert.alert('Error', 'Registration failed! Check your input and try again.');
         }
     };
+    
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Register</Text>
-            {Object.keys(form).map((field) => (
-                <TextInput
-                    key={field}
-                    value={form[field]}
-                    placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
-                    style={styles.input}
-                    onChangeText={(value) => handleChange(field, value)}
-                    secureTextEntry={field === 'password'} // Secure input for password
-                />
-            ))}
-            <Button title="Register" onPress={handleSubmit} />
-        </View>
+        <ScrollView contentContainerStyle={styles.container}>
+            <TextInput
+                placeholder="Email"
+                style={styles.input}
+                value={formData.email}
+                onChangeText={(text) => setFormData({ ...formData, email: text })}
+            />
+            <TextInput
+                placeholder="Password"
+                style={styles.input}
+                secureTextEntry
+                value={formData.password1}
+                onChangeText={(text) => setFormData({ ...formData, password1: text })}
+            />
+            <TextInput
+                placeholder="Confirm Password"
+                style={styles.input}
+                secureTextEntry
+                value={formData.password2}
+                onChangeText={(text) => setFormData({ ...formData, password2: text })}
+            />
+            <TextInput
+                placeholder="Name"
+                style={styles.input}
+                value={formData.name}
+                onChangeText={(text) => setFormData({ ...formData, name: text })}
+            />
+            <TextInput
+                placeholder="Age"
+                style={styles.input}
+                keyboardType="numeric"
+                value={formData.age}
+                onChangeText={(text) => setFormData({ ...formData, age: text })}
+            />
+            <TextInput
+                placeholder="Height (e.g., 5.9)"
+                style={styles.input}
+                keyboardType="numeric"
+                value={formData.height}
+                onChangeText={(text) => setFormData({ ...formData, height: text })}
+            />
+            <TextInput
+                placeholder="Weight (e.g., 70.5)"
+                style={styles.input}
+                keyboardType="numeric"
+                value={formData.weight}
+                onChangeText={(text) => setFormData({ ...formData, weight: text })}
+            />
+            <TextInput
+                placeholder="Goal (e.g., Build Muscle)"
+                style={styles.input}
+                value={formData.goal}
+                onChangeText={(text) => setFormData({ ...formData, goal: text })}
+            />
+            <Button title="Register" onPress={handleRegister} />
+        </ScrollView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { padding: 20, flex: 1, justifyContent: 'center' },
-    title: { fontSize: 24, textAlign: 'center', marginBottom: 20 },
-    input: {
-        borderWidth: 1,
-        borderRadius: 4,
-        marginVertical: 10,
-        paddingHorizontal: 10,
-        height: 40,
-    },
+    container: { flex: 1, justifyContent: 'center', padding: 20 },
+    input: { borderWidth: 1, marginVertical: 10, padding: 10, borderRadius: 5 },
 });
 
 export default RegisterScreen;
