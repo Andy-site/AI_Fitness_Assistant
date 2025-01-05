@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Alert, ScrollView } from 'react-native';
-import axios from '../api/axios';
+import { View, TextInput, Button, StyleSheet, Alert, ScrollView, Text, TouchableOpacity } from 'react-native';
+import SelectDropdown from 'react-native-select-dropdown';
+import { registerUser } from './api/fitHubApi';
 
 const RegisterScreen = ({ navigation }) => {
     const [formData, setFormData] = useState({
@@ -15,30 +16,41 @@ const RegisterScreen = ({ navigation }) => {
     });
 
     const handleRegister = async () => {
+        if (!formData.goal || formData.goal === 'Select Goal') {
+            Alert.alert('Error', 'Please select a valid goal.');
+            return;
+        }
+
+        if (formData.password1 !== formData.password2) {
+            Alert.alert('Error', 'Passwords do not match.');
+            return;
+        }
+
+        if (isNaN(formData.age) || isNaN(formData.height) || isNaN(formData.weight)) {
+            Alert.alert('Error', 'Please enter valid numeric values for age, height, and weight.');
+            return;
+        }
+
         try {
-            const response = await axios.post('registration/', {
-                username: formData.email,  // Use email as username
-                password1: formData.password1,
-                password2: formData.password2,
-                email: formData.email,
-            });
-            console.log(response.data);
+            const response = await registerUser(formData);
             Alert.alert('Success', 'Registration successful!');
             navigation.navigate('Login');
         } catch (error) {
-            console.error(error.response?.data || error.message);
-            Alert.alert('Error', 'Registration failed! Check your input and try again.');
+            const errorMsg = error.response?.data?.message || 'Registration failed! Check your input and try again.';
+            Alert.alert('Error', errorMsg);
         }
     };
-    
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
+            <Text style={styles.header}>Register</Text>
+
             <TextInput
                 placeholder="Email"
                 style={styles.input}
                 value={formData.email}
                 onChangeText={(text) => setFormData({ ...formData, email: text })}
+                accessibilityLabel="Enter your email"
             />
             <TextInput
                 placeholder="Password"
@@ -46,6 +58,7 @@ const RegisterScreen = ({ navigation }) => {
                 secureTextEntry
                 value={formData.password1}
                 onChangeText={(text) => setFormData({ ...formData, password1: text })}
+                accessibilityLabel="Enter your password"
             />
             <TextInput
                 placeholder="Confirm Password"
@@ -53,12 +66,14 @@ const RegisterScreen = ({ navigation }) => {
                 secureTextEntry
                 value={formData.password2}
                 onChangeText={(text) => setFormData({ ...formData, password2: text })}
+                accessibilityLabel="Re-enter your password to confirm"
             />
             <TextInput
                 placeholder="Name"
                 style={styles.input}
                 value={formData.name}
                 onChangeText={(text) => setFormData({ ...formData, name: text })}
+                accessibilityLabel="Enter your full name"
             />
             <TextInput
                 placeholder="Age"
@@ -66,6 +81,7 @@ const RegisterScreen = ({ navigation }) => {
                 keyboardType="numeric"
                 value={formData.age}
                 onChangeText={(text) => setFormData({ ...formData, age: text })}
+                accessibilityLabel="Enter your age"
             />
             <TextInput
                 placeholder="Height (e.g., 5.9)"
@@ -73,6 +89,7 @@ const RegisterScreen = ({ navigation }) => {
                 keyboardType="numeric"
                 value={formData.height}
                 onChangeText={(text) => setFormData({ ...formData, height: text })}
+                accessibilityLabel="Enter your height in feet or meters"
             />
             <TextInput
                 placeholder="Weight (e.g., 70.5)"
@@ -80,21 +97,46 @@ const RegisterScreen = ({ navigation }) => {
                 keyboardType="numeric"
                 value={formData.weight}
                 onChangeText={(text) => setFormData({ ...formData, weight: text })}
+                accessibilityLabel="Enter your weight in kilograms"
             />
-            <TextInput
-                placeholder="Goal (e.g., Build Muscle)"
-                style={styles.input}
-                value={formData.goal}
-                onChangeText={(text) => setFormData({ ...formData, goal: text })}
+
+            {/* Dropdown for Goal Selection */}
+            <SelectDropdown
+                data={['Weight Loss', 'Weight Gain']}
+                onSelect={(selectedItem) => {
+                    setFormData((prevData) => ({ ...prevData, goal: selectedItem }));
+                }}
+                defaultButtonText="Select Goal"
+                buttonStyle={styles.dropdownButton}
+                buttonTextStyle={styles.dropdownButtonText}
             />
-            <Button title="Register" onPress={handleRegister} />
+
+            <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
+                <Text style={styles.registerButtonText}>Register</Text>
+            </TouchableOpacity>
         </ScrollView>
     );
 };
 
 const styles = StyleSheet.create({
     container: { flex: 1, justifyContent: 'center', padding: 20 },
+    header: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
     input: { borderWidth: 1, marginVertical: 10, padding: 10, borderRadius: 5 },
+    dropdownButton: {
+        borderWidth: 1,
+        marginVertical: 10,
+        padding: 10,
+        borderRadius: 5,
+        backgroundColor: '#ffffff',
+    },
+    dropdownButtonText: { color: '#000' },
+    registerButton: {
+        backgroundColor: '#007bff',
+        padding: 15,
+        borderRadius: 5,
+        marginTop: 20,
+    },
+    registerButtonText: { color: '#fff', textAlign: 'center', fontWeight: 'bold', fontSize: 16 },
 });
 
 export default RegisterScreen;

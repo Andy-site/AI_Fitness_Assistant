@@ -1,33 +1,34 @@
-from allauth.account.adapter import get_adapter
-from allauth.account.utils import setup_user_email
-from dj_rest_auth.registration.serializers import RegisterSerializer
+
 from rest_framework import serializers
+from django.core.exceptions import ValidationError
+import re
 from .models import CustomUser
 
-class CustomRegisterSerializer(RegisterSerializer):
-    name = serializers.CharField(max_length=255)
-    age = serializers.IntegerField(required=False, allow_null=True)
-    height = serializers.FloatField(required=False, allow_null=True)
-    weight = serializers.FloatField(required=False, allow_null=True)
-    goal = serializers.CharField(max_length=255, required=False, allow_blank=True)
+# Custom Password Regex Validator
+def validate_password_strength(value):
+    password_regex = r'^(?=.*[A-Za-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$'
+    if not re.match(password_regex, value):
+        raise ValidationError(
+            "Password must be at least 8 characters long, include one uppercase letter, one number, and one special character."
+        )
+    return value
 
-    def get_cleaned_data(self):
-        data = super().get_cleaned_data()
-        data.update({
-            'name': self.validated_data.get('name', ''),
-            'age': self.validated_data.get('age'),
-            'height': self.validated_data.get('height'),
-            'weight': self.validated_data.get('weight'),
-            'goal': self.validated_data.get('goal', ''),
-        })
-        return data
+class CustomRegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password_strength])
+    confirm_password = serializers.CharField(write_only=True, required=True)
 
-    def save(self, request):
-        user = super().save(request)
-        user.name = self.validated_data.get('name', '')
-        user.age = self.validated_data.get('age')
-        user.height = self.validated_data.get('height')
-        user.weight = self.validated_data.get('weight')
-        user.goal = self.validated_data.get('goal', '')
-        user.save()
+    class Meta:
+        model = CustomUser
+        fields = ['username', 'email', 'password', 'confirm_password', 'name', 'age', 'height', 'weight', 'goal']
+    
+    def validate(self, attrs):
+        # Check if passwords match
+        if attrs['password'] != attrs['confirm_password']:
+            raise serializers.ValidationError({"password": "Passwords must match."})
+        return attrs
+
+    def create(self, validated_data):
+        # Remove the confirm_password from the validated data
+        validated_data.pop('confirm_password', None)
+        user = CustomUser.objects.create_user(**validated_data)
         return user
