@@ -1,15 +1,12 @@
-import instance from './axios'; // Import the generic Axios instance
+import axios from 'axios';
 
-export const registerUser = async (userData) => {
-    try {
-        const response = await instance.post('/api/register/', userData); // Ensure correct endpoint
-        return response.data; // Handle response as needed
-    } catch (error) {
-        console.error('Registration error:', error.response || error);
-        throw new Error('Registration failed!');
-    }
-};
+const API_URL = 'http://127.0.0.1:8000/register/'; // Replace with your actual API URL
 
-export default {
-    registerUser,
+export const registerUser = async (formData) => {
+  try {
+    const response = await axios.post(`${API_URL}/register`, formData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
 };

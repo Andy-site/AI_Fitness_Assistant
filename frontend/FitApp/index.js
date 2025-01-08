@@ -2,8 +2,13 @@
  * @format
  */
 
-import {AppRegistry} from 'react-native';
-import App from './src/screens/RegisterScreen';
-import {name as appName} from './app.json';
+AppNavigator
+import AppNavigator from './src/navigation/AppNavigator';
 
-AppRegistry.registerComponent(appName, () => App);
+
+
+const App = () => {
+    return <AppNavigator />;
+  };
+  
+  export default App;
