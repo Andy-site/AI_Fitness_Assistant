@@ -156,7 +156,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = 'FitHub.FitHubUser'
+AUTH_USER_MODEL = 'FitHub.CustomUser'
 
 REST_AUTH_REGISTER_SERIALIZERS = {
     'REGISTER_SERIALIZER': 'your_app.serializers.CustomRegisterSerializer',
@@ -168,7 +168,7 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',  # Allauth backend
 ]
 
-SITE_ID = 1  # Required for django-allauth
+
 
 CORS_ALLOW_ALL_ORIGINS = True  # For development only
 CORS_ALLOW_CREDENTIALS = True
