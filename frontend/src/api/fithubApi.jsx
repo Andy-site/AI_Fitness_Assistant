@@ -1,16 +1,26 @@
-import axios from 'axios';
+// api/fithubApi.js
 
-const API_URL = 'http://127.0.0.1:8000/register/'; // Replace with your actual API URL
+const API_BASE_URL = 'http://10.0.2.2:8000/api';  // Update with your server URL
 
-export const registerUser = async (formData) => {
-    console.log('Sending registration data to backend:', formData); // Log the data
-
+export const registerUser = async (userData) => {
     try {
-        const response = await axios.post(API_URL, formData);
-        console.log('Backend response:', response.data); // Log the response data
-        return response.data;
+        const response = await fetch(`${API_BASE_URL}/register/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userData),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Registration failed');
+        }
+
+        return data;
     } catch (error) {
-        console.error('Error during registration API call:', error); // Log the error
+        console.error('API Error:', error);
         throw error;
     }
 };

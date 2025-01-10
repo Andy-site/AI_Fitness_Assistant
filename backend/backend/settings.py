@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-h(3sf+e)f(&b*b0307cba(%97kdviaokops%l-&6-evnreso4g
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['0.0.0.0', 'localhost', '127.0.0.1', '192.168.0.117']
+
 
 
 # Application definition
@@ -105,6 +106,8 @@ DATABASES = {
     }
 }
 
+CONN_MAX_AGE = 60
+ATOMIC_REQUESTS = True
 
 
 # Password validation
@@ -128,7 +131,7 @@ REST_AUTH_REGISTER_SERIALIZERS = {
     'REGISTER_SERIALIZER': 'your_app.serializers.CustomRegisterSerializer',
 }
 
-CORS_ALLOW_ALL_ORIGINS = True
+
 
 
 # Internationalization
@@ -153,7 +156,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = 'FitHub.CustomUser'
+AUTH_USER_MODEL = 'FitHub.FitHubUser'
 
 REST_AUTH_REGISTER_SERIALIZERS = {
     'REGISTER_SERIALIZER': 'your_app.serializers.CustomRegisterSerializer',
@@ -167,8 +170,14 @@ AUTHENTICATION_BACKENDS = [
 
 SITE_ID = 1  # Required for django-allauth
 
+CORS_ALLOW_ALL_ORIGINS = True  # For development only
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "http:// 192.168.0.117:3000",  # Add your React Native app URL here
-    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "http://10.0.2.2:8000",
+    "http://localhost:19000",
+    "http://localhost:19006",
 ]
+
+ALLOWED_HOSTS = ['*']

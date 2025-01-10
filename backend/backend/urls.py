@@ -16,10 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from dj_rest_auth.registration.views import RegisterView
+
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),    
-    path("",include('FitHub.urls')),
+    path('api/',include('FitHub.urls')),
 ]
