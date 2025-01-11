@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Text, Alert } from 'react-native';
-import InputField from '../components/InputField';
-import NextButton from '../components/NextButton';
+import InputField from '../../components/InputField';
+import NextButton from '../../components/NextButton';
 
 const NameScreen = ({ navigation, route }) => {
     // State for first and last name

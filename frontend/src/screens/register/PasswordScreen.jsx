@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import InputField from '../components/InputField';
-import NextButton from '../components/NextButton';
+import InputField from '../../components/InputField';
+import NextButton from '../../components/NextButton';
 
 const PasswordScreen = ({ navigation, route }) => {
   const { email } = route.params;
