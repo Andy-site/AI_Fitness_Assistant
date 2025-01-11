@@ -98,9 +98,9 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'GymCompanion',  # Name of the database you created
-        'USER': 'ananda',  # The user you created
-        'PASSWORD': 'Andy#@!123',  # The password you assigned
+        'NAME': 'fithub',  # Name of the database you created
+        'USER': 'postgres',  # The user you created
+        'PASSWORD': 'Andy#@!',  # The password you assigned
         'HOST': 'localhost',
         'PORT': '5432',  # Default port for PostgreSQL
     }
@@ -157,6 +157,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'FitHub.CustomUser'
+
 
 REST_AUTH_REGISTER_SERIALIZERS = {
     'REGISTER_SERIALIZER': 'your_app.serializers.CustomRegisterSerializer',

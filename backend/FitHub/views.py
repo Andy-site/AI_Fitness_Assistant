@@ -5,7 +5,6 @@ from rest_framework.views import APIView
 from .serializers import UserRegistrationSerializer
 
 
-
 class RegisterView(APIView):
 
     def post(self, request):
