@@ -168,6 +168,11 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',  # Default
     'allauth.account.auth_backends.AuthenticationBackend',  # Allauth backend
 ]
+REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
+    'NON_FIELD_ERRORS_KEY': 'detail',
+}
+
 
 
 

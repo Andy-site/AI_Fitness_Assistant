@@ -7,23 +7,39 @@ const RegisterScreen = ({ route }) => {
     const { email, password, firstName, lastName, age, height, weight, goal } = route.params || {};
 
     const handleRegister = async () => {
-        // Log the data being sent
-        console.log('Registration Data:', { email, password, firstName, lastName, age, height, weight, goal });
-
         try {
-            const response = await registerUser({ email, password, firstName, lastName, age, height, weight, goal });
+            const registrationData = {
+                email,
+                password,
+                first_name: firstName, // Match backend field name
+                last_name: lastName,
+                age: parseInt(age, 10),
+                height: parseFloat(height),
+                weight: parseFloat(weight),
+                goal,
+            };
+    
+            console.log('Sending Registration Data:', registrationData);
+    
+            const response = await registerUser(registrationData);
             console.log('Registration Response:', response);
+    
             if (response && response.success) {
                 Alert.alert('Registration Complete', `Welcome, ${firstName} ${lastName}!`);
             } else {
                 Alert.alert('Registration Failed', 'Please try again.');
             }
         } catch (error) {
-            console.error('Registration Error:', error);
-            Alert.alert('Registration Failed', 'Something went wrong.');
+            if (error.response) {
+                console.error('Backend Error:', error.response.data);
+                Alert.alert('Registration Failed', `Error: ${JSON.stringify(error.response.data)}`);
+            } else {
+                console.error('Error:', error.message);
+                Alert.alert('Registration Failed', 'An unknown error occurred.');
+            }
         }
     };
-
+    
     return (
         <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
             <Text>Email: {email}</Text>
