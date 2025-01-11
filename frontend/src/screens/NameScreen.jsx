@@ -14,9 +14,6 @@ const NameScreen = ({ navigation, route }) => {
             return;
         }
 
-        // Log data for debugging
-        console.log('Navigating to AgeScreen with:', { firstName, lastName });
-
         // Pass the names to the next screen
         navigation.navigate('AgeScreen', { ...route.params, firstName, lastName });
     };

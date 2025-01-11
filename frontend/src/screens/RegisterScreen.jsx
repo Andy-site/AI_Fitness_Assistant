@@ -18,28 +18,21 @@ const RegisterScreen = ({ route }) => {
                 weight: parseFloat(weight),
                 goal,
             };
-    
-            console.log('Sending Registration Data:', registrationData);
-    
+
             const response = await registerUser(registrationData);
-            console.log('Registration Response:', response);
-    
-            if (response && response.success) {
+
+            // Check the response and alert accordingly
+            if (response && response.message === 'User registered successfully') {
                 Alert.alert('Registration Complete', `Welcome, ${firstName} ${lastName}!`);
             } else {
                 Alert.alert('Registration Failed', 'Please try again.');
             }
         } catch (error) {
-            if (error.response) {
-                console.error('Backend Error:', error.response.data);
-                Alert.alert('Registration Failed', `Error: ${JSON.stringify(error.response.data)}`);
-            } else {
-                console.error('Error:', error.message);
-                Alert.alert('Registration Failed', 'An unknown error occurred.');
-            }
+            console.error('Error:', error.message);
+            Alert.alert('Registration Failed', 'An unknown error occurred.');
         }
     };
-    
+
     return (
         <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
             <Text>Email: {email}</Text>
