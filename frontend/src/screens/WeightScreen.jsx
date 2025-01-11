@@ -7,7 +7,12 @@ const WeightScreen = ({ navigation, route }) => {
     const [weight, setWeight] = useState(route.params?.weight || '');
 
     const handleNext = () => {
-        navigation.navigate('GoalScreen', { ...route.params, weight });
+        const parsedWeight = parseFloat(weight); // Parse weight as a float
+        if (!isNaN(parsedWeight) && parsedWeight > 0) {
+            navigation.navigate('SummaryScreen', { ...route.params, weight: parsedWeight });
+        } else {
+            alert("Please enter a valid weight (e.g., 65)");
+        }
     };
 
     return (

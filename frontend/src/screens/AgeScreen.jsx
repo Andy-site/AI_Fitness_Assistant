@@ -7,7 +7,12 @@ const AgeScreen = ({ navigation, route }) => {
     const [age, setAge] = useState(route.params?.age || '');
 
     const handleNext = () => {
-        navigation.navigate('HeightScreen', { ...route.params, age });
+        const parsedAge = parseInt(age, 10); // Parse age as an integer
+        if (!isNaN(parsedAge) && parsedAge > 0) {
+            navigation.navigate('HeightScreen', { ...route.params, age: parsedAge });
+        } else {
+            alert("Please enter a valid age (e.g., 22)");
+        }
     };
 
     return (

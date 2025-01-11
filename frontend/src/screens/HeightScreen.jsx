@@ -7,7 +7,13 @@ const HeightScreen = ({ navigation, route }) => {
     const [height, setHeight] = useState(route.params?.height || '');
 
     const handleNext = () => {
-        navigation.navigate('WeightScreen', { ...route.params, height });
+        // Parse the height as a float before navigating to the next screen
+        const parsedHeight = parseFloat(height);
+        if (!isNaN(parsedHeight)) {
+            navigation.navigate('WeightScreen', { ...route.params, height: parsedHeight });
+        } else {
+            alert("Please enter a valid height (e.g., 5.9)");
+        }
     };
 
     return (
