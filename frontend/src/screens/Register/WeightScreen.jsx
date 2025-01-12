@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View,  Button, StyleSheet } from 'react-native';
-import InputField from '../components/InputField';
-import NextButton from '../components/NextButton';
+import InputField from '../../components/InputField';
+import NextButton from '../../components/NextButton';
 
 const WeightScreen = ({ navigation, route }) => {
     const [weight, setWeight] = useState(route.params?.weight || '');

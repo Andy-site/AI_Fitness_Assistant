@@ -1,21 +1,31 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
-import EmailScreen from '../screens/EmailScreen';
-import PasswordScreen from '../screens/PasswordScreen';
-import NameScreen from '../screens/NameScreen';
-import AgeScreen from '../screens/AgeScreen';
-import HeightScreen from '../screens/HeightScreen';
-import WeightScreen from '../screens/WeightScreen';
-import GoalScreen from '../screens/GoalScreen';
-import RegisterScreen from '../screens/RegisterScreen';
+import EmailScreen from '../screens/Register/EmailScreen';
+import PasswordScreen from '../screens/Register/PasswordScreen';
+import NameScreen from '../screens/Register/NameScreen';
+import AgeScreen from '../screens/Register/AgeScreen';
+import HeightScreen from '../screens/Register/HeightScreen';
+import WeightScreen from '../screens/Register/WeightScreen';
+import GoalScreen from '../screens/Register/GoalScreen';
+import RegisterScreen from '../screens/Register/RegisterScreen';
 import { NavigationContainer } from '@react-navigation/native';
+import Landing from '../screens/Loading/Landing';
+import Loading1 from '../screens/Loading/Loading1';
+import Loading2 from '../screens/Loading/Loading2';
+import Loading3 from '../screens/Loading/Loading3';
+import Loading4 from '../screens/Loading/Loading4';
 
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Email">
+      <Stack.Navigator initialRouteName="Landing">
+        <Stack.Screen name="Landing" component={Landing}  options={{ headerShown: false }}/>
+        <Stack.Screen name="Loading1" component={Loading1}  options={{ headerShown: false }}/>
+        <Stack.Screen name="Loading2" component={Loading2}  options={{ headerShown: false }}/>
+        <Stack.Screen name="Loading3" component={Loading3} options ={{ headerShown: false }}/>
+        <Stack.Screen name="Loading4" component={Loading4} options={{ headerShown: false }}/>
         <Stack.Screen name="Email" component= { EmailScreen } />
         <Stack.Screen name="PasswordScreen" component={PasswordScreen} />
         <Stack.Screen name="NameScreen" component={NameScreen} />

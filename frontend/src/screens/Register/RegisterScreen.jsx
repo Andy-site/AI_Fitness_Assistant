@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Button, Alert, StyleSheet } from 'react-native';
-import { registerUser } from '../api/fithubApi';
+import { registerUser } from '../../api/fithubApi';
 
 const RegisterScreen = ({ route }) => {
     // Destructuring safely with a fallback to prevent errors

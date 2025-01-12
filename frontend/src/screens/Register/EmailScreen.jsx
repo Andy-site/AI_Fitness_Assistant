@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import InputField from '../components/InputField';
-import NextButton from '../components/NextButton';
+import InputField from '../../components/InputField';
+import NextButton from '../../components/NextButton';
 
 const EmailScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');

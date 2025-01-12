@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View,   StyleSheet } from 'react-native';
-import InputField from '../components/InputField';
-import NextButton from '../components/NextButton';
+import InputField from '../../components/InputField';
+import NextButton from '../../components/NextButton';
 
 const AgeScreen = ({ navigation, route }) => {
     const [age, setAge] = useState(route.params?.age || '');

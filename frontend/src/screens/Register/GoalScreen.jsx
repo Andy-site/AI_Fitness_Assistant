@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import NextButton from '../components/NextButton';
+import NextButton from '../../components/NextButton';
 
 const GoalScreen = ({ navigation, route }) => {
     const [goal, setGoal] = useState(route.params?.goal || '');
