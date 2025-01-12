@@ -1,7 +1,16 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View, Text, Image } from 'react-native';
 
-const Loading1 = () => {
+const Loading1 = ({ navigation }) => {
+  useEffect(() => {
+    // Navigate to the next screen (Email screen) after 1 second
+    const timer = setTimeout(() => {
+      navigation.navigate('Loading2'); // Replace with your desired next screen
+    }, 1000); // 1 second delay
+
+    // Cleanup on unmount
+    return () => clearTimeout(timer);
+  }, [navigation]);
   return (
     <View style={styles.container}>
       {/* Background Image */}
