@@ -67,14 +67,17 @@ const Loading4 = ({ navigation }) => {
        backgroundColor: 'rgba(0, 0, 0, 0.2)',
      },
      gradientButton: {
-       position: 'absolute',
-       width: '100%',
-       height: 169,
-       top: 337,
-       backgroundColor: '#B3A0FF',
-       backdropFilter: 'blur(7px)', 
-       filter: 'drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.25))',
-     },
+      position: 'absolute',
+      width: '100%',
+      height: 169,
+      top: 337,
+      backgroundColor: '#B3A0FF',
+      opacity: 0.9, // Adjust opacity for the gradient effect
+      shadowColor: "#000", // Adding shadow for a blur-like effect
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+    },
      workOutIcon: {
        position: 'absolute',
        width: 50, 

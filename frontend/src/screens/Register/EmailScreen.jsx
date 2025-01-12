@@ -1,5 +1,7 @@
+// EmailScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
+import NextButton from '../../components/NextButton'; // Import custom button
 
 const EmailScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -41,7 +43,7 @@ const EmailScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome</Text>
-      <Text style={styles.journeyText}>Let's start with your registration first</Text> {/* Added Journey Text */}
+      <Text style={styles.journeyText}>Let's start with your registration first</Text>
 
       <View style={styles.inputContainer}>
         <View style={styles.purpleBackground}>
@@ -60,9 +62,13 @@ const EmailScreen = ({ navigation }) => {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.nextButton} onPress={handleNext} disabled={!isValid || !email}>
-        <Text style={styles.nextButtonText}>Next</Text>
-      </TouchableOpacity>
+      <NextButton 
+  title="Next" 
+  onPress={handleNext} 
+  disabled={!isValid || !email} // Disable if email is invalid or empty
+  style={{ marginLeft: 0 }} // Apply inline marginLeft of -30
+/>
+
 
       <Text style={styles.helperText}>We'll send you email verification</Text>
     </View>
@@ -74,42 +80,37 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000000', // Black background
-    padding: 0,
+    backgroundColor: '#000000',
+    paddingHorizontal: 20,
   },
   purpleBackground: {
     backgroundColor: '#B3A0FF',
     width: '100%',
     padding: 20,
     borderRadius: 15,
-    marginBottom: 30,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 15,
-  },
-  journeyText: { // Added new style for Journey text
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '300',
-    marginBottom: 70, // Added margin for spacing
-  },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: '300',
-    color: '#FFFFFF',
+    marginBottom: 10,
     textAlign: 'center',
-    marginBottom: 20,
+  },
+  journeyText: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: '300',
+    marginBottom: 50,
+    textAlign: 'center',
   },
   inputContainer: {
     width: '100%',
-    marginBottom: '',
+    marginBottom: 30,
   },
   label: {
-    fontSize: 18,
-    color: '#00000',
+    fontSize: 16,
+    color: '#232323',
     fontWeight: '500',
     marginBottom: 8,
   },
@@ -132,22 +133,7 @@ const styles = StyleSheet.create({
     color: '#FF5252',
     marginTop: 8,
     marginLeft: 4,
-  },
-  nextButton: {
-    width: '60%',
-    height: 44,
-    backgroundColor: '#232323', // Purple background for the button
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 100,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: '#FFFFFF', // white border
-  },
-  nextButtonText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '500',
   },
   helperText: {
     fontSize: 14,
