@@ -26,43 +26,43 @@ const GoalScreen = ({ navigation, route }) => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.content}>
-                <Text style={styles.title}>Select Your Goal</Text>
-                <Text style={styles.subtitle}>What do you want to achieve?</Text>
+            <Text style={styles.title}>Select Your Goal</Text>
+            <Text style={styles.subtitle}>What do you want to achieve?</Text>
 
-                <View style={styles.selectorContainer}>
-                    {goals.map((item, index) => (
-                        <TouchableOpacity
-                            key={index}
+            <View style={styles.selectorContainer}>
+                {goals.map((item, index) => (
+                    <TouchableOpacity
+                        key={index}
+                        style={[
+                            styles.optionButton,
+                            goal === item.value && styles.selectedButton,
+                            error && styles.errorBorder
+                        ]}
+                        onPress={() => handleSelect(item.value)}
+                        activeOpacity={0.7}
+                    >
+                        <Text
                             style={[
-                                styles.optionButton,
-                                goal === item.value && styles.selectedButton,
-                                error && styles.errorBorder
-                            ]}
-                            onPress={() => handleSelect(item.value)}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={[
                                 styles.optionText,
                                 goal === item.value && styles.selectedText
-                            ]}>
-                                {item.label}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                    
-                    {error ? (
-                        <Text style={styles.errorMessage}>{error}</Text>
-                    ) : (
-                        <Text style={styles.helperText}>
-                            This will help us personalize your experience
+                            ]}
+                        >
+                            {item.label}
                         </Text>
-                    )}
-                </View>
+                    </TouchableOpacity>
+                ))}
+
+                {error ? (
+                    <Text style={styles.errorMessage}>{error}</Text>
+                ) : (
+                    <Text style={styles.helperText}>
+                        This will help us personalize your experience
+                    </Text>
+                )}
             </View>
 
-            <NextButton 
-                title="Finish Registration" 
+            <NextButton
+                title="Finish Registration"
                 onPress={handleNext}
                 disabled={!goal}
             />
@@ -74,28 +74,27 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 20,
-        backgroundColor: '#fff',
-    },
-    content: {
-        flex: 1,
+        backgroundColor: '#000000', // Black background
         justifyContent: 'center',
     },
     title: {
-        fontSize: 24,
-        fontWeight: 'bold',
+        fontSize: 28,
+        fontWeight: '700',
+        color: '#FFFFFF', // White text for title
         marginBottom: 8,
-        color: '#333',
+        textAlign: 'center',
     },
     subtitle: {
         fontSize: 16,
-        color: '#666',
+        color: '#B3A0FF', // Purple text for subtitle
+        textAlign: 'center',
         marginBottom: 24,
     },
     selectorContainer: {
         marginBottom: 24,
     },
     optionButton: {
-        backgroundColor: '#f8f8f8',
+        backgroundColor: '#B3A0FF', // Purple button background
         borderWidth: 1,
         borderColor: '#ddd',
         borderRadius: 8,
@@ -103,16 +102,13 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         alignItems: 'center',
         shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
+        shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 1,
         elevation: 1,
     },
     selectedButton: {
-        backgroundColor: '#e8f0fe',
+        backgroundColor: '#e8f0fe', // Light blue selected background
         borderColor: '#007AFF',
         borderWidth: 2,
     },
@@ -122,14 +118,14 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     selectedText: {
-        color: '#007AFF',
+        color: '#007AFF', // Blue text for selected option
         fontWeight: 'bold',
     },
     errorBorder: {
-        borderColor: '#FF5252',
+        borderColor: '#FF5252', // Red border if there's an error
     },
     errorMessage: {
-        color: '#FF5252',
+        color: '#FF5252', // Red color for error message
         fontSize: 14,
         marginTop: 8,
         marginLeft: 4,

@@ -1,25 +1,21 @@
 import React from 'react';
 import { TextInput, StyleSheet } from 'react-native';
 
-const InputField = ({ placeholder, value, onChangeText, keyboardType,  }) => {
-  return (
-    <TextInput
-      placeholder={placeholder}
-      style={styles.input}
-      value={value}
-      onChangeText={onChangeText}
-      keyboardType={keyboardType}
-      
-    />
-  );
+const InputField = ({ style, ...props }) => {
+  return <TextInput style={[styles.input, style]} {...props} />;
 };
 
 const styles = StyleSheet.create({
-  input: { 
-    borderWidth: 1, 
-    marginVertical: 10, 
-    padding: 10, 
-    borderRadius: 5 
+  input: {
+    width: '100%',
+    height: 45,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    paddingLeft: 10,
+    fontSize: 16,
+    color: '#232323',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
   },
 });
 

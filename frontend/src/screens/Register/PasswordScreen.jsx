@@ -111,11 +111,18 @@ const PasswordScreen = ({ navigation, route }) => {
       <Text style={styles.title}>Create Password</Text>
 
       <View style={styles.purpleBackgroundLarge}>
+        <Text style={styles.label}>Password</Text>
         <PasswordInput
           placeholder="Password"
           value={password}
           onChangeText={setPassword}
         />
+        
+         {/* Separator Line */}
+        <View style={styles.separatorLine} />
+
+
+        <Text style={styles.label}>Confirm Password</Text>
         <PasswordInput
           placeholder="Confirm Password"
           value={confirmPassword}
@@ -159,12 +166,24 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     color: '#FFFFFF',
+    textAlign: 'center',
   },
   purpleBackgroundLarge: {
     backgroundColor: '#B3A0FF',
     padding: 20,
-    borderRadius: 15,
+    borderRadius: 20,
     marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    color: '#232323',
+    fontWeight: '500',
+    marginBottom: 10,
+  },
+  separatorLine: {
+    height: 1,
+    backgroundColor: '#CCCCCC', // Light gray color for the separator line
+    marginVertical: 15, // Space around the separator line
   },
   inputContainer: {
     width: '100%',
