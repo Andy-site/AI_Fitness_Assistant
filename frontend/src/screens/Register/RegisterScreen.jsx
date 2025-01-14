@@ -16,7 +16,7 @@ const RegisterScreen = ({ navigation, route }) => {
         }
 
         // Proceed to next screen after OTP verification (assuming a success response)
-        Alert.alert('OTP Verified', 'Your OTP is correct!');
+        Alert.alert('Congrats!! You have been registered');
 
         // Navigate to the next screen, passing user info (if needed)
         navigation.navigate('LoginScreen', { ...route.params });
@@ -61,7 +61,7 @@ const RegisterScreen = ({ navigation, route }) => {
                                 onChangeText={(text) => handleOtpChange(text, index)}
                                 onKeyPress={(e) => handleKeyPress(e, index)}
                                 onFocus={() => handleFocus(index)}
-                                autoFocus={isFocused === index}
+                                autoFocus={isFocused === index} // Automatically focus the current input
                             />
                         ))}
                     </View>

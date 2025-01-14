@@ -32,7 +32,7 @@ const handleSubmit = async () => {
     await AsyncStorage.setItem('jwt_token', response.access);
 
     // Navigate to the HomeScreen after successful login
-    navigation.navigate('HomeScreen'); 
+    navigation.navigate('Home'); 
   } catch (err) {
     console.error('Login error:', err);
     setError('Invalid email or password');
@@ -63,7 +63,7 @@ const handleSubmit = async () => {
           placeholder="Enter your password"
         />
 
-        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword1')}>
           <Text style={styles.forgotPassword}>Forgot Password?</Text>
         </TouchableOpacity>
       </View>

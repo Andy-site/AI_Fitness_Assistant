@@ -15,7 +15,7 @@ export const registerUser = async (userData) => {
         return response.data;
     } catch (error) {
         console.error('Register error:', error.response?.data || error.message); // Debug log
-        throw new Error('An error occurred during registration.');
+        throw error.response?.data || { message: 'An error occurred during registration.' };
     }
 };
 
@@ -32,35 +32,87 @@ export const sendOtp = async (email) => {
         return response.data;
     } catch (error) {
         console.error('Send OTP error:', error.response?.data || error.message); // Debug log
-        throw new Error('Error sending OTP.');
+        throw error.response?.data || { message: 'Error sending OTP.' };
     }
 };
 
 // API call for verifying the OTP
 export const verifyOtp = async (otp, email) => {
+    console.log('Verifying OTP for email:', email); // Debug log
     try {
         const response = await axios.post(`${API_BASE_URL}/verify-otp/`, { otp, email }, {
             headers: {
                 'Content-Type': 'application/json',
             },
         });
-
+        console.log('Verify OTP response:', response.data); // Debug log
         return response.data;
     } catch (error) {
-        throw new Error('Invalid OTP or an error occurred.');
+        console.error('Verify OTP error:', error.response?.data || error.message); // Debug log
+        throw error.response?.data || { message: 'Invalid OTP or an error occurred.' };
     }
 };
 
 // API call for logging in and getting JWT token
 export const loginUser = async (email, password) => {
+    console.log('Logging in user with email:', email); // Debug log
     try {
-        const response = await axios.post(`${API_BASE_URL}/token/`, {
+        const response = await axios.post(`${API_BASE_URL}/login/`, {
             email,
             password,
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
         });
-
-        return response.data; // Returns access token
+        console.log('Login response:', response.data); // Debug log
+        return response.data; // Returns access and refresh tokens
     } catch (error) {
-        throw new Error('Invalid email or password');
+        console.error('Login error:', error.response?.data || error.message); // Debug log
+        throw error.response?.data || { message: 'Invalid email or password.' };
     }
 };
+
+// API call for sending a password reset token
+export const forgotPasswordRequest = async (email) => {
+    console.log('Requesting password reset for email:', email); // Debug log
+    try {
+        const response = await axios.post(`${API_BASE_URL}/forgot-password/`, { email }, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        console.log('Forgot password response:', response.data); // Debug log
+        return response.data;
+    } catch (error) {
+        console.error('Forgot password error:', error.response?.data || error.message); // Debug log
+        throw error.response?.data || { message: 'Failed to send password reset email.' };
+    }
+};
+
+
+
+export const changePassword = async (email, newPassword, otp) => {
+    console.log('Changing password for email:', email); // Debug log
+    try {
+      const response = await axios.post(`${API_BASE_URL}/reset-password/`, { 
+        token: email,        // Assuming the 'token' is the user's email
+        otp: otp,            // OTP passed from the previous screen
+        password: newPassword 
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      console.log('Change password response:', response.data); // Debug log
+      return response.data;
+    } catch (error) {
+      console.error('Change password error:', error.response?.data || error.message); // Debug log
+      throw error.response?.data || { message: 'Error changing password.' };
+    }
+  };
+  
+
+
+
+

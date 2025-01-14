@@ -12,3 +12,5 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         # Create the user with the validated data
         user = CustomUser.objects.create_user(**validated_data)
         return user
+
+

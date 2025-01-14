@@ -134,29 +134,34 @@ def ForgotPasswordTokenView( request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def reset_password(request):
+    # Extract token and OTP from the request
     token = request.data.get('token')
+    otp = request.data.get('otp')
     new_password = request.data.get('password')
 
-    if not token or not new_password:
-        return Response({"error": "Token and password are required."}, status=400)
+    if not token or not otp or not new_password:
+        return Response({"error": "Token, OTP, and password are required."}, status=400)
 
     try:
-        # Decode the token to ensure it's valid
-        UntypedToken(token)
+        # Check if the user exists from the token
+        # Assuming token contains email or decode the token to extract email
+        user = CustomUser.objects.get(email=token)  # Use email instead of id
 
-        # Extract user ID from token payload
-        user_id = RefreshToken(token).payload.get('user_id')
-        user = CustomUser.objects.get(id=user_id)
+        # Validate OTP
+        if not user.is_otp_valid(otp):
+            return Response({"error": "Invalid or expired OTP."}, status=400)
 
-        # Update the user's password
+        # Reset the password if OTP is valid
         user.set_password(new_password)
+        user.otp = None  # Clear OTP after successful reset
         user.save()
 
         return Response({"message": "Password reset successful!"})
+
     except CustomUser.DoesNotExist:
         return Response({"error": "User not found."}, status=404)
     except Exception as e:
-        return Response({"error": "Invalid or expired token."}, status=400)
+        return Response({"error": str(e)}, status=400)
     
 
 @api_view(['GET'])
@@ -168,3 +173,4 @@ def HomeView(request):
     return Response({
         "message": "Welcome to the Home Page! You are successfully authenticated."
     })
+    

@@ -188,7 +188,7 @@ REST_AUTH_REGISTER_SERIALIZERS = {
 
 REST_USE_JWT = True 
 AUTHENTICATION_BACKENDS = [
-    'yourapp.backends.EmailBackend',  # Your custom backend
+    'FitHub.backends.EmailBackend',  # Your custom backend
     'django.contrib.auth.backends.ModelBackend',  # Default backend
 ]
 
