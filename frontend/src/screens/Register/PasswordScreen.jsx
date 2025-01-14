@@ -1,3 +1,4 @@
+//Password screen
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
