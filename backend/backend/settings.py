@@ -11,7 +11,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -24,6 +28,14 @@ SECRET_KEY = 'django-insecure-h(3sf+e)f(&b*b0307cba(%97kdviaokops%l-&6-evnreso4g
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+# Add these to settings.py
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')  # Read email from .env
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')   # Your Gmail app password
 
 ALLOWED_HOSTS = ['*']
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import NextButton from '../../components/NextButton';
+import { registerUser, sendOtp } from '../../fithubapi'; // Import the function to send OTP
 
 const GoalScreen = ({ navigation, route }) => {
     const [goal, setGoal] = useState(route.params?.goal || '');
@@ -11,12 +12,26 @@ const GoalScreen = ({ navigation, route }) => {
         { label: 'Weight Gain', value: 'Weight Gain' },
     ];
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (!goal) {
             setError('Please select your goal');
             return;
         }
-        navigation.navigate('RegisterScreen', { ...route.params, goal });
+
+        const userData = { ...route.params, goal };
+
+        try {
+            // Register the user
+            const response = await registerUser(userData);
+
+            // Send OTP to user's email after successful registration
+            await sendOtp(userData.email);
+
+            // Navigate to RegisterScreen
+            navigation.navigate('RegisterScreen', { ...route.params, goal });
+        } catch (error) {
+            setError('Error during registration or OTP sending.');
+        }
     };
 
     const handleSelect = (selectedGoal) => {
@@ -70,23 +85,24 @@ const GoalScreen = ({ navigation, route }) => {
     );
 };
 
+// Your styles here
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 20,
-        backgroundColor: '#000000', // Black background
+        backgroundColor: '#000000',
         justifyContent: 'center',
     },
     title: {
         fontSize: 28,
         fontWeight: '700',
-        color: '#FFFFFF', // White text for title
+        color: '#FFFFFF',
         marginBottom: 8,
         textAlign: 'center',
     },
     subtitle: {
         fontSize: 16,
-        color: '#B3A0FF', // Purple text for subtitle
+        color: '#B3A0FF',
         textAlign: 'center',
         marginBottom: 24,
     },
@@ -94,7 +110,7 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     optionButton: {
-        backgroundColor: '#B3A0FF', // Purple button background
+        backgroundColor: '#B3A0FF',
         borderWidth: 1,
         borderColor: '#ddd',
         borderRadius: 8,
@@ -108,7 +124,7 @@ const styles = StyleSheet.create({
         elevation: 1,
     },
     selectedButton: {
-        backgroundColor: '#e8f0fe', // Light blue selected background
+        backgroundColor: '#e8f0fe',
         borderColor: '#007AFF',
         borderWidth: 2,
     },
@@ -118,14 +134,14 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     selectedText: {
-        color: '#007AFF', // Blue text for selected option
+        color: '#007AFF',
         fontWeight: 'bold',
     },
     errorBorder: {
-        borderColor: '#FF5252', // Red border if there's an error
+        borderColor: '#FF5252',
     },
     errorMessage: {
-        color: '#FF5252', // Red color for error message
+        color: '#FF5252',
         fontSize: 14,
         marginTop: 8,
         marginLeft: 4,

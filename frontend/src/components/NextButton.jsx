@@ -1,23 +1,29 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 
 const NextButton = ({ title, onPress, disabled, style }) => {
   return (
-    <TouchableOpacity 
-      style={[styles.nextButton, disabled && styles.disabledButton, style]} // Merge styles
-      onPress={onPress} 
-      disabled={disabled}
-    >
-      <Text style={styles.nextButtonText}>{title}</Text>
-    </TouchableOpacity>
+    <View style={styles.buttonContainer}>
+      <TouchableOpacity
+        style={[styles.nextButton, disabled && styles.disabledButton, style]} // Merge styles
+        onPress={onPress}
+        disabled={disabled}
+      >
+        <Text style={styles.nextButtonText}>{title}</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  buttonContainer: {
+    flexDirection: 'row', // Use row direction to horizontally center the button
+    justifyContent: 'center', // Center the button horizontally
+    width: '100%', // Ensure it takes up full width
+  },
   nextButton: {
     width: '70%',
     height: 50,
-    
     backgroundColor: '#232323',
     justifyContent: 'center',
     alignItems: 'center',
@@ -25,7 +31,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     borderWidth: 1,
     borderColor: '#FFFFFF',
-    marginLeft:50,
   },
   nextButtonText: {
     fontSize: 20,

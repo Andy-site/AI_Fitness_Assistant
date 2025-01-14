@@ -1,20 +1,68 @@
-# FitHub/views
 from rest_framework.decorators import api_view
 from rest_framework import status
 from rest_framework.response import Response
+from django.core.mail import send_mail
+from django.shortcuts import get_object_or_404
+from django.conf import settings
 from .serializers import UserRegistrationSerializer
+from .models import CustomUser
+import logging
+
+logger = logging.getLogger(__name__)
+
+def get_user_by_email(email):
+    return get_object_or_404(CustomUser, email=email)
 
 @api_view(['POST'])
 def RegisterView(request):
-    # Create a serializer instance with the incoming data
     serializer = UserRegistrationSerializer(data=request.data)
-    
-    # Validate the data
     if serializer.is_valid():
-        # If valid, save the user and return a success response
-        serializer.save()
-        return Response({'message': 'User registered successfully'}, status=status.HTTP_201_CREATED)
-    else:
-        # Log the validation errors for debugging
-        print("Validation Errors: ", serializer.errors)
-        return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        user = serializer.save(is_active=False)  # Save as inactive
+        user.generate_otp()  # Generate OTP
+        try:
+            send_mail(
+                'Your OTP Code',
+                f'Your OTP code is {user.otp}',
+                settings.EMAIL_HOST_USER,
+                [user.email],
+            )
+            return Response({'message': 'User registered. OTP sent to email.'}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': f'Failed to send OTP: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def SendOtpView(request):
+    email = request.data.get('email')
+    user = get_user_by_email(email)
+
+    try:
+        user.generate_otp()
+        send_mail(
+            'Your OTP Code',
+            f'Your OTP code is {user.otp}',
+            settings.EMAIL_HOST_USER,
+            [email],
+        )
+        return Response({'message': 'OTP sent successfully'}, status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.error("Failed to send OTP email: %s", str(e))
+        return Response({'error': 'Failed to send OTP. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+
+def VerifyOtpView(request):
+    email = request.data.get('email')
+    otp = request.data.get('otp')
+
+    user = get_object_or_404(CustomUser, email=email)
+    if user.is_otp_valid(otp):
+        user.is_active = True  # Activate the user
+        user.otp = None  # Clear the OTP
+        user.otp_created_at = None  # Clear OTP timestamp
+        user.save()
+        return Response({'message': 'OTP verified successfully. Account activated.'}, status=status.HTTP_200_OK)
+
+    return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
+

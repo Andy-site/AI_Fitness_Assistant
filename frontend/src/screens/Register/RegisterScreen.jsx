@@ -1,56 +1,121 @@
-import React from 'react';
-import { View, Text, Button, Alert, StyleSheet } from 'react-native';
-import { registerUser } from '../../api/fithubApi';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Alert, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import InputField from '../../components/InputField'; // Assuming this is a reusable input component
+import NextButton from '../../components/NextButton';
 
-const RegisterScreen = ({ route }) => {
-    // Destructuring safely with a fallback to prevent errors
-    const { email, password, firstName, lastName, age, height, weight, goal } = route.params || {};
+const RegisterScreen = ({ navigation, route }) => {
+    const [otp, setOtp] = useState(['', '', '', '', '', '']);
+    const [isFocused, setIsFocused] = useState(null);
 
-    const handleRegister = async () => {
-        try {
-            const registrationData = {
-                email,
-                password,
-                first_name: firstName, // Match backend field name
-                last_name: lastName,
-                age: parseInt(age, 10),
-                height: parseFloat(height),
-                weight: parseFloat(weight),
-                goal,
-            };
+    const handleVerifyOtp = () => {
+        // Join the OTP array into a string
+        const enteredOtp = otp.join('');
+        if (enteredOtp.length !== 6) {
+            Alert.alert('Invalid OTP', 'Please enter a valid 6-digit OTP.');
+            return;
+        }
 
-            const response = await registerUser(registrationData);
+        // Proceed to next screen after OTP verification (assuming a success response)
+        Alert.alert('OTP Verified', 'Your OTP is correct!');
 
-            // Check the response and alert accordingly
-            if (response && response.message === 'User registered successfully') {
-                Alert.alert('Registration Complete', `Welcome, ${firstName} ${lastName}!`);
-            } else {
-                Alert.alert('Registration Failed', 'Please try again.');
-            }
-        } catch (error) {
-            console.error('Error:', error.message);
-            Alert.alert('Registration Failed', 'An unknown error occurred.');
+        // Navigate to the next screen, passing user info (if needed)
+        navigation.navigate('NextScreen', { ...route.params });
+    };
+
+    const handleOtpChange = (text, index) => {
+        const updatedOtp = [...otp];
+        updatedOtp[index] = text;
+        setOtp(updatedOtp);
+
+        // Move focus to next input if the user enters a digit
+        if (text && index < otp.length - 1) {
+            setIsFocused(index + 1);
         }
     };
 
+    const handleKeyPress = (e, index) => {
+        if (e.nativeEvent.key === 'Backspace' && index > 0) {
+            // Move focus to the previous input if backspace is pressed
+            setIsFocused(index - 1);
+        }
+    };
+
+    const handleFocus = (index) => {
+        setIsFocused(index);
+    };
+
     return (
-        <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
-            <Text>Email: {email}</Text>
-            <Text>Password: {password}</Text>
-            <Text>First Name: {firstName}</Text>
-            <Text>Last Name: {lastName}</Text>
-            <Text>Age: {age}</Text>
-            <Text>Height: {height}</Text>
-            <Text>Weight: {weight}</Text>
-            <Text>Goal: {goal}</Text>
-            <Button title="Complete Registration" onPress={handleRegister} />
-        </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <View style={styles.container}>
+                <Text style={styles.title}>Enter OTP</Text>
+                <View style={styles.purpleBackground}>
+                    <Text style={styles.label}>Enter the OTP sent to your email</Text>
+                    <View style={styles.otpContainer}>
+                        {otp.map((digit, index) => (
+                            <InputField
+                                key={index}
+                                style={styles.input}
+                                maxLength={1}
+                                keyboardType="numeric"
+                                value={digit}
+                                onChangeText={(text) => handleOtpChange(text, index)}
+                                onKeyPress={(e) => handleKeyPress(e, index)}
+                                onFocus={() => handleFocus(index)}
+                                autoFocus={isFocused === index}
+                            />
+                        ))}
+                    </View>
+                </View>
+                <NextButton title="Verify OTP" onPress={handleVerifyOtp} />
+            </View>
+        </TouchableWithoutFeedback>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', padding: 20 },
-    input: { borderWidth: 1, marginVertical: 10, padding: 10, borderRadius: 5 },
+    container: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#000000', // Black background
+        padding: 20,
+    },
+    purpleBackground: {
+        backgroundColor: '#B3A0FF', // Purple container background
+        width: '100%',
+        padding: 20,
+        borderRadius: 15,
+        marginBottom: 20,
+    },
+    label: {
+        fontSize: 16,
+        color: '#232323',
+        fontWeight: '500',
+        marginBottom: 10,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        marginBottom: 50,
+        textAlign: 'center',
+    },
+    otpContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+    },
+    input: {
+        width: 45,
+        height: 45,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 15,
+        textAlign: 'center',
+        fontSize: 18,
+        color: '#232323',
+        borderWidth: 1,
+        borderColor: '#FFFFFF',
+    },
 });
 
 export default RegisterScreen;
