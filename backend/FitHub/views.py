@@ -11,7 +11,7 @@ from django.contrib.auth import authenticate
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.tokens import UntypedToken
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 logger = logging.getLogger(__name__)
 
@@ -71,26 +71,35 @@ def VerifyOtpView(request):
 
     return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(['POST'])
 def LoginView(request):
+    logger.debug(f"Login request data: {request.data}")  # Log the incoming request data
 
-        email = request.data.get('email')
-        password = request.data.get('password')
+    email = request.data.get('email')
+    password = request.data.get('password')
 
-        # Authenticate the user
-        user = authenticate(email=email, password=password)
-        if user is not None:
-            # Create JWT token
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-            }, status=status.HTTP_200_OK)
-        else:
-            return Response(
-                {"detail": "Invalid credentials"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+    if not email or not password:
+        logger.error("Email or password missing.")  # Log if email or password is missing
+        return Response({"detail": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Authenticate the user
+    user = authenticate(request, email=email, password=password)
+    if user is not None:
+        # Create JWT token
+        refresh = RefreshToken.for_user(user)
+        logger.info(f"Login successful for user: {user.email}")  # Log successful login
+        return Response({
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+        }, status=status.HTTP_200_OK)
+    else:
+        logger.error(f"Invalid credentials for email: {email}")  # Log invalid credentials
+        return Response(
+            {"detail": "Invalid credentials"},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
         
 
 @api_view(['POST'])
@@ -148,3 +157,14 @@ def reset_password(request):
         return Response({"error": "User not found."}, status=404)
     except Exception as e:
         return Response({"error": "Invalid or expired token."}, status=400)
+    
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])  # Only authenticated users can access this view
+def HomeView(request):
+    """
+    Home page view, accessible only to authenticated users.
+    """
+    return Response({
+        "message": "Welcome to the Home Page! You are successfully authenticated."
+    })

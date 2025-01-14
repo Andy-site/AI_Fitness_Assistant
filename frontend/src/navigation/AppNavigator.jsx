@@ -16,6 +16,8 @@ import Loading3 from '../screens/Loading/Loading3';
 import Loading4 from '../screens/Loading/Loading4';
 import LoginScreen from '../screens/Login/LoginScreen';
 
+import HomeScreen from '../screens/HomeAndLogin/HomeScreen';
+
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
@@ -36,6 +38,7 @@ const AppNavigator = () => {
         <Stack.Screen name="GoalScreen" component={GoalScreen} />
         <Stack.Screen name="RegisterScreen" component={RegisterScreen} />
         <Stack.Screen name="LoginScreen" component={LoginScreen} />
+        <Stack.Screen name="Home" component={HomeScreen} />
 
       </Stack.Navigator>
     </NavigationContainer>

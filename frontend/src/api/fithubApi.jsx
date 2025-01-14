@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://192.168.0.117:8000/api'; // Replace with your actual server IP and port
 
-// API call for registering the user and sending OTP
+// API call for registering the user
 export const registerUser = async (userData) => {
     console.log('Registering user with data:', userData); // Debug log
     try {
@@ -18,7 +18,6 @@ export const registerUser = async (userData) => {
         throw new Error('An error occurred during registration.');
     }
 };
-
 
 // API call for sending OTP to the user's email
 export const sendOtp = async (email) => {
@@ -37,7 +36,7 @@ export const sendOtp = async (email) => {
     }
 };
 
-
+// API call for verifying the OTP
 export const verifyOtp = async (otp, email) => {
     try {
         const response = await axios.post(`${API_BASE_URL}/verify-otp/`, { otp, email }, {
@@ -52,3 +51,16 @@ export const verifyOtp = async (otp, email) => {
     }
 };
 
+// API call for logging in and getting JWT token
+export const loginUser = async (email, password) => {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/token/`, {
+            email,
+            password,
+        });
+
+        return response.data; // Returns access token
+    } catch (error) {
+        throw new Error('Invalid email or password');
+    }
+};

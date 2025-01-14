@@ -188,9 +188,10 @@ REST_AUTH_REGISTER_SERIALIZERS = {
 
 REST_USE_JWT = True 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',  # Default
-    'allauth.account.auth_backends.AuthenticationBackend',  # Allauth backend
+    'yourapp.backends.EmailBackend',  # Your custom backend
+    'django.contrib.auth.backends.ModelBackend',  # Default backend
 ]
+
 REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
     'NON_FIELD_ERRORS_KEY': 'detail',

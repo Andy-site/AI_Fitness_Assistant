@@ -1,36 +1,44 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { View, Text, Alert, StyleSheet, TouchableOpacity } from 'react-native';
+
 import InputField from '../../components/InputField';
-import PasswordInput from '../../components/PasswordInput';  // Import the PasswordInput component
+import PasswordInput from '../../components/PasswordInput'; // Import the PasswordInput component
 import NextButton from '../../components/NextButton';
+import AsyncStorage from '@react-native-async-storage/async-storage';  // Add AsyncStorage for JWT storage
+import { loginUser } from '../../api/fithubApi'; // Import the loginUser function
 
 function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
 
-  const handleSubmit = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Validation Error', 'Please enter both email and password.');
-      return;
-    }
 
-    try {
-      // Send the login request to the backend
-      const response = await axios.post('http://localhost:8000/api/token/', {
-        email,
-        password,
-      });
+// In your handleSubmit method
+const handleSubmit = async () => {
+  if (!email.trim() || !password.trim()) {
+    Alert.alert('Validation Error', 'Please enter both email and password.');
+    return;
+  }
 
-      // Save the JWT token in localStorage or cookies
-      localStorage.setItem('jwt_token', response.data.access);
-      // Redirect the user to a dashboard or another page
-      navigation.navigate('Dashboard');  // Assuming you're using React Navigation
-    } catch (err) {
-      setError('Invalid email or password');
-    }
-  };
+  try {
+    console.log('Login data:', { email, password });
+
+    // Call the loginUser API function from api.js
+    const response = await loginUser(email, password);
+
+    console.log('Login response:', response);
+
+    // Store the JWT token securely using AsyncStorage
+    await AsyncStorage.setItem('jwt_token', response.access);
+
+    // Navigate to the HomeScreen after successful login
+    navigation.navigate('HomeScreen'); 
+  } catch (err) {
+    console.error('Login error:', err);
+    setError('Invalid email or password');
+  }
+};
+
 
   return (
     <View style={styles.container}>
@@ -49,14 +57,12 @@ function LoginScreen({ navigation }) {
         <View style={styles.separator} />
         
         <Text style={styles.label}>Password</Text>
-        {/* Use PasswordInput component for password field */}
         <PasswordInput
           value={password}
           onChangeText={setPassword}
           placeholder="Enter your password"
         />
 
-        {/* Forgot Password link */}
         <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
           <Text style={styles.forgotPassword}>Forgot Password?</Text>
         </TouchableOpacity>
@@ -64,7 +70,6 @@ function LoginScreen({ navigation }) {
 
       <NextButton title="Log In" onPress={handleSubmit} />
 
-      {/* Sign Up link */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>
           Don’t have an account?{' '}
@@ -81,7 +86,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    // padding: 0,
     backgroundColor: '#000000', // Black background
   },
   title: {
@@ -94,7 +98,6 @@ const styles = StyleSheet.create({
   purpleBackground: {
     backgroundColor: '#B3A0FF', // Purple background for the input container
     padding: 20,
-    // borderRadius: 15,
     marginBottom: 20,
   },
   label: {
@@ -105,12 +108,12 @@ const styles = StyleSheet.create({
   },
   input: {
     width: '100%',
-    height: 50, // Consistent height for the input field
-    backgroundColor: '#FFFFFF', // White background for inputs
+    height: 50,
+    backgroundColor: '#FFFFFF',
     borderRadius: 15,
     paddingHorizontal: 15,
     fontSize: 16,
-    color: '#232323', // Input text color
+    color: '#232323',
     marginBottom: 10,
   },
   separator: {
