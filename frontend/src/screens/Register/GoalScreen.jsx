@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import NextButton from '../../components/NextButton';
-import { registerUser, sendOtp } from '../../fithubapi'; // Import the function to send OTP
+import { registerUser, sendOtp } from '../../api/fithubApi';
 
 const GoalScreen = ({ navigation, route }) => {
     const [goal, setGoal] = useState(route.params?.goal || '');
@@ -17,19 +17,29 @@ const GoalScreen = ({ navigation, route }) => {
             setError('Please select your goal');
             return;
         }
-
-        const userData = { ...route.params, goal };
-
+    
+        const userData = {
+            ...route.params, // Ensure firstName, lastName, and other params are passed correctly
+            goal,
+            first_name: route.params.firstName,  // Map firstName
+            last_name: route.params.lastName,    // Map lastName
+        };
+    
         try {
             // Register the user
+            console.log('Registering user with data:', userData);
             const response = await registerUser(userData);
-
+            console.log('Registration response:', response);
+    
             // Send OTP to user's email after successful registration
+            console.log('Sending OTP to email:', userData.email);
             await sendOtp(userData.email);
-
+            console.log('OTP sent successfully');
+    
             // Navigate to RegisterScreen
             navigation.navigate('RegisterScreen', { ...route.params, goal });
         } catch (error) {
+            console.error('Error during registration or OTP sending:', error);
             setError('Error during registration or OTP sending.');
         }
     };
@@ -85,7 +95,6 @@ const GoalScreen = ({ navigation, route }) => {
     );
 };
 
-// Your styles here
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -151,7 +160,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         marginTop: 8,
         marginLeft: 4,
-    }
+    },
 });
 
 export default GoalScreen;

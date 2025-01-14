@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',  # Optional, only if using social login
     'dj_rest_auth',
     'rest_framework',
+    'rest_framework_simplejwt',
     'rest_framework.authtoken',
     'corsheaders',
 
@@ -67,6 +68,7 @@ INSTALLED_APPS = [
 REST_AUTH = {
     'TOKEN_MODEL': None,
 }
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
