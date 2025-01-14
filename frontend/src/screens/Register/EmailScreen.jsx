@@ -81,13 +81,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000000',
-    paddingHorizontal: 20,
+    // paddingHorizontal: 20,
   },
   purpleBackground: {
     backgroundColor: '#B3A0FF',
     width: '100%',
     padding: 20,
-    borderRadius: 15,
+    // borderRadius: 15,
     marginBottom: 20,
   },
   title: {

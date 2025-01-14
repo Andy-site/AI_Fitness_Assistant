@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: 'center',
-        padding: 20,
+        // padding: 20,
         backgroundColor: '#000000', // Black background
     },
     title: {
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     purpleBackground: {
         backgroundColor: '#B3A0FF', // Purple background for the input container
         padding: 20,
-        borderRadius: 15,
+        // borderRadius: 15,
         marginBottom: 20,
     },
     label: {

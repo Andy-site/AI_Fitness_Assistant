@@ -2,30 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import NextButton from '../../components/NextButton';  // Import your NextButton component
+import PasswordInput from '../../components/PasswordInput';  // Import your NextButton component
 
-// Custom Password Input Component
-const PasswordInput = ({ value, onChangeText, placeholder }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  
-  return (
-    <View style={styles.inputContainer}>
-      <TextInput
-        placeholder={placeholder}
-        secureTextEntry={!isVisible}
-        value={value}
-        onChangeText={onChangeText}
-        style={styles.input}
-      />
-      <Pressable 
-        onPress={() => setIsVisible(!isVisible)}
-        style={styles.visibilityButton}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Text style={styles.visibilityButtonText}>{isVisible ?  '👁️' : '🙈' }</Text>
-      </Pressable>
-    </View>
-  );
-};
 
 const PasswordScreen = ({ navigation, route }) => {
   const { email } = route.params;
@@ -158,7 +136,7 @@ const PasswordScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    // padding: 20,
     backgroundColor: '#000000',
   },
   title: {
@@ -171,7 +149,7 @@ const styles = StyleSheet.create({
   purpleBackgroundLarge: {
     backgroundColor: '#B3A0FF',
     padding: 20,
-    borderRadius: 20,
+    // borderRadius: 20,
     marginBottom: 20,
   },
   label: {

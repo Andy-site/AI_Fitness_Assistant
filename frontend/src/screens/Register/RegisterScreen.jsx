@@ -19,7 +19,7 @@ const RegisterScreen = ({ navigation, route }) => {
         Alert.alert('OTP Verified', 'Your OTP is correct!');
 
         // Navigate to the next screen, passing user info (if needed)
-        navigation.navigate('NextScreen', { ...route.params });
+        navigation.navigate('LoginScreen', { ...route.params });
     };
 
     const handleOtpChange = (text, index) => {

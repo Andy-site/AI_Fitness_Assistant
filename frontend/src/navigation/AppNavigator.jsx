@@ -1,4 +1,5 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { NavigationContainer } from '@react-navigation/native';
 import React from 'react';
 import EmailScreen from '../screens/Register/EmailScreen';
 import PasswordScreen from '../screens/Register/PasswordScreen';
@@ -8,19 +9,19 @@ import HeightScreen from '../screens/Register/HeightScreen';
 import WeightScreen from '../screens/Register/WeightScreen';
 import GoalScreen from '../screens/Register/GoalScreen';
 import RegisterScreen from '../screens/Register/RegisterScreen';
-import { NavigationContainer } from '@react-navigation/native';
 import Landing from '../screens/Loading/Landing';
 import Loading1 from '../screens/Loading/Loading1';
 import Loading2 from '../screens/Loading/Loading2';
 import Loading3 from '../screens/Loading/Loading3';
 import Loading4 from '../screens/Loading/Loading4';
+import LoginScreen from '../screens/Login/LoginScreen';
 
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Email">
+      <Stack.Navigator initialRouteName="LoginScreen">
         <Stack.Screen name="Landing" component={Landing}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading1" component={Loading1}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading2" component={Loading2}  options={{ headerShown: false }}/>
@@ -34,6 +35,8 @@ const AppNavigator = () => {
         <Stack.Screen name="WeightScreen" component={WeightScreen} />
         <Stack.Screen name="GoalScreen" component={GoalScreen} />
         <Stack.Screen name="RegisterScreen" component={RegisterScreen} />
+        <Stack.Screen name="LoginScreen" component={LoginScreen} />
+
       </Stack.Navigator>
     </NavigationContainer>
   );

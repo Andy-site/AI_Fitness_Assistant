@@ -40,13 +40,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#000000', // Black background
-        padding: 20,
+        // padding: 20,
     },
     purpleBackground: {
         backgroundColor: '#B3A0FF', // Purple container background
         width: '100%',
         padding: 20,
-        borderRadius: 15,
+        // borderRadius: 15,
         marginBottom: 20,
     },
     label: {
