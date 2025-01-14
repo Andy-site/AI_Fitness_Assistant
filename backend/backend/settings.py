@@ -36,6 +36,8 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')  # Read email from .env
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')   # Your Gmail app password
+DEFAULT_FROM_EMAIL = 'noreply@example.com'
+FRONTEND_URL = 'http://192.168.0.228:3000'
 
 ALLOWED_HOSTS = ['*']
 
@@ -145,13 +147,6 @@ ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_VERIFICATION = 'optional'  # Use 'mandatory' for production
-
-# REST Framework
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ]
-}
 
 
 # Custom registration serializer

@@ -1,4 +1,4 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
 from rest_framework.response import Response
 from django.core.mail import send_mail
@@ -7,6 +7,11 @@ from django.conf import settings
 from .serializers import UserRegistrationSerializer
 from .models import CustomUser
 import logging
+from django.contrib.auth import authenticate
+from rest_framework.exceptions import ValidationError
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import UntypedToken
+from rest_framework.permissions import AllowAny
 
 logger = logging.getLogger(__name__)
 
@@ -86,3 +91,60 @@ def LoginView(request):
                 {"detail": "Invalid credentials"},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
+        
+
+@api_view(['POST'])
+def ForgotPasswordTokenView( request):
+        email = request.data.get('email')
+
+        # Validate if email exists
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            raise ValidationError("User with this email does not exist.")
+
+        # Generate JWT token
+        refresh = RefreshToken.for_user(user)
+        reset_token = str(refresh.access_token)
+
+        # Create reset URL
+        reset_url = f"{settings.FRONTEND_URL}/reset-password/{reset_token}"
+
+        # Send email with the reset link
+        send_mail(
+            subject="Password Reset Request",
+            message=f"Use the following link to reset your password: {reset_url}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+
+        return Response({"message": "Password reset email sent!"})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password(request):
+    token = request.data.get('token')
+    new_password = request.data.get('password')
+
+    if not token or not new_password:
+        return Response({"error": "Token and password are required."}, status=400)
+
+    try:
+        # Decode the token to ensure it's valid
+        UntypedToken(token)
+
+        # Extract user ID from token payload
+        user_id = RefreshToken(token).payload.get('user_id')
+        user = CustomUser.objects.get(id=user_id)
+
+        # Update the user's password
+        user.set_password(new_password)
+        user.save()
+
+        return Response({"message": "Password reset successful!"})
+    except CustomUser.DoesNotExist:
+        return Response({"error": "User not found."}, status=404)
+    except Exception as e:
+        return Response({"error": "Invalid or expired token."}, status=400)
