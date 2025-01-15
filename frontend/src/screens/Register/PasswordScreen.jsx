@@ -1,15 +1,15 @@
+//Password screen
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import InputField from '../components/InputField';
-import NextButton from '../components/NextButton';
+import NextButton from '../../components/NextButton';  // Import your NextButton component
+import PasswordInput from '../../components/PasswordInput';  // Import your NextButton component
+
 
 const PasswordScreen = ({ navigation, route }) => {
   const { email } = route.params;
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isConfirmVisible, setIsConfirmVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const isFocused = useIsFocused();
 
@@ -19,17 +19,15 @@ const PasswordScreen = ({ navigation, route }) => {
     lowercase: true,
     number: true,
     special: true,
-    match: true
+    match: true,
   });
 
-  // Clear error message when screen loses focus
   useEffect(() => {
     if (!isFocused) {
       setErrorMessage('');
     }
   }, [isFocused]);
 
-  // Real-time password validation
   useEffect(() => {
     setValidationErrors({
       length: password.length < 8,
@@ -37,7 +35,7 @@ const PasswordScreen = ({ navigation, route }) => {
       lowercase: !/[a-z]/.test(password),
       number: !/\d/.test(password),
       special: !/[@$!%*?&]/.test(password),
-      match: password !== confirmPassword && confirmPassword.length > 0
+      match: password !== confirmPassword && confirmPassword.length > 0,
     });
   }, [password, confirmPassword]);
 
@@ -74,14 +72,9 @@ const PasswordScreen = ({ navigation, route }) => {
       if (!validatePassword()) {
         return;
       }
-
-      // Here you would typically hash the password before navigation
-      // const hashedPassword = await hashPassword(password);
-      
-      // For now, we'll just navigate with the password
       navigation.navigate('NameScreen', { 
         email, 
-        password: password // Replace with hashedPassword when implemented
+        password: password 
       });
     } catch (error) {
       setErrorMessage('An error occurred. Please try again.');
@@ -89,45 +82,31 @@ const PasswordScreen = ({ navigation, route }) => {
   };
 
   const ValidationRule = ({ satisfied, text }) => (
-    <Text style={[styles.rule, { color: satisfied ? '#4CAF50' : '#FF5252' }]}>
-      {satisfied ? '✓' : '•'} {text}
-    </Text>
+    <Text style={[styles.rule, { color: satisfied ? '#4CAF50' : '#FF5252' }]}>{satisfied ? '✓' : '•'} {text}</Text>
   );
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Create Password</Text>
-      
-      <View style={styles.inputContainer}>
-        <InputField
+
+      <View style={styles.purpleBackgroundLarge}>
+        <Text style={styles.label}>Password</Text>
+        <PasswordInput
           placeholder="Password"
-          secureTextEntry={!isPasswordVisible}
           value={password}
           onChangeText={setPassword}
-          style={styles.input}
         />
-        <Pressable 
-          onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-          style={styles.visibilityButton}
-        >
-          <Text>{isPasswordVisible ? '🙈' : '👁️'}</Text>
-        </Pressable>
-      </View>
+        
+         {/* Separator Line */}
+        <View style={styles.separatorLine} />
 
-      <View style={styles.inputContainer}>
-        <InputField
+
+        <Text style={styles.label}>Confirm Password</Text>
+        <PasswordInput
           placeholder="Confirm Password"
-          secureTextEntry={!isConfirmVisible}
           value={confirmPassword}
           onChangeText={setConfirmPassword}
-          style={styles.input}
         />
-        <Pressable 
-          onPress={() => setIsConfirmVisible(!isConfirmVisible)}
-          style={styles.visibilityButton}
-        >
-          <Text>{isConfirmVisible ? '🙈' : '👁️'}</Text>
-        </Pressable>
       </View>
 
       {errorMessage ? (
@@ -136,38 +115,20 @@ const PasswordScreen = ({ navigation, route }) => {
 
       <View style={styles.rulesContainer}>
         <Text style={styles.rulesTitle}>Password must contain:</Text>
-        <ValidationRule 
-          satisfied={!validationErrors.length} 
-          text="At least 8 characters" 
-        />
-        <ValidationRule 
-          satisfied={!validationErrors.uppercase} 
-          text="One uppercase letter" 
-        />
-        <ValidationRule 
-          satisfied={!validationErrors.lowercase} 
-          text="One lowercase letter" 
-        />
-        <ValidationRule 
-          satisfied={!validationErrors.number} 
-          text="One number" 
-        />
-        <ValidationRule 
-          satisfied={!validationErrors.special} 
-          text="One special character (@$!%*?&)" 
-        />
+        <ValidationRule satisfied={!validationErrors.length} text="At least 8 characters" />
+        <ValidationRule satisfied={!validationErrors.uppercase} text="One uppercase letter" />
+        <ValidationRule satisfied={!validationErrors.lowercase} text="One lowercase letter" />
+        <ValidationRule satisfied={!validationErrors.number} text="One number" />
+        <ValidationRule satisfied={!validationErrors.special} text="One special character (@$!%*?&)" />
         {confirmPassword.length > 0 && (
-          <ValidationRule 
-            satisfied={!validationErrors.match} 
-            text="Passwords match" 
-          />
+          <ValidationRule satisfied={!validationErrors.match} text="Passwords match" />
         )}
       </View>
 
       <NextButton 
         title="Next" 
         onPress={handleNext}
-        disabled={Object.values(validationErrors).some(error => error)}
+        disabled={password !== confirmPassword || password.length < 8}
       />
     </View>
   );
@@ -176,32 +137,56 @@ const PasswordScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
+    // padding: 20,
+    backgroundColor: '#000000',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
-    color: '#333',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  purpleBackgroundLarge: {
+    backgroundColor: '#B3A0FF',
+    padding: 20,
+    // borderRadius: 20,
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    color: '#232323',
+    fontWeight: '500',
+    marginBottom: 10,
+  },
+  separatorLine: {
+    height: 1,
+    backgroundColor: '#CCCCCC', // Light gray color for the separator line
+    marginVertical: 15, // Space around the separator line
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: '100%',
     marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    backgroundColor: '#fff',
+    position: 'relative',
   },
   input: {
-    flex: 1,
-    padding: Platform.OS === 'ios' ? 12 : 10,
+    width: '100%',
+    height: 45,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    paddingLeft: 15,
+    paddingRight: 50,
     fontSize: 16,
-    color: '#333',
+    color: '#232323',
   },
   visibilityButton: {
-    padding: 10,
+    position: 'absolute',
+    right: 15,
+    top: 12,
+    zIndex: 1,
+  },
+  visibilityButtonText: {
+    fontSize: 18,
   },
   rulesContainer: {
     marginTop: 20,
@@ -226,7 +211,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 8,
     textAlign: 'center',
-  }
+  },
 });
 
 export default PasswordScreen;

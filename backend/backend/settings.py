@@ -11,7 +11,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
-
+import os
+from dotenv import load_dotenv
+from datetime import timedelta
+# Load environment variables from .env file
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -24,6 +28,16 @@ SECRET_KEY = 'django-insecure-h(3sf+e)f(&b*b0307cba(%97kdviaokops%l-&6-evnreso4g
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+# Add these to settings.py
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')  # Read email from .env
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')   # Your Gmail app password
+DEFAULT_FROM_EMAIL = 'noreply@example.com'
+FRONTEND_URL = 'http://192.168.0.228:3000'
 
 ALLOWED_HOSTS = ['*']
 
@@ -45,6 +59,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',  # Optional, only if using social login
     'dj_rest_auth',
     'rest_framework',
+    'rest_framework_simplejwt',
     'rest_framework.authtoken',
     'corsheaders',
 
@@ -54,6 +69,21 @@ INSTALLED_APPS = [
 
 REST_AUTH = {
     'TOKEN_MODEL': None,
+}
+
+# Configure JWT settings
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+# Add JWT configuration (optional)
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
 }
 
 MIDDLEWARE = [
@@ -118,13 +148,6 @@ ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_VERIFICATION = 'optional'  # Use 'mandatory' for production
 
-# REST Framework
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ]
-}
-
 
 # Custom registration serializer
 REST_AUTH_REGISTER_SERIALIZERS = {
@@ -165,9 +188,10 @@ REST_AUTH_REGISTER_SERIALIZERS = {
 
 REST_USE_JWT = True 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',  # Default
-    'allauth.account.auth_backends.AuthenticationBackend',  # Allauth backend
+    'FitHub.backends.EmailBackend',  # Your custom backend
+    'django.contrib.auth.backends.ModelBackend',  # Default backend
 ]
+
 REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
     'NON_FIELD_ERRORS_KEY': 'detail',
