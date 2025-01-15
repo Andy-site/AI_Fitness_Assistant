@@ -2,8 +2,31 @@ import './gesture-handler';
 import React, { useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
+<<<<<<< HEAD
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { StyleSheet } from 'react-native';
+=======
+import React from 'react';
+import EmailScreen from '../screens/Register/EmailScreen';
+import PasswordScreen from '../screens/Register/PasswordScreen';
+import NameScreen from '../screens/Register/NameScreen';
+import AgeScreen from '../screens/Register/AgeScreen';
+import HeightScreen from '../screens/Register/HeightScreen';
+import WeightScreen from '../screens/Register/WeightScreen';
+import GoalScreen from '../screens/Register/GoalScreen';
+import RegisterScreen from '../screens/Register/RegisterScreen';
+import Landing from '../screens/Loading/Landing';
+import Loading1 from '../screens/Loading/Loading1';
+import Loading2 from '../screens/Loading/Loading2';
+import Loading3 from '../screens/Loading/Loading3';
+import Loading4 from '../screens/Loading/Loading4';
+import LoginScreen from '../screens/Login/LoginScreen';
+
+import HomeScreen from '../screens/HomeAndLogin/HomeScreen';
+import ForgotPassword1 from '../screens/Login/ForgotPassword1';
+import ForgotPassword2 from '../screens/Login/ForgotPassword2';
+import ForgotPassword3 from '../screens/Login/ForgotPassword3';
+>>>>>>> 39bad6ba8f3b37b79b679f0e3837b0988915940d
 
 // Import Registration Screens
 import EmailScreen from '../screens/register/EmailScreen';
@@ -53,6 +76,7 @@ const AppNavigator = () => {
 
   return (
     <NavigationContainer>
+<<<<<<< HEAD
       <Stack.Navigator initialRouteName={isLoading ? 'Landing' : 'LoadingDrawer'} screenOptions={{ headerShown: false }}>
         {/* Landing Screen */}
         <Stack.Screen name="Landing" component={Landing} />
@@ -62,6 +86,15 @@ const AppNavigator = () => {
 
         {/* Registration Flow */}
         <Stack.Screen name="Email" component={EmailScreen} />
+=======
+      <Stack.Navigator initialRouteName="LoginScreen">
+        <Stack.Screen name="Landing" component={Landing}  options={{ headerShown: false }}/>
+        <Stack.Screen name="Loading1" component={Loading1}  options={{ headerShown: false }}/>
+        <Stack.Screen name="Loading2" component={Loading2}  options={{ headerShown: false }}/>
+        <Stack.Screen name="Loading3" component={Loading3} options ={{ headerShown: false }}/>
+        <Stack.Screen name="Loading4" component={Loading4} options={{ headerShown: false }}/>
+        <Stack.Screen name="Email" component= { EmailScreen } />
+>>>>>>> 39bad6ba8f3b37b79b679f0e3837b0988915940d
         <Stack.Screen name="PasswordScreen" component={PasswordScreen} />
         <Stack.Screen name="NameScreen" component={NameScreen} />
         <Stack.Screen name="AgeScreen" component={AgeScreen} />
@@ -69,6 +102,15 @@ const AppNavigator = () => {
         <Stack.Screen name="WeightScreen" component={WeightScreen} />
         <Stack.Screen name="GoalScreen" component={GoalScreen} />
         <Stack.Screen name="RegisterScreen" component={RegisterScreen} />
+        <Stack.Screen name="LoginScreen" component={LoginScreen} />
+        <Stack.Screen name="ForgotPassword1" component={ForgotPassword1} />
+        <Stack.Screen name="ForgotPassword2" component={ForgotPassword2} />
+        <Stack.Screen name="ForgotPassword3" component={ForgotPassword3} />
+
+
+        <Stack.Screen name="Home" component={HomeScreen} />
+
+
       </Stack.Navigator>
     </NavigationContainer>
   );

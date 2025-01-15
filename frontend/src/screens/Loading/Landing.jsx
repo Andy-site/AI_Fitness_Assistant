@@ -5,7 +5,11 @@ const Landing = ({ navigation }) => {
   useEffect(() => {
     // Navigate to the next screen (Email screen) after 1 second
     const timer = setTimeout(() => {
+<<<<<<< HEAD
       navigation.navigate('LoadingDrawer', { screen: 'Loading1' }); // Replace with your desired next screen
+=======
+      navigation.navigate('Loading1'); // Replace with your desired next screen
+>>>>>>> 39bad6ba8f3b37b79b679f0e3837b0988915940d
     }, 1000); // 1 second delay
 
     // Cleanup on unmount

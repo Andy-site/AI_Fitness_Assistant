@@ -1,7 +1,7 @@
+// EmailScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import InputField from '../../components/InputField';
-import NextButton from '../../components/NextButton';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
+import NextButton from '../../components/NextButton'; // Import custom button
 
 const EmailScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -42,34 +42,35 @@ const EmailScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Email Address</Text>
-      <Text style={styles.subtitle}>Enter your email to create an account</Text>
-      
+      <Text style={styles.title}>Welcome</Text>
+      <Text style={styles.journeyText}>Let's start with your registration first</Text>
+
       <View style={styles.inputContainer}>
-        <InputField
-          placeholder="e.g., user@example.com"
-          value={email}
-          onChangeText={setEmail}
-          style={[
-            styles.input,
-            !isValid && email.length > 0 && styles.inputError
-          ]}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        {errorMessage ?   (
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        ) : (
-          <Text style={styles.helperText}>We'll send you email verification</Text>
-         )}
+        <View style={styles.purpleBackground}>
+          <Text style={styles.label}>Username or email</Text>
+          <TextInput
+            style={[styles.input, !isValid && email.length > 0 && styles.inputError]}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="e.g., user@example.com"
+            placeholderTextColor="#232323"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+        </View>
       </View>
 
       <NextButton 
-        title="Next" 
-        onPress={handleNext}
-        disabled={!isValid || !email}
-      />
+  title="Next" 
+  onPress={handleNext} 
+  disabled={!isValid || !email} // Disable if email is invalid or empty
+  style={{ marginLeft: 0 }} // Apply inline marginLeft of -30
+/>
+
+
+      <Text style={styles.helperText}>We'll send you email verification</Text>
     </View>
   );
 };
@@ -77,45 +78,68 @@ const EmailScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    // paddingHorizontal: 20,
+  },
+  purpleBackground: {
+    backgroundColor: '#B3A0FF',
+    width: '100%',
     padding: 20,
-    backgroundColor: '#fff',
+    // borderRadius: 15,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    textAlign: 'center',
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 24,
+  journeyText: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: '300',
+    marginBottom: 50,
+    textAlign: 'center',
   },
   inputContainer: {
-    marginBottom: 24,
+    width: '100%',
+    marginBottom: 30,
+  },
+  label: {
+    fontSize: 16,
+    color: '#232323',
+    fontWeight: '500',
+    marginBottom: 10,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    width: '100%',
+    height: 45,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    paddingLeft: 10,
     fontSize: 16,
-    backgroundColor: '#fff',
+    color: '#232323',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
   },
   inputError: {
     borderColor: '#FF5252',
   },
   errorText: {
-    color: '#FF5252',
     fontSize: 14,
+    color: '#FF5252',
     marginTop: 8,
     marginLeft: 4,
+    fontWeight: '500',
   },
   helperText: {
-    color: '#666',
     fontSize: 14,
-    marginTop: 8,
-    marginLeft: 4,
+    color: '#FFFFFF',
+    marginTop: 15,
+    textAlign: 'center',
   },
 });
 

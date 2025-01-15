@@ -1,11 +1,20 @@
+import random
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
+from django.utils.timezone import now, timedelta
+from datetime import timedelta
+
+# yourapp/models.py
+
+import random
+from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.db import models
+from django.utils.timezone import now, timedelta
+from django.utils import timezone
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
-        """
-        Create and return a regular user with the given email and password.
-        """
+        """Create and return a regular user with the given email and password."""
         if not email:
             raise ValueError("The Email field must be set")
         email = self.normalize_email(email)
@@ -13,14 +22,12 @@ class CustomUserManager(BaseUserManager):
 
         # Creating the user without a username field
         user = self.model(email=email, **extra_fields)
-        user.set_password(password)
+        user.set_password(password)  # Ensure password is hashed
         user.save(using=self._db)
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
-        """
-        Create and return a superuser with the given email and password.
-        """
+        """Create and return a superuser with the given email and password."""
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
 
@@ -38,5 +45,41 @@ class CustomUser(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
 
-    # Use the custom user manager
+    otp = models.CharField(max_length=6, null=True, blank=True)
+    otp_created_at = models.DateTimeField(null=True, blank=True)
     objects = CustomUserManager()
+
+    """Generate a 6-digit OTP and set its timestamp."""
+    def generate_otp(self):
+        self.otp = f"{random.randint(100000, 999999)}"
+        self.otp_created_at = now()
+        print(f"Generated new OTP: {self.otp} at {self.otp_created_at}")
+        self.save()
+
+    """Validate the OTP and check its expiration (2-minute window)."""
+    def is_otp_valid(self, otp):
+        print(f"Validating OTP:")
+        print(f"Stored OTP: {self.otp}")
+        print(f"Received OTP: {otp}")
+        print(f"OTP created at: {self.otp_created_at}")
+        print(f"Current time: {now()}")
+    
+        if self.otp_created_at is None:
+            print("OTP creation time is None")
+            return False
+            
+        time_valid = self.otp_created_at + timedelta(minutes=2) > now()
+        print(f"Time valid: {time_valid}")
+        
+        otp_match = str(self.otp) == str(otp)
+        print(f"OTP match: {otp_match}")
+        
+        return otp_match and time_valid
+
+class OTP(models.Model):
+    email = models.EmailField()
+    otp = models.CharField(max_length=6)
+    timestamp = models.DateTimeField(default=timezone.now)  # Store the timestamp of OTP generation
+
+    def __str__(self):
+        return f"OTP for {self.email}"
