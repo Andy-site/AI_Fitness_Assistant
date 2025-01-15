@@ -27,9 +27,10 @@ const GoalScreen = ({ navigation, route }) => {
     
         try {
             // Register the user
-            console.log('Registering user with data:', userData);
+            console.log('Registering user with data:', userData);  // Log to verify user data
+    
             const response = await registerUser(userData);
-            console.log('Registration response:', response);
+            console.log('Registration response:', response); // Debug log
     
             // Send OTP to user's email after successful registration
             console.log('Sending OTP to email:', userData.email);
@@ -41,8 +42,17 @@ const GoalScreen = ({ navigation, route }) => {
         } catch (error) {
             console.error('Error during registration or OTP sending:', error);
             setError('Error during registration or OTP sending.');
+    
+            // Optionally display more specific error messages
+            if (error.response) {
+                const { message, errors } = error.response.data || {};
+                console.error(message, errors);  // Log specific error details
+            } else {
+                console.error('Unexpected error:', error.message);
+            }
         }
     };
+    
 
     const handleSelect = (selectedGoal) => {
         setGoal(selectedGoal);

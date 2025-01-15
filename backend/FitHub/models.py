@@ -56,18 +56,14 @@ class CustomUser(AbstractUser):
         print(f"Generated new OTP: {self.otp} at {self.otp_created_at}")
         self.save()
 
+
     """Validate the OTP and check its expiration (2-minute window)."""
     def is_otp_valid(self, otp):
-        print(f"Validating OTP:")
-        print(f"Stored OTP: {self.otp}")
-        print(f"Received OTP: {otp}")
-        print(f"OTP created at: {self.otp_created_at}")
-        print(f"Current time: {now()}")
-    
-        if self.otp_created_at is None:
+                
+        if self.otp_created_at :
             print("OTP creation time is None")
             return False
-            
+                
         time_valid = self.otp_created_at + timedelta(minutes=2) > now()
         print(f"Time valid: {time_valid}")
         
@@ -75,6 +71,7 @@ class CustomUser(AbstractUser):
         print(f"OTP match: {otp_match}")
         
         return otp_match and time_valid
+
 
 class OTP(models.Model):
     email = models.EmailField()

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, Alert, TouchableWithoutFeedback, Keyboard, TextInput } from 'react-native';
 import InputField from '../../components/InputField'; // Assuming this is a reusable input component
 import NextButton from '../../components/NextButton';
 
@@ -7,18 +7,16 @@ const RegisterScreen = ({ navigation, route }) => {
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [isFocused, setIsFocused] = useState(null);
 
+    const inputRefs = useRef([]);
+
     const handleVerifyOtp = () => {
-        // Join the OTP array into a string
         const enteredOtp = otp.join('');
         if (enteredOtp.length !== 6) {
             Alert.alert('Invalid OTP', 'Please enter a valid 6-digit OTP.');
             return;
         }
 
-        // Proceed to next screen after OTP verification (assuming a success response)
         Alert.alert('Congrats!! You have been registered');
-
-        // Navigate to the next screen, passing user info (if needed)
         navigation.navigate('LoginScreen', { ...route.params });
     };
 
@@ -27,16 +25,14 @@ const RegisterScreen = ({ navigation, route }) => {
         updatedOtp[index] = text;
         setOtp(updatedOtp);
 
-        // Move focus to next input if the user enters a digit
         if (text && index < otp.length - 1) {
-            setIsFocused(index + 1);
+            inputRefs.current[index + 1].focus(); // Shift focus to the next input
         }
     };
 
     const handleKeyPress = (e, index) => {
         if (e.nativeEvent.key === 'Backspace' && index > 0) {
-            // Move focus to the previous input if backspace is pressed
-            setIsFocused(index - 1);
+            inputRefs.current[index - 1].focus(); // Shift focus to the previous input on backspace
         }
     };
 
@@ -52,8 +48,9 @@ const RegisterScreen = ({ navigation, route }) => {
                     <Text style={styles.label}>Enter the OTP sent to your email</Text>
                     <View style={styles.otpContainer}>
                         {otp.map((digit, index) => (
-                            <InputField
+                            <TextInput
                                 key={index}
+                                ref={(el) => inputRefs.current[index] = el}
                                 style={styles.input}
                                 maxLength={1}
                                 keyboardType="numeric"
@@ -61,7 +58,7 @@ const RegisterScreen = ({ navigation, route }) => {
                                 onChangeText={(text) => handleOtpChange(text, index)}
                                 onKeyPress={(e) => handleKeyPress(e, index)}
                                 onFocus={() => handleFocus(index)}
-                                autoFocus={isFocused === index} // Automatically focus the current input
+                                autoFocus={isFocused === index}
                             />
                         ))}
                     </View>
@@ -78,13 +75,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#000000', // Black background
-        padding: 20,
     },
     purpleBackground: {
         backgroundColor: '#B3A0FF', // Purple container background
         width: '100%',
         padding: 20,
-        borderRadius: 15,
         marginBottom: 20,
     },
     label: {

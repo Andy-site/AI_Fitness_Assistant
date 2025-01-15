@@ -31,7 +31,7 @@ export const sendOtp = async (email) => {
         console.log('Send OTP response:', response.data); // Debug log
         return response.data;
     } catch (error) {
-        console.error('Send OTP error:', error.response?.data || error.message); // Debug log
+        // console.error('Send OTP error:', error.response?.data || error.message); // Debug log
         throw error.response?.data || { message: 'Error sending OTP.' };
     }
 };

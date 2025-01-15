@@ -44,8 +44,8 @@ const styles = StyleSheet.create({
     purpleBackground: {
         backgroundColor: '#B3A0FF', // Purple container background
         width: '100%',
-        // padding: 20,
-        borderRadius: 15,
+        padding: 20,
+        // borderRadius: 15,
         marginBottom: 20,
     },
     label: {

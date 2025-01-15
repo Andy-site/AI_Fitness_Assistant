@@ -36,6 +36,7 @@ def RegisterView(request):
     return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
+
 @api_view(['POST'])
 def SendOtpView(request):
     email = request.data.get('email')
@@ -55,11 +56,9 @@ def SendOtpView(request):
         return Response({'error': 'Failed to send OTP. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-
 def VerifyOtpView(request):
     email = request.data.get('email')
     otp = request.data.get('otp')
-
     user = get_object_or_404(CustomUser, email=email)
     if user.is_otp_valid(otp):
         user.is_active = True  # Activate the user
@@ -69,6 +68,7 @@ def VerifyOtpView(request):
         return Response({'message': 'OTP verified successfully. Account activated.'}, status=status.HTTP_200_OK)
 
     return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 @api_view(['POST'])

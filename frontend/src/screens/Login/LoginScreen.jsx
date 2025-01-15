@@ -73,7 +73,7 @@ const handleSubmit = async () => {
       <View style={styles.footer}>
         <Text style={styles.footerText}>
           Don’t have an account?{' '}
-          <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+          <TouchableOpacity onPress={() => navigation.navigate('Email')}>
             <Text style={styles.link}>Sign Up</Text>
           </TouchableOpacity>
         </Text>
