@@ -91,28 +91,51 @@ export const forgotPasswordRequest = async (email) => {
 };
 
 
-
-export const changePassword = async (email, newPassword, otp) => {
-    console.log('Changing password for email:', email); // Debug log
+// api/fithubApi.js
+export const changePassword = async (email, otp, newPassword) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/reset-password/`, { 
-        token: email,        // Assuming the 'token' is the user's email
-        otp: otp,            // OTP passed from the previous screen
-        password: newPassword 
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await axios.post(
+        `${API_BASE_URL}/reset-password/`, 
+        {
+          token: email,       // Send the email address explicitly
+          password: newPassword, // New password to be set
+          otp: otp,           // Pass OTP as expected by the backend
         },
-      });
-      console.log('Change password response:', response.data); // Debug log
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
       return response.data;
     } catch (error) {
-      console.error('Change password error:', error.response?.data || error.message); // Debug log
-      throw error.response?.data || { message: 'Error changing password.' };
+      console.error('API Error:', error.response?.data || error.message);
+      throw {
+        message: error.response?.data?.error || 'Error changing password.',
+        response: error.response?.data,
+      };
     }
   };
   
 
-
-
-
+// fithubApi.js
+export const requestPasswordResetOTP = async (email) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/forgot-password/otp/`, { email });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to send OTP' };
+    }
+  };
+  
+  export const verifyPasswordResetOTP = async (email, otp) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/forgot-password/verify/`, { 
+        email, 
+        otp 
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to verify OTP' };
+    }
+  };

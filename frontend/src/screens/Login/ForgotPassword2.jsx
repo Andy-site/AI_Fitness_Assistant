@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableWithoutFeedback, Keyboard, TouchableOpacity, Alert } from 'react-native';
-import { verifyOtp, sendOtp } from '../../api/fithubApi';
+import { verifyPasswordResetOTP, requestPasswordResetOTP } from '../../api/fithubApi';
 import NextButton from '../../components/NextButton';
 
 const ForgotPassword2 = ({ route, navigation }) => {
@@ -9,23 +9,33 @@ const ForgotPassword2 = ({ route, navigation }) => {
   const [errorMessage, setErrorMessage] = useState('');
   const [resendDisabled, setResendDisabled] = useState(true); // Start disabled
   const [timer, setTimer] = useState(120);
+  const [otpTimestamp, setOtpTimestamp] = useState(null);
   
   const inputRefs = useRef([]);
+
+  useEffect(() => {
+    // Set initial timestamp when component mounts
+    setOtpTimestamp(new Date().toISOString());
+  }, []);
 
   const handleVerifyOtp = async () => {
     const enteredOtp = otp.join('');
     if (enteredOtp.length !== 6) {
-      setErrorMessage('OTP must be 6 digits.');
-      return;
+        setErrorMessage('OTP must be 6 digits.');
+        return;
     }
-  
+
     try {
-      await verifyOtp(enteredOtp, email);
-      navigation.navigate('ForgotPassword3', { email, OTP: enteredOtp }); // Pass OTP to the next screen
+        await verifyPasswordResetOTP(email, enteredOtp);
+        navigation.navigate('ForgotPassword3', { 
+            email: email,
+            OTP: enteredOtp,
+            otpTimestamp: otpTimestamp
+        });
     } catch (error) {
-      setErrorMessage(error.message || 'Invalid OTP.');
+        setErrorMessage(error.message || 'Invalid OTP.');
     }
-  };
+};
   
 
   const handleOtpChange = (text, index) => {
@@ -46,14 +56,20 @@ const ForgotPassword2 = ({ route, navigation }) => {
 
   const handleResendOtp = async () => {
     try {
-      await sendOtp(email);
-      setResendDisabled(true);
-      setTimer(120);
-      setErrorMessage(''); // Clear any previous errors
+        await requestPasswordResetOTP(email);
+        const newTimestamp = new Date().toISOString();
+        setOtpTimestamp(newTimestamp);
+        console.log('New OTP requested at:', newTimestamp);
+        
+        setResendDisabled(true);
+        setTimer(120);
+        setErrorMessage('');
+        setOtp(['', '', '', '', '', '']);
     } catch (error) {
-      Alert.alert("Error", error.message || 'Failed to resend OTP.');
+        Alert.alert("Error", error.message || 'Failed to resend OTP.');
     }
-  };
+};
+
 
   // Timer logic
   useEffect(() => {

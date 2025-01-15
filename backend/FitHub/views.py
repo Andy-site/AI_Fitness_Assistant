@@ -8,10 +8,9 @@ from .serializers import UserRegistrationSerializer
 from .models import CustomUser
 import logging
 from django.contrib.auth import authenticate
-from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.tokens import UntypedToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from django.utils.timezone import now
 
 logger = logging.getLogger(__name__)
 
@@ -99,70 +98,8 @@ def LoginView(request):
             {"detail": "Invalid credentials"},
             status=status.HTTP_401_UNAUTHORIZED,
         )
+      
 
-        
-
-@api_view(['POST'])
-def ForgotPasswordTokenView( request):
-        email = request.data.get('email')
-
-        # Validate if email exists
-        try:
-            user = CustomUser.objects.get(email=email)
-        except CustomUser.DoesNotExist:
-            raise ValidationError("User with this email does not exist.")
-
-        # Generate JWT token
-        refresh = RefreshToken.for_user(user)
-        reset_token = str(refresh.access_token)
-
-        # Create reset URL
-        reset_url = f"{settings.FRONTEND_URL}/reset-password/{reset_token}"
-
-        # Send email with the reset link
-        send_mail(
-            subject="Password Reset Request",
-            message=f"Use the following link to reset your password: {reset_url}",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=False,
-        )
-
-        return Response({"message": "Password reset email sent!"})
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def reset_password(request):
-    # Extract token and OTP from the request
-    token = request.data.get('token')
-    otp = request.data.get('otp')
-    new_password = request.data.get('password')
-
-    if not token or not otp or not new_password:
-        return Response({"error": "Token, OTP, and password are required."}, status=400)
-
-    try:
-        # Check if the user exists from the token
-        # Assuming token contains email or decode the token to extract email
-        user = CustomUser.objects.get(email=token)  # Use email instead of id
-
-        # Validate OTP
-        if not user.is_otp_valid(otp):
-            return Response({"error": "Invalid or expired OTP."}, status=400)
-
-        # Reset the password if OTP is valid
-        user.set_password(new_password)
-        user.otp = None  # Clear OTP after successful reset
-        user.save()
-
-        return Response({"message": "Password reset successful!"})
-
-    except CustomUser.DoesNotExist:
-        return Response({"error": "User not found."}, status=404)
-    except Exception as e:
-        return Response({"error": str(e)}, status=400)
-    
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])  # Only authenticated users can access this view
@@ -174,3 +111,114 @@ def HomeView(request):
         "message": "Welcome to the Home Page! You are successfully authenticated."
     })
     
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def ForgotPasswordOTPView(request):
+    """Generate and send OTP for password reset"""
+    email = request.data.get('email')
+    
+    try:
+        user = CustomUser.objects.get(email=email)
+        otp = user.generate_otp()  # Generate new OTP
+        
+        logger.info(f"Password reset OTP generated for {email}")
+        logger.info(f"OTP: {otp}")
+        logger.info(f"Generation time: {user.otp_created_at}")
+        
+        # Send OTP via email
+        send_mail(
+            'Password Reset OTP',
+            f'Your password reset OTP is: {otp}. Valid for 2 minutes.',
+            settings.EMAIL_HOST_USER,
+            [email],
+            fail_silently=False,
+        )
+        
+        return Response({
+            'message': 'Password reset OTP sent successfully',
+            'timestamp': now()
+        })
+        
+    except CustomUser.DoesNotExist:
+        logger.error(f"User not found for password reset: {email}")
+        return Response({
+            'error': 'User not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Error sending password reset OTP: {str(e)}")
+        return Response({
+            'error': 'Failed to send OTP'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def VerifyPasswordResetOTPView(request):
+    """Verify OTP for password reset"""
+    email = request.data.get('email')
+    otp = request.data.get('otp')
+    
+    logger.info(f"Verifying password reset OTP for {email}")
+    
+    try:
+        user = CustomUser.objects.get(email=email)
+        logger.info(f"Stored OTP: {user.otp}")
+        logger.info(f"Received OTP: {otp}")
+        logger.info(f"OTP created at: {user.otp_created_at}")
+        
+        if user.is_otp_valid(otp):
+            return Response({
+                'message': 'OTP verified successfully'
+            })
+        else:
+            return Response({
+                'error': 'Invalid or expired OTP'
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+    except CustomUser.DoesNotExist:
+        return Response({
+            'error': 'User not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password(request):
+    logger.info(f"Reset password payload: {request.data}")
+    token = request.data.get('token')  # email
+    otp = request.data.get('otp')
+    new_password = request.data.get('password')
+
+    # Print received values for debugging
+    print(f"Received token (email): {token}")
+    print(f"Received OTP: {otp}")
+    print(f"Received new password: {new_password}")
+
+    logger.info(f"Received fields: token={token}, otp={otp}, password={new_password}")
+
+    if not all([token, otp, new_password]):
+        return Response({'error': 'Missing required fields'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = CustomUser.objects.get(email=token)
+        logger.info(f"Stored OTP: {user.otp}, Received OTP: {otp}")
+        
+        # Ensure OTP received is numeric (if that is expected)
+        if not otp.isdigit():
+            return Response({'error': 'OTP must be a valid numeric value.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not user.is_otp_valid(otp):
+            return Response({'error': 'Invalid or expired OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.otp = None
+        user.otp_created_at = None
+        user.save()
+
+        logger.info(f"Password reset successful for {user.email}")
+        return Response({'message': 'Password reset successful!'})
+
+    except CustomUser.DoesNotExist:
+        return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Error resetting password: {e}")
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

@@ -5,10 +5,11 @@ import NextButton from '../../components/NextButton';  // Import your NextButton
 import PasswordInput from '../../components/PasswordInput';  // Import your PasswordInput component
 import { changePassword } from '../../api/fithubApi';  // Import the changePassword function from api.js
 
+
 const ForgotPassword3 = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { email,OTP } = route.params;  // Get email and token from the previous screen
+  const { email,OTP , otpTimestamp } = route.params;  // Get email and token from the previous screen
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -41,30 +42,35 @@ const ForgotPassword3 = () => {
     return true;
   };
 
+
+  const currentTime = Date.now();
+  const timeDiff = (new Date(currentTime) - new Date(otpTimestamp)) / 1000;
+  console.log('Time elapsed since OTP generation:', timeDiff, 'seconds');
+
+
   const handleResetPassword = async () => {
-    // Uncomment the following lines to log the provided email, password, and OTP for debugging purposes
     console.log("Reset Password");
     console.log("Email:", email);
     console.log("Password:", password);
     console.log("OTP:", OTP);
-    
+    console.log("Time since OTP generation:", timeDiff, "seconds");
 
-  
+    if (timeDiff > 120) {
+      Alert.alert('Error', 'OTP has expired. Please request a new OTP.');
+      return;
+    }
+
     if (!validatePassword()) {
       return;
     }
-  
+
     try {
-      const result = await changePassword(email, password, OTP);  // Pass email, password, and OTP
-  
-      if (result.success) {
-        Alert.alert('Password reset successful!', result.message);
-        navigation.navigate('HomeScreen'); // Redirect to login screen after password reset
-      } else {
-        setErrorMessage(result.message);  // Display the error message from the response
-      }
+      await changePassword(email, OTP, password); // Assuming changePassword handles the API request
+      Alert.alert('Success', 'Password has been reset successfully.');
+      navigation.navigate('LoginScreen'); // Navigate to the login screen
     } catch (error) {
-      setErrorMessage(error?.message || 'An error occurred while resetting the password.');
+      console.error('Password reset error:', error);
+      Alert.alert('Error', error.message || 'Failed to reset password. Please try again.');
     }
   };
   

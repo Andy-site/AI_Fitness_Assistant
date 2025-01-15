@@ -49,17 +49,32 @@ class CustomUser(AbstractUser):
     otp_created_at = models.DateTimeField(null=True, blank=True)
     objects = CustomUserManager()
 
+    """Generate a 6-digit OTP and set its timestamp."""
     def generate_otp(self):
-        """Generate a 6-digit OTP and set its timestamp."""
         self.otp = f"{random.randint(100000, 999999)}"
         self.otp_created_at = now()
+        print(f"Generated new OTP: {self.otp} at {self.otp_created_at}")
         self.save()
 
+    """Validate the OTP and check its expiration (2-minute window)."""
     def is_otp_valid(self, otp):
-        """Validate the OTP and check its expiration (5-minute window)."""
-        if self.otp == otp and self.otp_created_at + timedelta(minutes=5) > now():
-            return True
-        return False
+        print(f"Validating OTP:")
+        print(f"Stored OTP: {self.otp}")
+        print(f"Received OTP: {otp}")
+        print(f"OTP created at: {self.otp_created_at}")
+        print(f"Current time: {now()}")
+    
+        if self.otp_created_at is None:
+            print("OTP creation time is None")
+            return False
+            
+        time_valid = self.otp_created_at + timedelta(minutes=2) > now()
+        print(f"Time valid: {time_valid}")
+        
+        otp_match = str(self.otp) == str(otp)
+        print(f"OTP match: {otp_match}")
+        
+        return otp_match and time_valid
 
 class OTP(models.Model):
     email = models.EmailField()
