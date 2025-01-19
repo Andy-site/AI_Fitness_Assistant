@@ -16,17 +16,23 @@ import Loading3 from '../screens/Loading/Loading3';
 import Loading4 from '../screens/Loading/Loading4';
 import LoginScreen from '../screens/Login/LoginScreen';
 
-import HomeScreen from '../screens/HomeAndLogin/HomeScreen';
+import Home from '../screens/HomeAndLogin/HomeScreen';
 import ForgotPassword1 from '../screens/Login/ForgotPassword1';
 import ForgotPassword2 from '../screens/Login/ForgotPassword2';
 import ForgotPassword3 from '../screens/Login/ForgotPassword3';
+
+import Workout from '../screens/HomeAndLogin/Workout';
+import Exercises from '../screens/HomeAndLogin/Exercises';
+import ExeDetails from '../screens/HomeAndLogin/ExeDetails';
+
+
 
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="RegisterScreen">
+      <Stack.Navigator initialRouteName="Home">
         <Stack.Screen name="Landing" component={Landing}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading1" component={Loading1}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading2" component={Loading2}  options={{ headerShown: false }}/>
@@ -46,7 +52,10 @@ const AppNavigator = () => {
         <Stack.Screen name="ForgotPassword3" component={ForgotPassword3} />
 
 
-        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="Workout" component={Workout} />
+        <Stack.Screen name="Exercises" component={Exercises} />
+        <Stack.Screen name="ExeDetails" component={ExeDetails} />
 
 
       </Stack.Navigator>
