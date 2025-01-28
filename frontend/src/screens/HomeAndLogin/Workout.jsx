@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Image, TextInput, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  TextInput,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+} from 'react-native';
 import { fetchData, exerciseOptions } from '../../utils/ExerciseFetcher';
 import Footer from '../../components/Footer';
 import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 const images = {
   back: require('../../assets/Images/back.png'),
@@ -47,7 +60,7 @@ const Workout = () => {
 
   useEffect(() => {
     const fetchExercises = async () => {
-      if (!searchQuery.trim()) return; // Skip if the search query is empty
+      if (!searchQuery.trim()) return;
 
       setSearching(true);
       const url = `https://exercisedb.p.rapidapi.com/exercises/`;
@@ -98,8 +111,8 @@ const Workout = () => {
               onChangeText={setSearchQuery}
               autoCorrect={false}
             />
-            {/* Emoji as search icon */}
-            <Text style={styles.searchIcon}>🔍</Text>
+            {/* FontAwesome as search icon */}
+            const myIcon = <Icon name="search" size={20} color="#e2f163"  style={styles.searchIcon} />;
           </View>
 
           {searching ? (
@@ -128,7 +141,6 @@ const Workout = () => {
                       onPress={() => handleBodyPartSelect(part)}
                     >
                       {images[part] && <Image source={images[part]} style={styles.bodyPartImage} />}
-                      {/* Separator Line */}
                       <View style={styles.separator} />
                       <Text style={styles.bodyPartText}>{part.charAt(0).toUpperCase() + part.slice(1)}</Text>
                     </TouchableOpacity>
@@ -177,14 +189,12 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   searchIcon: {
-    fontSize: 20,
-    color: '#B3A0FF',
     marginLeft: 10,
-    backgroundColor:'#E2F163',
+    backgroundColor:'#896cfe',
+    padding: 5,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E2F163',
-    padding: 5,
+    borderColor: '#896cfe',
   },
   searchBar: {
     flex: 1,
@@ -237,24 +247,19 @@ const styles = StyleSheet.create({
     width: '105%',
     height: 155,
     resizeMode: 'cover',
-   
   },
   separator: {
     width: '100%',
     height: 1,
     backgroundColor: '#ffffff',
-    
-    marginVertical:3,
-    
+    marginVertical: 3,
   },
   bodyPartText: {
     fontSize: 16,
-    color: '#00000',
+    color: '#000000',
     textAlign: 'center',
-  
-    fontWeight: 700,
+    fontWeight: '700',
     marginBottom: 10,
-
   },
 });
 
