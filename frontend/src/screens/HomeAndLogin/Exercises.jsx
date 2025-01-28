@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity
 import { useRoute } from '@react-navigation/native';
 import { fetchData, exerciseOptions } from '../../utils/ExerciseFetcher';
 import Footer from '../../components/Footer';
+import { capitalizeWords } from '../../utils/StringUtils';
+
 
 const Exercises = ({ navigation }) => {
   const [exercises, setExercises] = useState([]);
@@ -35,12 +37,7 @@ const Exercises = ({ navigation }) => {
     navigation.navigate('ExeDetails', { exercise });
   };
 
-  const capitalizeWords = (str) => {
-    return str
-      .split(' ') // Split the string into words
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize the first letter of each word
-      .join(' '); // Join the words back into a single string
-  };
+  
 
   return (
     <View style={styles.container}>
