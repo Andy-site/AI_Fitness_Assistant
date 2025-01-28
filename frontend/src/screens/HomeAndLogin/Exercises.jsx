@@ -4,7 +4,6 @@ import { useRoute } from '@react-navigation/native';
 import { fetchData, exerciseOptions } from '../../utils/ExerciseFetcher';
 import Footer from '../../components/Footer';
 
-
 const Exercises = ({ navigation }) => {
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +16,7 @@ const Exercises = ({ navigation }) => {
       
       try {
         const data = await fetchData(url, exerciseOptions);
-        console.log('Fetched Exercises Data:', data);
+        console.log('Fetched Exercises Data:', data);  // Check the structure of the response
         if (Array.isArray(data)) {
           setExercises(data);
         } else {
@@ -29,9 +28,10 @@ const Exercises = ({ navigation }) => {
         setLoading(false);
       }
     };
-
+  
     fetchExercises();
   }, [bodyPart]);
+  
 
   const handlePress = (exercise) => {
     navigation.navigate('ExeDetails', { exercise }); // Navigate to ExeDetails screen
@@ -45,7 +45,7 @@ const Exercises = ({ navigation }) => {
         {loading ? (
           <ActivityIndicator size="large" color="#E2F163" style={styles.loader} />
         ) : (
-          <View style={styles.exercisesContainer}>
+          <View style={styles.gridContainer}>
             {exercises.length > 0 ? (
               exercises.map((exercise, index) => (
                 <TouchableOpacity
@@ -53,6 +53,11 @@ const Exercises = ({ navigation }) => {
                   style={styles.exerciseItem}
                   onPress={() => handlePress(exercise)} // Navigate on press
                 >
+                  <Image
+  source={{ uri: exercise.gifUrl }}
+  style={styles.exerciseImage}
+  resizeMode="contain"
+/>
                   <Text style={styles.exerciseText}>{exercise.name}</Text>
                   <Text style={styles.exerciseDetails}>
                     Equipment: {exercise.equipment} | Target: {exercise.target}
@@ -65,7 +70,7 @@ const Exercises = ({ navigation }) => {
           </View>
         )}
       </ScrollView>
-      <Footer/>
+      <Footer />
     </View>
   );
 };
@@ -91,20 +96,28 @@ const styles = StyleSheet.create({
   loader: {
     marginTop: 20,
   },
-  exercisesContainer: {
+  gridContainer: {
     width: '90%',
     marginTop: 20,
-    backgroundColor: '#6A0DAD',
-    borderRadius: 16,
-    padding: 10,
-    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
   },
   exerciseItem: {
     backgroundColor: '#6A0DAD',
     borderRadius: 16,
     padding: 15,
     marginBottom: 10,
+    width: '45%', // Ensures a grid layout with 2 items per row
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  exerciseImage: {
     width: '100%',
+    height: 120,
+    borderRadius: 8,
+    marginBottom: 10,
   },
   exerciseText: {
     fontSize: 18,

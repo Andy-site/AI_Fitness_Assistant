@@ -11,7 +11,6 @@
     "test": "jest"
   },
   "dependencies": {
-    "@d11/react-native-fast-image": "^8.9.1",
     "@react-native-async-storage/async-storage": "^2.1.0",
     "@react-native-picker/picker": "^2.11.0",
     "@react-navigation/native": "^7.0.14",
@@ -20,8 +19,10 @@
     "react": "18.3.1",
     "react-native": "0.76.5",
     "react-native-element-dropdown": "^2.12.2",
+    "react-native-fast-image": "^8.6.3",
     "react-native-safe-area-context": "^5.1.0",
-    "react-native-screens": "^4.4.0"
+    "react-native-screens": "^4.4.0",
+    "react-native-vector-icons": "^10.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

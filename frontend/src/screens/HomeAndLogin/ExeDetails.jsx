@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import FastImage from '@d11/react-native-fast-image'; // Import FastImage from the correct package
+import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import FastImage from 'react-native-fast-image';  // Updated import statement
 
-// Footer Component (can be a simple footer or any custom footer component)
+// Get device width for responsive sizing
+const { width: screenWidth } = Dimensions.get('window');
+
 const Footer = () => {
   return (
     <View style={styles.footerContainer}>
@@ -12,10 +14,10 @@ const Footer = () => {
 };
 
 const ExeDetails = ({ route }) => {
-  const { exercise } = route.params; // Get the exercise data passed from the previous screen
+  const { exercise } = route.params;
 
   return (
-    <View style={styles.outerContainer}> {/* Outer container wrapping everything */}
+    <View style={styles.outerContainer}>
       <ScrollView style={styles.container}>
         <Text style={styles.title}>{exercise.name}</Text>
         <Text style={styles.details}>Equipment: {exercise.equipment}</Text>
@@ -34,15 +36,19 @@ const ExeDetails = ({ route }) => {
         </Text>
 
         {exercise.gifUrl && (
-          <FastImage
-            source={{ uri: exercise.gifUrl }} // Pass the GIF URL
-            style={styles.gifImage}
-            resizeMode={FastImage.resizeMode.cover} // Set the resize mode to 'cover'
-          />
+          <View style={styles.gifContainer}>
+            <FastImage
+              source={{
+                uri: exercise.gifUrl,
+                priority: FastImage.priority.high,
+                cache: FastImage.cacheControl.immutable,
+              }}
+              style={styles.gifImage}
+              resizeMode={FastImage.resizeMode.contain}
+            />
+          </View>
         )}
       </ScrollView>
-
-      {/* Footer section */}
       <Footer />
     </View>
   );
@@ -52,10 +58,12 @@ const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
     backgroundColor: '#000000',
+    marginBottom:30,
   },
   container: {
     flex: 1,
     padding: 20,
+    
   },
   title: {
     fontSize: 24,
@@ -78,6 +86,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFFFFF',
     marginLeft: 10,
+    marginBottom: 5,
   },
   secondaryMusclesTitle: {
     fontSize: 16,
@@ -89,12 +98,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFFFFF',
     marginLeft: 10,
+    marginBottom: 20,
+  },
+  gifContainer: {
+    width: screenWidth - 40,
+    aspectRatio: 1,
+    alignSelf: 'center',
+    marginVertical: 20,
   },
   gifImage: {
-    marginTop: 20,
     width: '100%',
-    height: 200,
+    height: '100%',
     borderRadius: 8,
+    backgroundColor: '#1A1A1A',
   },
   footerContainer: {
     padding: 10,

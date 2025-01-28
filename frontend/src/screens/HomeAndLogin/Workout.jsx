@@ -1,14 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity } from 'react-native';
-import { fetchData, exerciseOptions } from '../../utils/ExerciseFetcher'; // Import the fetchData and exerciseOptions
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Image, TextInput, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { fetchData, exerciseOptions } from '../../utils/ExerciseFetcher';
 import Footer from '../../components/Footer';
-import { useNavigation } from '@react-navigation/native'; // For navigation
+import { useNavigation } from '@react-navigation/native';
 
+const images = {
+  back: require('../../assets/Images/back.png'),
+  cardio: require('../../assets/Images/cardio.png'),
+  chest: require('../../assets/Images/chest.png'),
+  'lower arms': require('../../assets/Images/arms2.png'),
+  'lower legs': require('../../assets/Images/legs3.png'),
+  neck: require('../../assets/Images/neck.png'),
+  shoulders: require('../../assets/Images/shoulders.png'),
+  'upper arms': require('../../assets/Images/arms1.png'),
+  'upper legs': require('../../assets/Images/legs1.png'),
+  waist: require('../../assets/Images/waist.png'),
+};
 
 const Workout = () => {
   const [bodyParts, setBodyParts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigation = useNavigation(); // Initialize navigation
+  const [exercises, setExercises] = useState([]);
+  const [filteredExercises, setFilteredExercises] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const navigation = useNavigation();
 
   useEffect(() => {
     const fetchBodyParts = async () => {
@@ -16,13 +32,8 @@ const Workout = () => {
 
       try {
         const data = await fetchData(url, exerciseOptions);
-        console.log('Fetched Data:', data);
-
         if (Array.isArray(data)) {
-          const uniqueBodyParts = [...new Set(data)];
-          setBodyParts(uniqueBodyParts);
-        } else {
-          console.error('Data is not an array:', data);
+          setBodyParts(data);
         }
       } catch (error) {
         console.error('Error fetching body parts:', error);
@@ -34,53 +45,115 @@ const Workout = () => {
     fetchBodyParts();
   }, []);
 
+  useEffect(() => {
+    const fetchExercises = async () => {
+      if (!searchQuery.trim()) return; // Skip if the search query is empty
+
+      setSearching(true);
+      const url = `https://exercisedb.p.rapidapi.com/exercises/`;
+
+      try {
+        const data = await fetchData(url, exerciseOptions);
+        if (Array.isArray(data)) {
+          const lowerCaseSearch = searchQuery.toLowerCase();
+          const filtered = data.filter(
+            (exercise) =>
+              exercise.name.toLowerCase().startsWith(lowerCaseSearch) ||
+              exercise.equipment.toLowerCase().startsWith(lowerCaseSearch) ||
+              exercise.target.toLowerCase().startsWith(lowerCaseSearch)
+          );
+          setExercises(filtered);
+        }
+      } catch (error) {
+        console.error('Error fetching exercises:', error);
+      } finally {
+        setSearching(false);
+      }
+    };
+
+    fetchExercises();
+  }, [searchQuery]);
+
   const handleBodyPartSelect = (part) => {
-    navigation.navigate('Exercises', { bodyPart: part }); // Navigate to Exercise page with body part
+    navigation.navigate('Exercises', { bodyPart: part });
+  };
+
+  const handleExerciseSelect = (exercise) => {
+    navigation.navigate('ExeDetails', { exercise });
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.title}>Workout</Text>
-        <Text style={styles.subtitle}>Select a body part</Text>
+    <KeyboardAvoidingView style={styles.container} behavior="padding" keyboardVerticalOffset={80}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <Text style={styles.title}>Workout</Text>
+          <Text style={styles.subtitle}>Search for exercises</Text>
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#E2F163" style={styles.loader} />
-        ) : (
-          <View style={styles.bodyPartsContainer}>
-            {bodyParts.length > 0 ? (
-              bodyParts.map((part, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.bodyPartItem}
-                  onPress={() => handleBodyPartSelect(part)} // On press, navigate to Exercise page
-                >
-                  <Text style={styles.bodyPartText}>{part}</Text>
-                </TouchableOpacity>
-              ))
-            ) : (
-              <Text style={styles.noDataText}>No body parts available.</Text>
-            )}
+          {/* Search Bar */}
+          <View style={styles.searchBarContainer}>
+            <TextInput
+              style={styles.searchBar}
+              placeholder="Search exercises..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCorrect={false}
+            />
+            {/* Emoji as search icon */}
+            <Text style={styles.searchIcon}>🔍</Text>
           </View>
-        )}
-      </ScrollView>
-      <Footer /> // Include the Footer component at the bottom of the screen
-    </View>
+
+          {searching ? (
+            <ActivityIndicator size="large" color="#E2F163" style={styles.loader} />
+          ) : (
+            <View style={styles.exercisesContainer}>
+              {searchQuery && exercises.length > 0 ? (
+                exercises.map((exercise, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.exerciseItem}
+                    onPress={() => handleExerciseSelect(exercise)}
+                  >
+                    <Text style={styles.exerciseText}>{exercise.name}</Text>
+                    <Text style={styles.equipmentText}>{exercise.equipment}</Text>
+                  </TouchableOpacity>
+                ))
+              ) : searchQuery ? (
+                <Text style={styles.noResultsText}>No exercises found</Text>
+              ) : (
+                <View style={styles.bodyPartsContainer}>
+                  {bodyParts.map((part, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.bodyPartItem}
+                      onPress={() => handleBodyPartSelect(part)}
+                    >
+                      {images[part] && <Image source={images[part]} style={styles.bodyPartImage} />}
+                      {/* Separator Line */}
+                      <View style={styles.separator} />
+                      <Text style={styles.bodyPartText}>{part.charAt(0).toUpperCase() + part.slice(1)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+        </ScrollView>
+      </TouchableWithoutFeedback>
+      <Footer />
+    </KeyboardAvoidingView>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000', // Black background for the whole screen
-    alignItems: 'center',
-    paddingTop: 20,
+    backgroundColor: '#000000',
   },
   scrollContainer: {
-    width: '100%',
+    flexGrow: 1,
     alignItems: 'center',
-    paddingBottom: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 10,
   },
   title: {
     fontSize: 24,
@@ -94,38 +167,85 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginBottom: 20,
   },
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    width: '95%',
+    marginBottom: 20,
+    padding: 10,
+  },
+  searchIcon: {
+    fontSize: 20,
+    color: '#B3A0FF',
+    marginLeft: 10,
+  },
+  searchBar: {
+    flex: 1,
+    color: '#000',
+    fontSize: 15,
+  },
   loader: {
     marginTop: 20,
   },
-  bodyPartsContainer: {
-    width: '90%',
-    marginTop: 20,
-    alignItems: 'center', // Center the buttons inside the container
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between', // Ensure buttons are spaced evenly
+  exercisesContainer: {
+    width: '100%',
   },
-  bodyPartItem: {
-    width: '45%', // Adjust width for 2 items per row
-    height: 130, // Increased height for bigger buttons
-    backgroundColor: '#B3A0FF', // Purple background for the button
-    borderRadius: 16,
-    padding: 4, // Increased padding for spacing inside the button
-    marginBottom: 15,
-    marginRight: 10, // Add some margin for spacing between buttons
-    alignItems: 'center',
-    justifyContent: 'center',
+  exerciseItem: {
+    padding: 10,
+    backgroundColor: '#B3A0FF',
+    marginBottom: 20,
+    borderRadius: 8,
   },
-  bodyPartText: {
-    fontSize: 20, // Increased text size
-    color: '#00000', // Text color set to white
-    textAlign: 'center',
+  exerciseText: {
+    fontSize: 16,
+    color: '#FFFFFF',
   },
-  noDataText: {
+  equipmentText: {
     fontSize: 14,
+    color: '#DDDDDD',
+  },
+  noResultsText: {
+    fontSize: 16,
     color: '#FFFFFF',
     textAlign: 'center',
     marginTop: 20,
+  },
+  bodyPartsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 25,
+  },
+  bodyPartItem: {
+    width: '45%',
+    height: 180,
+    backgroundColor: '#ffffff',
+    marginBottom: 20,
+    padding: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bodyPartImage: {
+    width: '105%',
+    height: 140,
+    resizeMode: 'cover',
+    borderRadius: 15,
+  },
+  separator: {
+    width: '100%',
+    height: 0.5,
+    backgroundColor: '#896CFE',
+    marginVertical: 8,
+  },
+  bodyPartText: {
+    fontSize: 16,
+    color: '#00000',
+    textAlign: 'center',
+    marginTop: 1,
+    fontWeight: 700,
   },
 });
 
