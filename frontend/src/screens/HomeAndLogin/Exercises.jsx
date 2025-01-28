@@ -13,10 +13,9 @@ const Exercises = ({ navigation }) => {
   useEffect(() => {
     const fetchExercises = async () => {
       const url = `https://exercisedb.p.rapidapi.com/exercises/bodyPart/${bodyPart}`;
-      
+
       try {
         const data = await fetchData(url, exerciseOptions);
-        console.log('Fetched Exercises Data:', data);  // Check the structure of the response
         if (Array.isArray(data)) {
           setExercises(data);
         } else {
@@ -28,13 +27,19 @@ const Exercises = ({ navigation }) => {
         setLoading(false);
       }
     };
-  
+
     fetchExercises();
   }, [bodyPart]);
-  
 
   const handlePress = (exercise) => {
-    navigation.navigate('ExeDetails', { exercise }); // Navigate to ExeDetails screen
+    navigation.navigate('ExeDetails', { exercise });
+  };
+
+  const capitalizeWords = (str) => {
+    return str
+      .split(' ') // Split the string into words
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize the first letter of each word
+      .join(' '); // Join the words back into a single string
   };
 
   return (
@@ -51,16 +56,25 @@ const Exercises = ({ navigation }) => {
                 <TouchableOpacity
                   key={index}
                   style={styles.exerciseItem}
-                  onPress={() => handlePress(exercise)} // Navigate on press
+                  onPress={() => handlePress(exercise)}
                 >
                   <Image
-  source={{ uri: exercise.gifUrl }}
-  style={styles.exerciseImage}
-  resizeMode="contain"
-/>
-                  <Text style={styles.exerciseText}>{exercise.name}</Text>
+                    source={{ uri: exercise.gifUrl }}
+                    style={styles.exerciseImage}
+                    resizeMode="contain"
+                  />
+                  {/* Separator between Name and Details */}
+                  <View style={styles.separator} />
+                  <Text style={styles.exerciseText}>{capitalizeWords(exercise.name)}</Text>
+                  
+                  {/* Separator between Name and Details */}
+                  <View style={styles.separator} />
+                  
                   <Text style={styles.exerciseDetails}>
-                    Equipment: {exercise.equipment} | Target: {exercise.target}
+                    Equipment: {capitalizeWords(exercise.equipment)}
+                  </Text>
+                  <Text style={styles.exerciseDetails}>
+                    Target: {capitalizeWords(exercise.target)}
                   </Text>
                 </TouchableOpacity>
               ))
@@ -85,7 +99,8 @@ const styles = StyleSheet.create({
   scrollContainer: {
     width: '100%',
     alignItems: 'center',
-    paddingBottom: 20,
+    paddingBottom: 70,
+
   },
   title: {
     fontSize: 24,
@@ -95,9 +110,10 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 20,
+    
   },
   gridContainer: {
-    width: '90%',
+    width: '95%',
     marginTop: 20,
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -105,29 +121,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   exerciseItem: {
-    backgroundColor: '#6A0DAD',
-    borderRadius: 16,
-    padding: 15,
-    marginBottom: 10,
-    width: '45%', // Ensures a grid layout with 2 items per row
-    alignItems: 'center',
+    backgroundColor: '#896CFE',
+    borderRadius: 8,
+    // padding: 15,
     marginBottom: 20,
+    width: '45%', // Ensures a grid layout with 2 items per row
+    
   },
   exerciseImage: {
     width: '100%',
-    height: 120,
+    height: 163,
     borderRadius: 8,
-    marginBottom: 10,
   },
   exerciseText: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: 600,
+    padding:10,
+    color: '#000000',
+    textAlign: 'left',
   },
   exerciseDetails: {
     fontSize: 14,
+    fontWeight: '500',
     color: '#E2F163',
-    textAlign: 'center',
+    textAlign: 'left', // Align details to the left
+    width: '100%', // Ensure the text takes up the full width of the container
+    marginBottom:5,
+    marginLeft: 10, // Add space to the left of the text to align it with the image
+  },
+  separator: {
+    width: '100%',
+    height: 1,
+    backgroundColor: '#ffffff', // Purple color
+    marginVertical: 3, // Add space around the separator
   },
   noDataText: {
     fontSize: 14,

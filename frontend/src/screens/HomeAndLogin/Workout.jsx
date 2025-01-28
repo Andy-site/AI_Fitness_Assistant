@@ -86,8 +86,8 @@ const Workout = () => {
     <KeyboardAvoidingView style={styles.container} behavior="padding" keyboardVerticalOffset={80}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <Text style={styles.title}>Workout</Text>
-          <Text style={styles.subtitle}>Search for exercises</Text>
+          <Text style={styles.title}>Exercises</Text>
+          <Text style={styles.subtitle}>Select Muscle Groups</Text>
 
           {/* Search Bar */}
           <View style={styles.searchBarContainer}>
@@ -180,6 +180,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#B3A0FF',
     marginLeft: 10,
+    backgroundColor:'#E2F163',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2F163',
+    padding: 5,
   },
   searchBar: {
     flex: 1,
@@ -222,7 +227,7 @@ const styles = StyleSheet.create({
   bodyPartItem: {
     width: '45%',
     height: 180,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#896cfe',
     marginBottom: 20,
     padding: 4,
     alignItems: 'center',
@@ -230,22 +235,26 @@ const styles = StyleSheet.create({
   },
   bodyPartImage: {
     width: '105%',
-    height: 140,
+    height: 155,
     resizeMode: 'cover',
-    borderRadius: 15,
+   
   },
   separator: {
     width: '100%',
-    height: 0.5,
-    backgroundColor: '#896CFE',
-    marginVertical: 8,
+    height: 1,
+    backgroundColor: '#ffffff',
+    
+    marginVertical:3,
+    
   },
   bodyPartText: {
     fontSize: 16,
     color: '#00000',
     textAlign: 'center',
-    marginTop: 1,
+  
     fontWeight: 700,
+    marginBottom: 10,
+
   },
 });
 
