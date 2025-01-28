@@ -24,6 +24,8 @@ import ForgotPassword3 from '../screens/Login/ForgotPassword3';
 import Workout from '../screens/HomeAndLogin/Workout';
 import Exercises from '../screens/HomeAndLogin/Exercises';
 import ExeDetails from '../screens/HomeAndLogin/ExeDetails';
+import RepsAndSets from '../screens/HomeAndLogin/RepsAndSets';
+
 
 
 
@@ -56,6 +58,7 @@ const AppNavigator = () => {
         <Stack.Screen name="Workout" component={Workout} />
         <Stack.Screen name="Exercises" component={Exercises} />
         <Stack.Screen name="ExeDetails" component={ExeDetails} />
+        <Stack.Screen name="RepsAndSets" component={RepsAndSets} />
 
 
       </Stack.Navigator>
