@@ -40,25 +40,25 @@ const AppNavigator = () => {
         <Stack.Screen name="Loading2" component={Loading2}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading3" component={Loading3} options ={{ headerShown: false }}/>
         <Stack.Screen name="Loading4" component={Loading4} options={{ headerShown: false }}/>
-        <Stack.Screen name="Email" component= { EmailScreen } />
-        <Stack.Screen name="PasswordScreen" component={PasswordScreen} />
-        <Stack.Screen name="NameScreen" component={NameScreen} />
-        <Stack.Screen name="AgeScreen" component={AgeScreen} />
-        <Stack.Screen name="HeightScreen" component={HeightScreen} />
-        <Stack.Screen name="WeightScreen" component={WeightScreen} />
-        <Stack.Screen name="GoalScreen" component={GoalScreen} />
-        <Stack.Screen name="RegisterScreen" component={RegisterScreen} />
-        <Stack.Screen name="LoginScreen" component={LoginScreen} />
-        <Stack.Screen name="ForgotPassword1" component={ForgotPassword1} />
-        <Stack.Screen name="ForgotPassword2" component={ForgotPassword2} />
-        <Stack.Screen name="ForgotPassword3" component={ForgotPassword3} />
+        <Stack.Screen name="Email" component= { EmailScreen } options={{ headerShown: false }} />
+        <Stack.Screen name="PasswordScreen" component={PasswordScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="NameScreen" component={NameScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="AgeScreen" component={AgeScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="HeightScreen" component={HeightScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="WeightScreen" component={WeightScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="GoalScreen" component={GoalScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="RegisterScreen" component={RegisterScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="LoginScreen" component={LoginScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="ForgotPassword1" component={ForgotPassword1} options={{ headerShown: false }}/>
+        <Stack.Screen name="ForgotPassword2" component={ForgotPassword2} options={{ headerShown: false }}/>
+        <Stack.Screen name="ForgotPassword3" component={ForgotPassword3} options={{ headerShown: false }}/>
 
 
-        <Stack.Screen name="Home" component={Home} />
-        <Stack.Screen name="Workout" component={Workout} />
-        <Stack.Screen name="Exercises" component={Exercises} />
-        <Stack.Screen name="ExeDetails" component={ExeDetails} />
-        <Stack.Screen name="RepsAndSets" component={RepsAndSets} />
+        <Stack.Screen name="Home" component={Home} options={{ headerShown: false }}/>
+        <Stack.Screen name="Workout" component={Workout} options={{ headerShown: false }}/>
+        <Stack.Screen name="Exercises" component={Exercises} options={{ headerShown: false }}/>
+        <Stack.Screen name="ExeDetails" component={ExeDetails} options={{ headerShown: false }}/>
+        <Stack.Screen name="RepsAndSets" component={RepsAndSets} options={{ headerShown: false }}/>
 
 
       </Stack.Navigator>

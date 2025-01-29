@@ -4,6 +4,8 @@ import { useRoute } from '@react-navigation/native';
 import { fetchData, exerciseOptions } from '../../utils/ExerciseFetcher';
 import Footer from '../../components/Footer';
 import { capitalizeWords } from '../../utils/StringUtils';
+import Header from '../../components/Header';
+
 
 
 const Exercises = ({ navigation }) => {
@@ -41,8 +43,9 @@ const Exercises = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+     <Header title={`Exercises for ${bodyPart}`} />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.title}>Exercises for {bodyPart}</Text>
+        
 
         {loading ? (
           <ActivityIndicator size="large" color="#E2F163" style={styles.loader} />
@@ -97,16 +100,12 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     paddingBottom: 70,
+    marginTop: 50,
 
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#E2F163',
-    marginBottom: 10,
-  },
+  
   loader: {
-    marginTop: 20,
+    marginTop: 90,
     
   },
   gridContainer: {

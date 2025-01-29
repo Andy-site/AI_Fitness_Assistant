@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Alert } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { capitalizeWords } from '../../utils/StringUtils';
+import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native'; // Import useNavigation
+
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -22,14 +24,36 @@ const ExeDetails = ({ route }) => {
 
   // Function to handle the Start button press and navigate to the next screen
   const handleStartPress = () => {
-    // You can replace 'NextScreen' with the name of your next screen in the navigation stack
-    navigation.navigate('RepsAndSets', { exercise });
+    const startTime = Date.now(); // Record the start time
+    navigation.navigate('RepsAndSets', { exercise, startTime }); // Pass start time to next screen
+  };
+
+  // Function to handle Add to Favourites
+  const handleAddToFavourites = () => {
+    Alert.alert('Added to Favourites', `${exercise.name} has been added to your favourites!`);
+    // Here you would typically call a function to store the exercise in a list of favourites
+  };
+
+  // Function to handle Back Arrow Press
+  const handleBackPress = () => {
+    navigation.goBack(); // Navigate back to the previous screen
   };
 
   return (
     <View style={styles.outerContainer}>
+      <Header title="Exercise Info" />
       <ScrollView contentContainerStyle={styles.scrollViewContainer}>
-        <Text style={styles.title}>{capitalizeWords(exercise.name)}</Text>
+        
+          {/* Back arrow button */}
+          
+        
+          <Text style={styles.title}>
+  {capitalizeWords(exercise.name)}
+  <TouchableOpacity onPress={handleAddToFavourites} style={styles.heartIconContainer}>
+    <Icon name="heart" size={25} color="#896cfe" />
+  </TouchableOpacity>
+</Text>
+
         <Text style={styles.details}>Equipment: {capitalizeWords(exercise.equipment)}</Text>
         <Text style={styles.details}>Target: {capitalizeWords(exercise.target)}</Text>
 
@@ -91,15 +115,31 @@ const styles = StyleSheet.create({
   scrollViewContainer: {
     flexGrow: 1, // Ensure content is scrollable
     padding: 20,
+    paddingTop: 80,
+    
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  
   title: {
     fontSize: 24,
     fontWeight: '700',
     color: '#E2F163',
     marginBottom: 10,
-    textAlign: 'center',
+    textAlign: 'left',  // Align text to the left
+    flexDirection: 'row',  // Align text and icon horizontally
+    justifyContent: 'space-between',  // Ensure the icon goes to the right
+    alignItems: 'center',  // Vertically align the text and icon in the center
+  },
+  heartIconContainer: {
+    paddingLeft:150,  // Optional: Adjust padding for better spacing
   },
   details: {
+    
     fontSize: 16,
     color: '#E2F163',
     marginBottom: 5,
@@ -166,7 +206,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#00000',
-    paddingHorizontal: 60,
+    paddingHorizontal: 50,
   },
   separatorContainer: {
     flexDirection: 'row',
