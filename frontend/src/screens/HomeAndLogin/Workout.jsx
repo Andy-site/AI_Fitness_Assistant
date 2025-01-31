@@ -16,6 +16,7 @@ import { fetchData, exerciseOptions } from '../../utils/ExerciseFetcher';
 import Footer from '../../components/Footer';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import Header from '../../components/Header';
 
 const images = {
   back: require('../../assets/Images/back.png'),
@@ -96,12 +97,10 @@ const Workout = () => {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior="padding" keyboardVerticalOffset={80}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <View style={styles.container} >
+      <Header title="Select Body Parts" />
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <Text style={styles.title}>Exercises</Text>
           <Text style={styles.subtitle}>Select Muscle Groups</Text>
-
           {/* Search Bar */}
           <View style={styles.searchBarContainer}>
             <TextInput
@@ -150,9 +149,10 @@ const Workout = () => {
             </View>
           )}
         </ScrollView>
-      </TouchableWithoutFeedback>
+      
       <Footer />
-    </KeyboardAvoidingView>
+    </View>
+    
   );
 };
 
@@ -167,17 +167,12 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingHorizontal: 10,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#E2F163',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 14,
+    subtitle: {
+    fontSize: 18,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: '#E2F163',
     marginBottom: 20,
+    marginTop: 60,
   },
   searchBarContainer: {
     flexDirection: 'row',

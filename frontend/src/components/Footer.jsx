@@ -1,11 +1,16 @@
 // Footer.js (or Footer.jsx)
 import React from 'react';
 import { View, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const Footer = () => {
+  const navigation = useNavigation(); 
   return (
     <View style={styles.footer}>
-      <TouchableOpacity style={styles.footerIconButton}>
+      <TouchableOpacity style=
+      {styles.footerIconButton}
+      onPress={() => navigation.navigate('Home')}
+      >
         <Image
           source={require('../assets/Images/Home.png')}  // Relative path
           style={styles.footerIconImage}

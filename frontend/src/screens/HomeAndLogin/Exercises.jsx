@@ -115,6 +115,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     paddingHorizontal: 10,
+    marginBottom:40,
   },
   exerciseItem: {
     backgroundColor: '#896CFE',

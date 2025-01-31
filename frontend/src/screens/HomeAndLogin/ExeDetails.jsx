@@ -1,36 +1,48 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Dimensions,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import FastImage from 'react-native-fast-image';
-import { capitalizeWords } from '../../utils/StringUtils';
+import {capitalizeWords} from '../../utils/StringUtils';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useNavigation } from '@react-navigation/native'; // Import useNavigation
-
+import {useNavigation} from '@react-navigation/native'; // Import useNavigation
 
 const screenWidth = Dimensions.get('window').width;
 
-const ExeDetails = ({ route }) => {
-  const { exercise } = route.params;
+const ExeDetails = ({route}) => {
+  const {exercise} = route.params;
   const navigation = useNavigation(); // Use useNavigation to handle navigation
 
   // Calculate estimated time based on the number of secondary muscles
-  const calculateEstimatedTime = (secondaryMusclesCount) => {
-    if (secondaryMusclesCount <= 1 ) return 5; // 5 minutes for one muscle
+  const calculateEstimatedTime = secondaryMusclesCount => {
+    if (secondaryMusclesCount <= 1) return 5; // 5 minutes for one muscle
     return 5 + (secondaryMusclesCount - 1) * 2; // Increase by 2 minutes for each additional muscle
   };
 
-  const estimatedTime = calculateEstimatedTime(exercise.secondaryMuscles?.length || 0);
+  const estimatedTime = calculateEstimatedTime(
+    exercise.secondaryMuscles?.length || 0,
+  );
 
   // Function to handle the Start button press and navigate to the next screen
   const handleStartPress = () => {
     const startTime = Date.now(); // Record the start time
-    navigation.navigate('RepsAndSets', { exercise, startTime }); // Pass start time to next screen
+    navigation.navigate('RepsAndSets', {exercise, startTime}); // Pass start time to next screen
   };
 
   // Function to handle Add to Favourites
   const handleAddToFavourites = () => {
-    Alert.alert('Added to Favourites', `${exercise.name} has been added to your favourites!`);
+    Alert.alert(
+      'Added to Favourites',
+      `${exercise.name} has been added to your favourites!`,
+    );
     // Here you would typically call a function to store the exercise in a list of favourites
   };
 
@@ -43,19 +55,21 @@ const ExeDetails = ({ route }) => {
     <View style={styles.outerContainer}>
       <Header title="Exercise Info" />
       <ScrollView contentContainerStyle={styles.scrollViewContainer}>
-        
-          {/* Back arrow button */}
-          
-        
-          <Text style={styles.title}>
-  {capitalizeWords(exercise.name)}
+        {/* Back arrow button */}
+
+        <View style={styles.titleContainer}>
+  <Text style={styles.title}>{capitalizeWords(exercise.name)}</Text>
   <TouchableOpacity onPress={handleAddToFavourites} style={styles.heartIconContainer}>
     <Icon name="heart" size={25} color="#896cfe" />
   </TouchableOpacity>
-</Text>
+</View>
 
-        <Text style={styles.details}>Equipment: {capitalizeWords(exercise.equipment)}</Text>
-        <Text style={styles.details}>Target: {capitalizeWords(exercise.target)}</Text>
+        <Text style={styles.details}>
+          Equipment: {capitalizeWords(exercise.equipment)}
+        </Text>
+        <Text style={styles.details}>
+          Target: {capitalizeWords(exercise.target)}
+        </Text>
 
         <Text style={styles.instructionsTitle}>Instructions:</Text>
         {exercise.instructions?.length > 0 ? (
@@ -71,7 +85,9 @@ const ExeDetails = ({ route }) => {
         <Text style={styles.secondaryMusclesTitle}>Secondary Muscles:</Text>
         <Text style={styles.secondaryMusclesText}>
           {exercise.secondaryMuscles?.length > 0
-            ? exercise.secondaryMuscles.map(muscle => capitalizeWords(muscle)).join(', ')
+            ? exercise.secondaryMuscles
+                .map(muscle => capitalizeWords(muscle))
+                .join(', ')
             : 'No secondary muscles specified.'}
         </Text>
 
@@ -96,7 +112,8 @@ const ExeDetails = ({ route }) => {
             <Text style={styles.separator}>|</Text>
             <View style={styles.timeContainer}>
               <Icon name="clock-o" size={20} color="#000000" />
-              <Text style={styles.estimatedTimeText}>{`${estimatedTime} min`}</Text>
+              <Text
+                style={styles.estimatedTimeText}>{`${estimatedTime} min`}</Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -116,7 +133,6 @@ const styles = StyleSheet.create({
     flexGrow: 1, // Ensure content is scrollable
     padding: 20,
     paddingTop: 80,
-    
   },
   header: {
     flexDirection: 'row',
@@ -124,22 +140,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  
+
+  titleContainer: {
+    flexDirection: 'row', // Align items in a row
+    alignItems: 'center', // Align vertically in center
+    justifyContent: 'space-between', // Ensure spacing between title & icon
+    marginBottom: 10,
+  },
   title: {
     fontSize: 24,
     fontWeight: '700',
     color: '#E2F163',
-    marginBottom: 10,
-    textAlign: 'left',  // Align text to the left
-    flexDirection: 'row',  // Align text and icon horizontally
-    justifyContent: 'space-between',  // Ensure the icon goes to the right
-    alignItems: 'center',  // Vertically align the text and icon in the center
+    maxWidth: 300,
   },
   heartIconContainer: {
-    paddingLeft:150,  // Optional: Adjust padding for better spacing
+    paddingLeft: 10, // Ensure proper spacing
   },
   details: {
-    
     fontSize: 16,
     color: '#E2F163',
     marginBottom: 5,

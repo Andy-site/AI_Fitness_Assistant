@@ -1,104 +1,117 @@
 // Home.js
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, Image } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ImageBackground,
+  Image,
+} from 'react-native';
 import Footer from '../../components/Footer';
+import Header from '../../components/Header';
 
-
-const Home = ({ navigation }) => {
+const Home = ({navigation}) => {
   return (
-    <View style={styles.container}>
-      {/* Greeting */}
-      
+    <View style={styles.outcontainer}>
+      <Header title="Home" showBackButton={false} />
+      <View style={styles.container}>
+        {/* Greeting */}
+        <Text style={styles.greeting}>Hi Ananda!!! </Text>
+        <Text style={styles.greeting2}>Personal Health Assistant</Text>
 
-      {/* Icon Row */}
-      <View style={styles.iconRow}>
-        {/* Button 1 */}
-        <TouchableOpacity style={styles.iconButton}>
-          <Image
-            source={require('../../assets/Images/Vector.png')}
-            style={styles.iconImage}
-            resizeMode='contain'
+        {/* Icon Row */}
+        <View style={styles.iconRow}>
+          {/* Button 1 */}
+          <TouchableOpacity style={styles.iconButton}>
+            <Image
+              source={require('../../assets/Images/Vector.png')}
+              style={styles.iconImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.iconText}>People</Text>
+          </TouchableOpacity>
+
+          {/* Separator */}
+          <View style={styles.separator} />
+
+          {/* Button 2 */}
+          <TouchableOpacity style={styles.iconButton}>
+            <Image
+              source={require('../../assets/Images/Progress.png')}
+              style={styles.iconImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.iconText}>Progress</Text>
+          </TouchableOpacity>
+
+          {/* Separator */}
+          <View style={styles.separator} />
+
+          {/* Button 3 */}
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => navigation.navigate('Workout')}>
+            <Image
+              source={require('../../assets/Images/Dumbell.png')}
+              style={styles.iconImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.iconText}>Workout</Text>
+          </TouchableOpacity>
+
+          {/* Separator */}
+          <View style={styles.separator} />
+
+          {/* Button 4 */}
+          <TouchableOpacity style={styles.iconButton}>
+            <Image
+              source={require('../../assets/Images/icon3(1).png')}
+              style={styles.iconImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.iconText}>Nutrition</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Recommendations */}
+        <View style={styles.recommendationsContainer}>
+          <Text style={styles.sectionTitle}>Recommendations</Text>
+          <Text style={styles.seeAll}>See all</Text>
+        </View>
+
+        {/* Recommendation Cards */}
+        <View style={styles.cardContainer}>
+          <ImageBackground
+            source={require('../../assets/Images/Girl1.png')}
+            style={styles.card}
+            imageStyle={styles.cardImage}
           />
-          <Text style={styles.iconText}>People</Text>
-        </TouchableOpacity>
-
-        {/* Separator */}
-        <View style={styles.separator} />
-
-        {/* Button 2 */}
-        <TouchableOpacity style={styles.iconButton}>
-          <Image
-            source={require('../../assets/Images/Progress.png')}
-            style={styles.iconImage}
-            resizeMode='contain'
+          <ImageBackground
+            source={require('../../assets/Images/Girl2.png')}
+            style={styles.card}
+            imageStyle={styles.cardImage}
           />
-          <Text style={styles.iconText}>Progress</Text>
-        </TouchableOpacity>
+        </View>
 
-        {/* Separator */}
-        <View style={styles.separator} />
+        {/* Weekly Challenge */}
+        <View style={styles.weeklyChallenge}>
+          <Text style={styles.challengeTitle}>Weekly Challenge</Text>
+          <Text style={styles.challengeText}>Plank With Hip Twist</Text>
+        </View>
 
-        {/* Button 3 */}
-        <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Workout')}>
-          <Image
-            source={require('../../assets/Images/Dumbell.png')}
-            style={styles.iconImage}
-            resizeMode='contain'
-          />
-          <Text style={styles.iconText}>Workout</Text>
-        </TouchableOpacity>
+        {/* Articles & Tips */}
+        <Text style={styles.articlesTips}>Articles & Tips</Text>
 
-        {/* Separator */}
-        <View style={styles.separator} />
-
-        {/* Button 4 */}
-        <TouchableOpacity style={styles.iconButton}>
-          <Image
-            source={require('../../assets/Images/icon3(1).png')}
-            style={styles.iconImage}
-            resizeMode='contain'
-          />
-          <Text style={styles.iconText}>Nutrition</Text>
-        </TouchableOpacity>
+        {/* Footer */}
       </View>
-
-      {/* Recommendations */}
-      <View style={styles.recommendationsContainer}>
-        <Text style={styles.sectionTitle}>Recommendations</Text>
-        <Text style={styles.seeAll}>See all</Text>
-      </View>
-
-      {/* Recommendation Cards */}
-      <View style={styles.cardContainer}>
-        <ImageBackground
-          source={require('../../assets/Images/Girl1.png')}
-          style={styles.card}
-          imageStyle={styles.cardImage}
-        />
-        <ImageBackground
-          source={require('../../assets/Images/Girl2.png')}
-          style={styles.card}
-          imageStyle={styles.cardImage}
-        />
-      </View>
-
-      {/* Weekly Challenge */}
-      <View style={styles.weeklyChallenge}>
-        <Text style={styles.challengeTitle}>Weekly Challenge</Text>
-        <Text style={styles.challengeText}>Plank With Hip Twist</Text>
-      </View>
-
-      {/* Articles & Tips */}
-      <Text style={styles.articlesTips}>Articles & Tips</Text>
-
-      {/* Footer */}
-      <Footer />  {/* Using the Footer component here */}
+      <Footer /> {/* Using the Footer component here */}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  outcontainer: {
     flex: 1,
     backgroundColor: '#212020',
     borderWidth: 2,
@@ -106,13 +119,22 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
   },
+
   greeting: {
-    marginTop: 20,
+    marginTop: 100,
     fontSize: 20,
     fontWeight: '700',
     color: '#896CFE',
     alignSelf: 'flex-start',
-    marginLeft: 20,
+    marginLeft: 10,
+  },
+  greeting2: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#896CFE',
+    alignSelf: 'flex-start',
+    marginLeft: 10,
   },
   subtext: {
     fontSize: 13,
@@ -142,7 +164,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 40,
     width: '90%',
   },
   iconButton: {
