@@ -80,3 +80,35 @@ class OTP(models.Model):
 
     def __str__(self):
         return f"OTP for {self.email}"
+    
+class Workout(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    workout_date = models.DateField(default=now)  # Date when the workout was done
+    total_time = models.DurationField(null=True, blank=True)  # Total time spent on workout
+    total_calories = models.FloatField(null=True, blank=True)  # Calories burned
+    custom_workout_name = models.CharField(max_length=255, null=True, blank=True)  # For future custom workouts
+
+    def __str__(self):
+        return f"Workout for {self.user.email} on {self.workout_date}"
+
+
+class WorkoutExercise(models.Model):
+    workout = models.ForeignKey(Workout, on_delete=models.CASCADE, related_name="exercises")
+    exercise_name = models.CharField(max_length=255)  # Exercise name from API
+    body_part = models.CharField(max_length=100)  # Body part of the exercise
+    exercise_date = models.DateField(default=now)  # **Exact date when the exercise was performed**
+    start_time = models.DateTimeField(default=now)  # When the user starts the exercise
+    duration = models.DurationField(null=True, blank=True)  # Exercise time duration
+
+    def __str__(self):
+        return f"{self.exercise_name} on {self.exercise_date} for {self.workout}"
+
+
+class ExercisePerformance(models.Model):
+    workout_exercise = models.ForeignKey(WorkoutExercise, on_delete=models.CASCADE, related_name="sets")
+    set_number = models.IntegerField()
+    reps = models.IntegerField()
+    weight = models.FloatField()
+    
+    def __str__(self):
+        return f"Set {self.set_number}: {self.reps} reps @ {self.weight}kg on {self.workout_exercise.exercise_date}"

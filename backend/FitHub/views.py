@@ -5,12 +5,14 @@ from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from .serializers import UserRegistrationSerializer
-from .models import CustomUser
+from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout
 import logging
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.utils.timezone import now
+from datetime import timedelta
+
 
 logger = logging.getLogger(__name__)
 
@@ -222,3 +224,50 @@ def reset_password(request):
     except Exception as e:
         logger.error(f"Error resetting password: {e}")
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def CreateWorkout(request):
+    """Create a new workout for the authenticated user."""
+    user = request.user
+    workout_data = request.data
+    workout = Workout.objects.create(
+        user=user,
+        workout_date=now().date(),
+        total_time=timedelta(seconds=workout_data.get('total_time', 0)),
+        total_calories=workout_data.get('total_calories', 0),
+        custom_workout_name=workout_data.get('custom_workout_name', None)
+    )
+
+    for exercise_data in workout_data.get('exercises', []):
+        WorkoutExercise.objects.create(
+            workout=workout,
+            exercise_name=exercise_data.get('exercise_name'),
+            body_part=exercise_data.get('body_part'),
+            exercise_date=now().date(),
+            start_time=now(),
+            duration=timedelta(seconds=exercise_data.get('duration', 0))
+        )
+
+    return Response({'message': 'Workout created successfully.'}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def LogExercisePerformance(request):
+    """Log exercise performance (sets, reps, weight)."""
+    workout_exercise_id = request.data.get('workout_exercise_id')
+    set_data = request.data.get('sets', [])
+
+    workout_exercise = get_object_or_404(WorkoutExercise, id=workout_exercise_id)
+
+    for set_info in set_data:
+        ExercisePerformance.objects.create(
+            workout_exercise=workout_exercise,
+            set_number=set_info.get('set_number'),
+            reps=set_info.get('reps'),
+            weight=set_info.get('weight')
+        )
+
+    return Response({'message': 'Exercise performance logged successfully.'}, status=status.HTTP_201_CREATED)
