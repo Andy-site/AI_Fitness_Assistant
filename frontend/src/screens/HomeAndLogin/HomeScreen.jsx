@@ -1,5 +1,4 @@
-// Home.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,17 +8,35 @@ import {
   Image,
 } from 'react-native';
 import Footer from '../../components/Footer';
-import Header from '../../components/Header';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 
-const Home = ({navigation}) => {
+const Home = ({ navigation }) => {
+  const [first_name, setFirstName] = useState('');
+
+  useEffect(() => {
+    const getUserDetails = async () => {
+      try {
+        const userDetails = await AsyncStorage.getItem('user_details');
+        if (userDetails) {
+          const user = JSON.parse(userDetails);
+          setFirstName(user.firstName); // Assuming the API response includes a 'firstName' field
+        }
+      } catch (error) {
+        console.error('Error retrieving user details:', error);
+      }
+    };
+
+    getUserDetails();
+  }, []);// This effect will run only once, when the component mounts
+
+
   return (
     <View style={styles.outcontainer}>
-      <Header title="Home" showBackButton={false} />
       <View style={styles.container}>
         {/* Greeting */}
-        <Text style={styles.greeting}>Hi Ananda!!! </Text>
+        <Text style={styles.greeting}>Hi {first_name}!!!</Text> {/* Display user name dynamically */}
         <Text style={styles.greeting2}>Personal Health Assistant</Text>
-
+  
         {/* Icon Row */}
         <View style={styles.iconRow}>
           {/* Button 1 */}
@@ -31,10 +48,10 @@ const Home = ({navigation}) => {
             />
             <Text style={styles.iconText}>People</Text>
           </TouchableOpacity>
-
+  
           {/* Separator */}
           <View style={styles.separator} />
-
+  
           {/* Button 2 */}
           <TouchableOpacity style={styles.iconButton}>
             <Image
@@ -44,10 +61,10 @@ const Home = ({navigation}) => {
             />
             <Text style={styles.iconText}>Progress</Text>
           </TouchableOpacity>
-
+  
           {/* Separator */}
           <View style={styles.separator} />
-
+  
           {/* Button 3 */}
           <TouchableOpacity
             style={styles.iconButton}
@@ -59,10 +76,10 @@ const Home = ({navigation}) => {
             />
             <Text style={styles.iconText}>Workout</Text>
           </TouchableOpacity>
-
+  
           {/* Separator */}
           <View style={styles.separator} />
-
+  
           {/* Button 4 */}
           <TouchableOpacity style={styles.iconButton}>
             <Image
@@ -73,13 +90,13 @@ const Home = ({navigation}) => {
             <Text style={styles.iconText}>Nutrition</Text>
           </TouchableOpacity>
         </View>
-
+  
         {/* Recommendations */}
         <View style={styles.recommendationsContainer}>
           <Text style={styles.sectionTitle}>Recommendations</Text>
           <Text style={styles.seeAll}>See all</Text>
         </View>
-
+  
         {/* Recommendation Cards */}
         <View style={styles.cardContainer}>
           <ImageBackground
@@ -93,22 +110,23 @@ const Home = ({navigation}) => {
             imageStyle={styles.cardImage}
           />
         </View>
-
+  
         {/* Weekly Challenge */}
         <View style={styles.weeklyChallenge}>
           <Text style={styles.challengeTitle}>Weekly Challenge</Text>
           <Text style={styles.challengeText}>Plank With Hip Twist</Text>
         </View>
-
+  
         {/* Articles & Tips */}
         <Text style={styles.articlesTips}>Articles & Tips</Text>
-
+  
         {/* Footer */}
       </View>
       <Footer /> {/* Using the Footer component here */}
     </View>
   );
 };
+  
 
 const styles = StyleSheet.create({
   outcontainer: {
@@ -121,7 +139,7 @@ const styles = StyleSheet.create({
   },
 
   greeting: {
-    marginTop: 100,
+    marginTop: 50,
     fontSize: 20,
     fontWeight: '700',
     color: '#896CFE',

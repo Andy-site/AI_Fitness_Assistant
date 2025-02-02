@@ -102,6 +102,33 @@ def LoginView(request):
         )
       
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])  # Only authenticated users can access this view
+def get_user_details(request):
+    """
+    View to get details of the authenticated user.
+    """
+    try:
+        # Access the authenticated user from the request object
+        user = request.user
+
+        # Return the user's details (you can customize what you return here)
+        user_data = {
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'age': user.age,
+            'height': user.height,
+            'weight': user.weight,
+            'goal': user.goal,
+            'is_active': user.is_active,
+        }
+
+        return Response(user_data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])  # Only authenticated users can access this view

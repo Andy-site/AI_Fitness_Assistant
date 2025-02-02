@@ -25,19 +25,66 @@ const handleSubmit = async () => {
 
     // Call the loginUser API function from api.js
     const response = await loginUser(email, password);
-
     console.log('Login response:', response);
+
+    if (!response || !response.access) {
+      throw new Error('No access token received');
+    }
 
     // Store the JWT token securely using AsyncStorage
     await AsyncStorage.setItem('jwt_token', response.access);
 
+    // Now fetch the user details using the JWT token
+    const userResponse = await fetchUserDetails(response.access);
+    console.log('User details:', userResponse);
+
+    if (!userResponse) {
+      throw new Error('Failed to fetch user details');
+    }
+
+    // Store the user details in AsyncStorage
+    await AsyncStorage.setItem('user_details', JSON.stringify(userResponse));
+
     // Navigate to the HomeScreen after successful login
-    navigation.navigate('Home'); 
+    navigation.navigate('Home');
   } catch (err) {
     console.error('Login error:', err);
     setError('Invalid email or password');
+    Alert.alert('Error', err.message || 'An error occurred during login.');
   }
 };
+
+const fetchUserDetails = async (accessToken) => {
+  try {
+    console.log('Access Token:', accessToken);  // Log token for debugging
+
+    const response = await fetch('http://192.168.0.117:8000/api/user-details/', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',  // Ensure content type is set
+      },
+    });
+
+    const text = await response.text();
+    console.log('Raw response:', text);
+
+    if (!response.ok) {
+      const errorData = JSON.parse(text); // Capture error details
+      throw new Error(errorData.detail || 'Failed to fetch user details');
+    }
+
+    // Parse the response if it's valid JSON
+    const data = JSON.parse(text);
+    return data;
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+    throw error;
+  }
+};
+
+
+
 
 
   return (
