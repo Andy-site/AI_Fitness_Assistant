@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Alert } from 'react-native';
 import NextButton from '../../components/NextButton'; // Custom button component
 import { sendOtp } from '../../api/fithubApi'; // API function
 
@@ -30,20 +30,28 @@ const ForgotPassword1 = ({ navigation }) => {
       setIsValid(false);
       return;
     }
-
+  
     if (!validateEmail(email)) {
       setErrorMessage('Please enter a valid email address');
       setIsValid(false);
       return;
     }
-
+  
     try {
-      await sendOtp(email);
+      // Assuming sendOtp is an API function that sends OTP
+      await sendOtp(email);  // Make sure this function calls the correct backend endpoint
       navigation.navigate('ForgotPassword2', { email });
     } catch (error) {
-      setErrorMessage(error.message || 'Failed to send OTP.');
+      // Handle specific error messages from backend
+      if (error.message === 'No CustomUser matches the given query') {
+        Alert.alert("This email has not been registered yet");
+      } else {
+        Alert.alert('An error occurred while sending OTP. Please try again.');
+      }
     }
   };
+  
+  
 
   return (
     <View style={styles.container}>

@@ -19,30 +19,35 @@ const GoalScreen = ({ navigation, route }) => {
         }
     
         const userData = {
-            ...route.params, // Ensure firstName, lastName, and other params are passed correctly
+            ...route.params,
             goal,
-            first_name: route.params.firstName,  // Map firstName
-            last_name: route.params.lastName,    // Map lastName
+            first_name: route.params.firstName,
+            last_name: route.params.lastName,
         };
     
         try {
-            // Register the user
             console.log('Registering user with data:', userData);
+    
             const response = await registerUser(userData);
             console.log('Registration response:', response);
     
-            // Send OTP to user's email after successful registration
-            console.log('Sending OTP to email:', userData.email);
-            await sendOtp(userData.email);
-            console.log('OTP sent successfully');
+            if (response?.email) { // Ensure email is available
+                console.log('Sending OTP to email:', response.email);
+                await sendOtp(response.email);
+                console.log('OTP sent successfully');
     
-            // Navigate to RegisterScreen
-            navigation.navigate('RegisterScreen', { ...route.params, goal });
+                // Navigate to OTP verification screen
+                navigation.navigate('RegisterScreen', { email: response.email });
+            } else {
+                throw new Error('Email not received from registration response');
+            }
         } catch (error) {
             console.error('Error during registration or OTP sending:', error);
             setError('Error during registration or OTP sending.');
         }
     };
+    
+    
 
     const handleSelect = (selectedGoal) => {
         setGoal(selectedGoal);

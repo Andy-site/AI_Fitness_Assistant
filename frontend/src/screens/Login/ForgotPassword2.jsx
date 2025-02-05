@@ -24,9 +24,10 @@ const ForgotPassword2 = ({ route, navigation }) => {
         setErrorMessage('OTP must be 6 digits.');
         return;
     }
-
+  
     try {
-        await verifyPasswordResetOTP(email, enteredOtp);
+        // Assuming verifyPasswordResetOTP now uses a new endpoint
+        await verifyPasswordResetOTP(email, enteredOtp); // Make sure this calls the correct backend endpoint
         navigation.navigate('ForgotPassword3', { 
             email: email,
             OTP: enteredOtp,
@@ -35,7 +36,8 @@ const ForgotPassword2 = ({ route, navigation }) => {
     } catch (error) {
         setErrorMessage(error.message || 'Invalid OTP.');
     }
-};
+  };
+  
   
 
   const handleOtpChange = (text, index) => {
@@ -56,19 +58,20 @@ const ForgotPassword2 = ({ route, navigation }) => {
 
   const handleResendOtp = async () => {
     try {
-        await requestPasswordResetOTP(email);
+        await requestPasswordResetOTP(email); // Ensure this calls the correct resend endpoint
         const newTimestamp = new Date().toISOString();
         setOtpTimestamp(newTimestamp);
         console.log('New OTP requested at:', newTimestamp);
-        
+  
         setResendDisabled(true);
         setTimer(120);
-        setErrorMessage('');
-        setOtp(['', '', '', '', '', '']);
+        setErrorMessage('');  // Clear any existing error messages
+        setOtp(['', '', '', '', '', '']);  // Reset OTP inputs
     } catch (error) {
         Alert.alert("Error", error.message || 'Failed to resend OTP.');
     }
-};
+  };
+  
 
 
   // Timer logic
