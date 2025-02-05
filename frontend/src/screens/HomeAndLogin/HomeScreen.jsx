@@ -6,166 +6,223 @@ import {
   TouchableOpacity,
   ImageBackground,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import Footer from '../../components/Footer';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Separate component for the icon button
+const IconButton = ({ icon, label, onPress }) => (
+  <TouchableOpacity style={styles.iconButton} onPress={onPress}>
+    <Image
+      source={icon}
+      style={styles.iconImage}
+      resizeMode="contain"
+    />
+    <Text style={styles.iconText}>{label}</Text>
+  </TouchableOpacity>
+);
 
 const Home = ({ navigation }) => {
-  const [first_name, setFirstName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const getUserDetails = async () => {
       try {
+        setIsLoading(true);
         const userDetails = await AsyncStorage.getItem('user_details');
         if (userDetails) {
           const user = JSON.parse(userDetails);
-          setFirstName(user.firstName); // Assuming the API response includes a 'firstName' field
+          setFirstName(user.first_name || 'User');
         }
       } catch (error) {
         console.error('Error retrieving user details:', error);
+        setError('Failed to load user details');
+      } finally {
+        setIsLoading(false);
       }
     };
 
     getUserDetails();
-  }, []);// This effect will run only once, when the component mounts
+  }, []);
 
+  const iconData = [
+    {
+      icon: require('../../assets/Images/Vector.png'),
+      label: 'People',
+      onPress: () => {}
+    },
+    {
+      icon: require('../../assets/Images/Progress.png'),
+      label: 'Progress',
+      onPress: () => {}
+    },
+    {
+      icon: require('../../assets/Images/Dumbell.png'),
+      label: 'Workout',
+      onPress: () => navigation.navigate('Workout')
+    },
+    {
+      icon: require('../../assets/Images/icon3(1).png'),
+      label: 'Nutrition',
+      onPress: () => {}
+    }
+  ];
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#896CFE" />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
+
+  const renderCard = (image, index) => (
+    <ImageBackground
+      key={index}
+      source={image}
+      style={styles.card}
+      imageStyle={styles.cardImage}>
+      <View style={styles.cardOverlay}>
+        <Text style={styles.cardText}>Workout {index + 1}</Text>
+      </View>
+    </ImageBackground>
+  );
 
   return (
     <View style={styles.outcontainer}>
       <View style={styles.container}>
-        {/* Greeting */}
-        <Text style={styles.greeting}>Hi {first_name}!!!</Text> {/* Display user name dynamically */}
-        <Text style={styles.greeting2}>Personal Health Assistant</Text>
-  
-        {/* Icon Row */}
-        <View style={styles.iconRow}>
-          {/* Button 1 */}
-          <TouchableOpacity style={styles.iconButton}>
-            <Image
-              source={require('../../assets/Images/Vector.png')}
-              style={styles.iconImage}
-              resizeMode="contain"
-            />
-            <Text style={styles.iconText}>People</Text>
-          </TouchableOpacity>
-  
-          {/* Separator */}
-          <View style={styles.separator} />
-  
-          {/* Button 2 */}
-          <TouchableOpacity style={styles.iconButton}>
-            <Image
-              source={require('../../assets/Images/Progress.png')}
-              style={styles.iconImage}
-              resizeMode="contain"
-            />
-            <Text style={styles.iconText}>Progress</Text>
-          </TouchableOpacity>
-  
-          {/* Separator */}
-          <View style={styles.separator} />
-  
-          {/* Button 3 */}
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => navigation.navigate('Workout')}>
-            <Image
-              source={require('../../assets/Images/Dumbell.png')}
-              style={styles.iconImage}
-              resizeMode="contain"
-            />
-            <Text style={styles.iconText}>Workout</Text>
-          </TouchableOpacity>
-  
-          {/* Separator */}
-          <View style={styles.separator} />
-  
-          {/* Button 4 */}
-          <TouchableOpacity style={styles.iconButton}>
-            <Image
-              source={require('../../assets/Images/icon3(1).png')}
-              style={styles.iconImage}
-              resizeMode="contain"
-            />
-            <Text style={styles.iconText}>Nutrition</Text>
-          </TouchableOpacity>
+        <View style={styles.headerContainer}>
+          <Text style={styles.greeting}>Hi {firstName}!</Text>
+          <Text style={styles.greeting2}>Personal Health Assistant</Text>
         </View>
-  
-        {/* Recommendations */}
+
+        <View style={styles.iconRow}>
+          {iconData.map((item, index) => (
+            <React.Fragment key={item.label}>
+              <IconButton
+                icon={item.icon}
+                label={item.label}
+                onPress={item.onPress}
+              />
+              {index < iconData.length - 1 && <View style={styles.separator} />}
+            </React.Fragment>
+          ))}
+        </View>
+
         <View style={styles.recommendationsContainer}>
           <Text style={styles.sectionTitle}>Recommendations</Text>
-          <Text style={styles.seeAll}>See all</Text>
+          <TouchableOpacity>
+            <Text style={styles.seeAll}>See all</Text>
+          </TouchableOpacity>
         </View>
-  
-        {/* Recommendation Cards */}
+
         <View style={styles.cardContainer}>
-          <ImageBackground
-            source={require('../../assets/Images/Girl1.png')}
-            style={styles.card}
-            imageStyle={styles.cardImage}
-          />
-          <ImageBackground
-            source={require('../../assets/Images/Girl2.png')}
-            style={styles.card}
-            imageStyle={styles.cardImage}
-          />
+          {[
+            require('../../assets/Images/Girl1.png'),
+            require('../../assets/Images/Girl2.png')
+          ].map((image, index) => renderCard(image, index))}
         </View>
-  
-        {/* Weekly Challenge */}
+
         <View style={styles.weeklyChallenge}>
           <Text style={styles.challengeTitle}>Weekly Challenge</Text>
           <Text style={styles.challengeText}>Plank With Hip Twist</Text>
         </View>
-  
-        {/* Articles & Tips */}
+
         <Text style={styles.articlesTips}>Articles & Tips</Text>
-  
-        {/* Footer */}
       </View>
-      <Footer /> {/* Using the Footer component here */}
+      <Footer />
     </View>
   );
 };
-  
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#212020',
+  },
+  loadingText: {
+    color: '#896CFE',
+    marginTop: 10,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#212020',
+  },
+  errorText: {
+    color: '#FF6B6B',
+    fontSize: 16,
+    textAlign: 'center',
+  },
   outcontainer: {
     flex: 1,
     backgroundColor: '#212020',
     borderWidth: 2,
     borderColor: '#FFFFFF',
     borderRadius: 20,
-    alignItems: 'center',
   },
-
+  container: {
+    flex: 1,
+    padding: 20,
+  },
+  headerContainer: {
+    marginTop: 30,
+  },
   greeting: {
-    marginTop: 50,
     fontSize: 20,
     fontWeight: '700',
     color: '#896CFE',
-    alignSelf: 'flex-start',
-    marginLeft: 10,
   },
   greeting2: {
     marginTop: 10,
     fontSize: 16,
     fontWeight: '500',
     color: '#896CFE',
-    alignSelf: 'flex-start',
-    marginLeft: 10,
   },
-  subtext: {
-    fontSize: 13,
+  iconRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 40,
+  },
+  iconButton: {
+    alignItems: 'center',
+  },
+  iconImage: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+  },
+  iconText: {
+    marginTop: 8,
+    fontSize: 12,
     fontWeight: '500',
     color: '#FFFFFF',
-    alignSelf: 'flex-start',
-    marginLeft: 20,
+  },
+  separator: {
+    width: 1,
+    height: 50,
+    backgroundColor: '#896CFE',
   },
   recommendationsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    width: '90%',
     marginTop: 40,
   },
   sectionTitle: {
@@ -178,41 +235,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#FFFFFF',
   },
-  iconRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    marginTop: 40,
-    width: '90%',
-  },
-  iconButton: {
-    alignItems: 'center',
-  },
-  iconImage: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-  },
-  separator: {
-    width: 1,
-    height: 50,
-    backgroundColor: '#896CFE',
-    marginHorizontal: 10,
-  },
-  iconText: {
-    marginTop: 8,
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#FFFFFF',
-  },
   cardContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '90%',
     marginTop: 20,
   },
   card: {
-    width: 157,
+    width: '48%',
     height: 138,
     borderRadius: 16,
     overflow: 'hidden',
@@ -220,9 +249,18 @@ const styles = StyleSheet.create({
   cardImage: {
     resizeMode: 'cover',
   },
+  cardOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'flex-end',
+    padding: 10,
+  },
+  cardText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
   weeklyChallenge: {
-    width: '90%',
-    height: 125,
     backgroundColor: '#212020',
     borderRadius: 20,
     padding: 20,
@@ -246,8 +284,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#E2F163',
     marginTop: 30,
-    alignSelf: 'flex-start',
-    marginLeft: 20,
   },
 });
 

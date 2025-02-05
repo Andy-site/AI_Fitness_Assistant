@@ -1,23 +1,29 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, Alert, TouchableWithoutFeedback, Keyboard, TextInput } from 'react-native';
-import InputField from '../../components/InputField'; // Assuming this is a reusable input component
 import NextButton from '../../components/NextButton';
+import { verifyOtp } from '../../api/fithubApi';
 
 const RegisterScreen = ({ navigation, route }) => {
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [isFocused, setIsFocused] = useState(null);
+    const [error, setError] = useState('');
 
     const inputRefs = useRef([]);
 
-    const handleVerifyOtp = () => {
+    const handleVerifyOtp = async () => {
         const enteredOtp = otp.join('');
         if (enteredOtp.length !== 6) {
-            Alert.alert('Invalid OTP', 'Please enter a valid 6-digit OTP.');
+            setError('Please enter a valid 6-digit OTP.');
             return;
         }
 
-        Alert.alert('Congrats!! You have been registered');
-        navigation.navigate('LoginScreen', { ...route.params });
+        try {
+            const response = await verifyOtp(route.params.email, enteredOtp);
+            Alert.alert('Success', 'You have been registered successfully!');
+            navigation.navigate('LoginScreen');
+        } catch (error) {
+            setError('Invalid OTP. Please try again.');
+        }
     };
 
     const handleOtpChange = (text, index) => {
@@ -26,13 +32,13 @@ const RegisterScreen = ({ navigation, route }) => {
         setOtp(updatedOtp);
 
         if (text && index < otp.length - 1) {
-            inputRefs.current[index + 1].focus(); // Shift focus to the next input
+            inputRefs.current[index + 1].focus();
         }
     };
 
     const handleKeyPress = (e, index) => {
         if (e.nativeEvent.key === 'Backspace' && index > 0) {
-            inputRefs.current[index - 1].focus(); // Shift focus to the previous input on backspace
+            inputRefs.current[index - 1].focus();
         }
     };
 
@@ -45,7 +51,7 @@ const RegisterScreen = ({ navigation, route }) => {
             <View style={styles.container}>
                 <Text style={styles.title}>Enter OTP</Text>
                 <View style={styles.purpleBackground}>
-                    <Text style={styles.label}>Enter the OTP sent to your email</Text>
+                    <Text style={styles.label}>Enter the OTP sent to {route.params.email}</Text>
                     <View style={styles.otpContainer}>
                         {otp.map((digit, index) => (
                             <TextInput
@@ -62,6 +68,7 @@ const RegisterScreen = ({ navigation, route }) => {
                             />
                         ))}
                     </View>
+                    {error ? <Text style={styles.errorMessage}>{error}</Text> : null}
                 </View>
                 <NextButton title="Verify OTP" onPress={handleVerifyOtp} />
             </View>
@@ -74,10 +81,10 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#000000', // Black background
+        backgroundColor: '#000000',
     },
     purpleBackground: {
-        backgroundColor: '#B3A0FF', // Purple container background
+        backgroundColor: '#B3A0FF',
         width: '100%',
         padding: 20,
         marginBottom: 20,
@@ -110,6 +117,11 @@ const styles = StyleSheet.create({
         color: '#232323',
         borderWidth: 1,
         borderColor: '#FFFFFF',
+    },
+    errorMessage: {
+        color: '#FF5252',
+        marginTop: 10,
+        textAlign: 'center',
     },
 });
 

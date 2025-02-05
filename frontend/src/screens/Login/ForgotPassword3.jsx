@@ -45,7 +45,7 @@ const ForgotPassword3 = () => {
 
   const currentTime = Date.now();
   const timeDiff = (new Date(currentTime) - new Date(otpTimestamp)) / 1000;
-  console.log('Time elapsed since OTP generation:', timeDiff, 'seconds');
+ 
 
 
   const handleResetPassword = async () => {

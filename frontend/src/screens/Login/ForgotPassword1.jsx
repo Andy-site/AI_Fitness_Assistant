@@ -38,17 +38,19 @@ const ForgotPassword1 = ({ navigation }) => {
     }
   
     try {
-      await sendOtp(email);
+      // Assuming sendOtp is an API function that sends OTP
+      await sendOtp(email);  // Make sure this function calls the correct backend endpoint
       navigation.navigate('ForgotPassword2', { email });
     } catch (error) {
-      // Check if the error is related to the email not being registered
+      // Handle specific error messages from backend
       if (error.message === 'No CustomUser matches the given query') {
         Alert.alert("This email has not been registered yet");
       } else {
-        Alert.alert('This email has not been registered yet');
+        Alert.alert('An error occurred while sending OTP. Please try again.');
       }
     }
   };
+  
   
 
   return (
