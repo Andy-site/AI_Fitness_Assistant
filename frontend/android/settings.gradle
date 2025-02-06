@@ -4,3 +4,11 @@ extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autoli
 rootProject.name = 'AwesomeProject'
 include ':app'
 includeBuild('../node_modules/@react-native/gradle-plugin')
+
+
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
