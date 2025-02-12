@@ -5,8 +5,8 @@ from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.conf import settings
-from .serializers import UserRegistrationSerializer
-from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP
+from .serializers import UserRegistrationSerializer, ExerciseSerializer
+from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, Exercise
 import logging
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -283,3 +283,20 @@ def LogExercisePerformance(request):
         )
 
     return Response({'message': 'Exercise performance logged successfully.'}, status=status.HTTP_201_CREATED)
+
+
+
+@api_view(['GET'])
+def body_part_list(request):
+    """Get list of distinct body parts (categories)."""
+    body_parts = Exercise.objects.values('primary_muscles').distinct()
+    return Response([part['primary_muscles'] for part in body_parts])
+
+
+@api_view(['GET'])
+def exercise_list(request, body_part):
+    """Get exercises for a specific body part/category."""
+    exercises = Exercise.objects.filter(primary_muscles__icontains=body_part)  # use icontains for case-insensitive search
+    serializer = ExerciseSerializer(exercises, many=True)
+    return Response(serializer.data)
+

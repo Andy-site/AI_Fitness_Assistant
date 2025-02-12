@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, Workout, WorkoutExercise, ExercisePerformance
+from .models import CustomUser, Workout, WorkoutExercise, ExercisePerformance, Exercise
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -46,3 +46,15 @@ class ExercisePerformanceSerializer(serializers.ModelSerializer):
         model = ExercisePerformance
         fields = ['id', 'workout_exercise', 'set_number', 'reps', 'weight']
         read_only_fields = ['id']
+
+
+
+
+class ExerciseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Exercise
+        fields = [
+            'id', 'name', 'force', 'level', 'mechanic', 'equipment',
+            'category', 'primary_muscles', 'secondary_muscles', 
+            'instructions', 'images'
+        ]

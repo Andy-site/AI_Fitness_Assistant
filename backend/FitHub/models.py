@@ -120,3 +120,19 @@ class ExercisePerformance(models.Model):
     
     def __str__(self):
         return f"Set {self.set_number}: {self.reps} reps @ {self.weight}kg on {self.workout_exercise.exercise_date}"
+    
+class Exercise(models.Model):
+    id = models.CharField(max_length=255, primary_key=True)
+    name = models.CharField(max_length=255)
+    force = models.CharField(max_length=50, null=True)
+    level = models.CharField(max_length=50)
+    mechanic = models.CharField(max_length=50, null=True)  # Allow null
+    equipment = models.CharField(max_length=50, null=True, blank=True)
+    category = models.CharField(max_length=50)
+    primary_muscles = models.JSONField()
+    secondary_muscles = models.JSONField()
+    instructions = models.JSONField()
+    images = models.JSONField()
+
+    def __str__(self):
+        return self.name

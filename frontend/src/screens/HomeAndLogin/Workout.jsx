@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -8,46 +8,55 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
-  Keyboard,
 } from 'react-native';
-import { fetchData, exerciseOptions } from '../../utils/ExerciseFetcher';
+import {
+  fetchData,
+  fetchBodyParts,
+  fetchExercisesForBodyPart,
+} from '../../utils/ExerciseFetcher';
 import Footer from '../../components/Footer';
-import { useNavigation } from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Header from '../../components/Header';
+import {capitalizeWords} from '../../utils/StringUtils';
 
 const images = {
-  back: require('../../assets/Images/back.png'),
+  'middle back': require('../../assets/Images/back.png'),
   cardio: require('../../assets/Images/cardio.png'),
   chest: require('../../assets/Images/chest.png'),
-  'lower arms': require('../../assets/Images/arms2.png'),
-  'lower legs': require('../../assets/Images/legs3.png'),
+  forearms: require('../../assets/Images/arms1.png'),
+  calves: require('../../assets/Images/legs1.png'),
   neck: require('../../assets/Images/neck.png'),
   shoulders: require('../../assets/Images/shoulders.png'),
-  'upper arms': require('../../assets/Images/arms1.png'),
-  'upper legs': require('../../assets/Images/legs1.png'),
+  biceps: require('../../assets/Images/arms2.png'),
+  abductors: require('../../assets/Images/legs3.png'),
   waist: require('../../assets/Images/waist.png'),
+  adductors: require('../../assets/Images/adductors.jpg'),
+  glutes: require('../../assets/Images/glutes.jpg'),
+  hamstrings: require('../../assets/Images/hamstrings.webp'),
+  triceps: require('../../assets/Images/triceps.webp'),
+  'lower back': require('../../assets/Images/lowerback.jpg'),
+  lats: require('../../assets/Images/lats.jpg'),
+  quadriceps: require('../../assets/Images/quadriceps.png'),
+  abdominals: require('../../assets/Images/abdominals.jpg'),
+  traps: require('../../assets/Images/traps.jpg'),
 };
 
 const Workout = () => {
   const [bodyParts, setBodyParts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exercises, setExercises] = useState([]);
-  const [filteredExercises, setFilteredExercises] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const navigation = useNavigation();
 
   useEffect(() => {
-    const fetchBodyParts = async () => {
-      const url = 'https://exercisedb.p.rapidapi.com/exercises/bodyPartList/';
-
+    const loadBodyParts = async () => {
+      setLoading(true);
       try {
-        const data = await fetchData(url, exerciseOptions);
+        const data = await fetchBodyParts();
         if (Array.isArray(data)) {
-          setBodyParts(data);
+          setBodyParts(data); // Assuming data is an array of primary muscles
         }
       } catch (error) {
         console.error('Error fetching body parts:', error);
@@ -56,25 +65,32 @@ const Workout = () => {
       }
     };
 
-    fetchBodyParts();
+    loadBodyParts();
   }, []);
 
   useEffect(() => {
-    const fetchExercises = async () => {
+    const loadExercises = async () => {
       if (!searchQuery.trim()) return;
 
       setSearching(true);
-      const url = `https://exercisedb.p.rapidapi.com/exercises/`;
-
       try {
-        const data = await fetchData(url, exerciseOptions);
+        const data = await fetchData(
+          'http://192.168.0.117:8000/api/exercises/',
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+        );
+
         if (Array.isArray(data)) {
           const lowerCaseSearch = searchQuery.toLowerCase();
           const filtered = data.filter(
-            (exercise) =>
+            exercise =>
               exercise.name.toLowerCase().startsWith(lowerCaseSearch) ||
               exercise.equipment.toLowerCase().startsWith(lowerCaseSearch) ||
-              exercise.target.toLowerCase().startsWith(lowerCaseSearch)
+              exercise.target.toLowerCase().startsWith(lowerCaseSearch),
           );
           setExercises(filtered);
         }
@@ -85,74 +101,116 @@ const Workout = () => {
       }
     };
 
-    fetchExercises();
+    loadExercises();
   }, [searchQuery]);
 
-  const handleBodyPartSelect = (part) => {
-    navigation.navigate('Exercises', { bodyPart: part });
+  const handleBodyPartSelect = async primaryMuscle => {
+    try {
+      const exercises = await fetchExercisesForBodyPart(primaryMuscle);
+      if (Array.isArray(exercises)) {
+        navigation.navigate('Exercises', {bodyPart: primaryMuscle, exercises});
+      } else {
+        console.error(`No exercises found for ${primaryMuscle}`);
+      }
+    } catch (error) {
+      console.error(`Error fetching exercises for ${primaryMuscle}:`, error);
+    }
   };
 
-  const handleExerciseSelect = (exercise) => {
-    navigation.navigate('ExeDetails', { exercise });
+  const handleExerciseSelect = exercise => {
+    navigation.navigate('ExeDetails', {
+      exercise: {
+        id: exercise.id,
+        name: exercise.name,
+        force: exercise.force,
+        level: exercise.level,
+        mechanic: exercise.mechanic,
+        equipment: exercise.equipment,
+        category: exercise.category,
+        primary_muscles: exercise.primary_muscles,
+        secondary_muscles: exercise.secondary_muscles,
+        instructions: exercise.instructions,
+        image: exercise.image, // Array of images
+      },
+    });
   };
 
   return (
-    <View style={styles.container} >
+    <View style={styles.container}>
       <Header title="Select Body Parts" />
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <Text style={styles.subtitle}>Select Muscle Groups</Text>
-          {/* Search Bar */}
-          <View style={styles.searchBarContainer}>
-            <TextInput
-              style={styles.searchBar}
-              placeholder="Search exercises..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCorrect={false}
-            />
-            {/* FontAwesome as search icon */}
-            const myIcon = <Icon name="search" size={20} color="#e2f163"  style={styles.searchIcon} />;
-          </View>
 
-          {searching ? (
-            <ActivityIndicator size="large" color="#E2F163" style={styles.loader} />
-          ) : (
-            <View style={styles.exercisesContainer}>
-              {searchQuery && exercises.length > 0 ? (
-                exercises.map((exercise, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.exerciseItem}
-                    onPress={() => handleExerciseSelect(exercise)}
-                  >
-                    <Text style={styles.exerciseText}>{exercise.name}</Text>
-                    <Text style={styles.equipmentText}>{exercise.equipment}</Text>
-                  </TouchableOpacity>
-                ))
-              ) : searchQuery ? (
-                <Text style={styles.noResultsText}>No exercises found</Text>
+      {/* Search Bar Component */}
+      <View style={styles.searchBarContainer}>
+        <TextInput
+          style={styles.searchBar}
+          placeholder="Search Exercises..."
+          placeholderTextColor="#888"
+          value={searchQuery}
+          onChangeText={text => setSearchQuery(String(text))} // Ensure it's a string
+        />
+        <Icon style={styles.searchIcon} name="search" size={20} color="#e2f163" />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {searchQuery && exercises.length > 0 ? (
+          exercises.map((exercise, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.exerciseItem}
+              onPress={() => handleExerciseSelect(exercise)}>
+              <Text style={styles.exerciseText}>
+                {capitalizeWords(exercise.name)}
+              </Text>
+              <Text style={styles.detailsText}>Force: {exercise.force}</Text>
+              <Text style={styles.detailsText}>Level: {exercise.level}</Text>
+              <Text style={styles.detailsText}>
+                Mechanic: {exercise.mechanic}
+              </Text>
+              <Text style={styles.equipmentText}>
+                Equipment: {exercise.equipment}
+              </Text>
+              {exercise.images && exercise.images.length > 0 ? (
+                <Image
+                  source={{
+                    uri: `http://192.168.0.117:8000${exercise.images[0]}`,
+                  }}
+                  style={styles.exerciseImage}
+                  defaultSource={require('../../assets/Images/Girl1.png')}
+                />
               ) : (
-                <View style={styles.bodyPartsContainer}>
-                  {bodyParts.map((part, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={styles.bodyPartItem}
-                      onPress={() => handleBodyPartSelect(part)}
-                    >
-                      {images[part] && <Image source={images[part]} style={styles.bodyPartImage} />}
-                      <View style={styles.separator} />
-                      <Text style={styles.bodyPartText}>{part.charAt(0).toUpperCase() + part.slice(1)}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                <Image
+                  source={require('../../assets/Images/Girl1.png')}
+                  style={styles.exerciseImage}
+                />
               )}
-            </View>
-          )}
-        </ScrollView>
-      
+            </TouchableOpacity>
+          ))
+        ) : searchQuery ? (
+          <Text style={styles.noResultsText}>No exercises found</Text>
+        ) : (
+          <View style={styles.bodyPartsContainer}>
+            {bodyParts.map((part, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.bodyPartItem}
+                onPress={() => handleBodyPartSelect(part)}>
+                {images[part] ? (
+                  <Image source={images[part]} style={styles.bodyPartImage} />
+                ) : (
+                  <Text>No image for {part}</Text> // Fallback
+                )}
+                <View style={styles.separator} />
+                <Text style={styles.bodyPartText}>
+                  {capitalizeWords(part)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+
       <Footer />
     </View>
-    
   );
 };
 
@@ -161,73 +219,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  scrollContainer: {
-    flexGrow: 1,
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 10,
-  },
-    subtitle: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#E2F163',
-    marginBottom: 20,
-    marginTop: 60,
-  },
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginLeft: 10,
     backgroundColor: '#ffffff',
     borderRadius: 20,
     width: '95%',
     marginBottom: 20,
     padding: 10,
-  },
-  searchIcon: {
-    marginLeft: 10,
-    backgroundColor:'#896cfe',
-    padding: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#896cfe',
+    marginTop: 90, // Adjust the margin top if necessary
   },
   searchBar: {
     flex: 1,
     color: '#000',
     fontSize: 15,
+    paddingVertical: 2, // Ensure the text input is visible
   },
-  loader: {
-    marginTop: 20,
-  },
-  exercisesContainer: {
-    width: '100%',
-  },
-  exerciseItem: {
-    padding: 10,
-    backgroundColor: '#B3A0FF',
-    marginBottom: 20,
-    borderRadius: 8,
-  },
-  exerciseText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-  },
-  equipmentText: {
-    fontSize: 14,
-    color: '#DDDDDD',
-  },
-  noResultsText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginTop: 20,
+  scrollContainer: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 10,
+    marginTop: 10,
+    justifyContent: 'space-around',
   },
   bodyPartsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 25,
+    marginBottom: 35,
   },
   bodyPartItem: {
     width: '45%',
@@ -240,8 +262,17 @@ const styles = StyleSheet.create({
   },
   bodyPartImage: {
     width: '105%',
-    height: 155,
+    height: 150,
     resizeMode: 'cover',
+  },
+  searchIcon:{
+    backgroundColor: '#896cfe',
+    padding:5,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: '#e2f163',
+    
+   
   },
   separator: {
     width: '100%',
@@ -255,6 +286,31 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '700',
     marginBottom: 10,
+  },
+  exerciseItem: {
+    padding: 10,
+    backgroundColor: '#B3A0FF',
+    marginBottom: 20,
+    borderRadius: 8,
+  },
+  exerciseText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  detailsText: {
+    fontSize: 14,
+    color: '#E2F163',
+  },
+  equipmentText: {
+    fontSize: 14,
+    color: '#DDDDDD',
+  },
+  exerciseImage: {
+    width: '100%',
+    height: 150,
+    resizeMode: 'cover',
+    borderRadius: 8,
+    marginTop: 10,
   },
 });
 

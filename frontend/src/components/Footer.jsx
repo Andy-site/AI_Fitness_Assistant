@@ -1,42 +1,41 @@
-// Footer.js (or Footer.jsx)
-import React from 'react';
-import { View, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, TouchableOpacity, Image, StyleSheet, Keyboard, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 const Footer = () => {
-  const navigation = useNavigation(); 
+  const navigation = useNavigation();
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+    });
+
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+
+  if (isKeyboardVisible) return null; // Hide footer when keyboard is visible
+
   return (
     <View style={styles.footer}>
-      <TouchableOpacity style=
-      {styles.footerIconButton}
-      onPress={() => navigation.navigate('Home')}
-      >
-        <Image
-          source={require('../assets/Images/Home.png')}  // Relative path
-          style={styles.footerIconImage}
-          resizeMode="contain"
-        />
+      <TouchableOpacity style={styles.footerIconButton} onPress={() => navigation.navigate('Home')}>
+        <Image source={require('../assets/Images/Home.png')} style={styles.footerIconImage} resizeMode="contain" />
       </TouchableOpacity>
       <TouchableOpacity style={styles.footerIconButton}>
-        <Image
-          source={require('../assets/Images/Res.png')}  // Relative path
-          style={styles.footerIconImage}
-          resizeMode="contain"
-        />
+        <Image source={require('../assets/Images/Res.png')} style={styles.footerIconImage} resizeMode="contain" />
       </TouchableOpacity>
       <TouchableOpacity style={styles.footerIconButton}>
-        <Image
-          source={require('../assets/Images/Stars.png')}  // Relative path
-          style={styles.footerIconImage}
-          resizeMode="contain"
-        />
+        <Image source={require('../assets/Images/Stars.png')} style={styles.footerIconImage} resizeMode="contain" />
       </TouchableOpacity>
       <TouchableOpacity style={styles.footerIconButton}>
-        <Image
-          source={require('../assets/Images/Help.png')}  // Relative path
-          style={styles.footerIconImage}
-          resizeMode="contain"
-        />
+        <Image source={require('../assets/Images/Help.png')} style={styles.footerIconImage} resizeMode="contain" />
       </TouchableOpacity>
     </View>
   );

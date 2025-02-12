@@ -1,20 +1,38 @@
-// exerciseOptions.js
-export const exerciseOptions = {
-    method: 'GET',
-    headers: {
-      'x-rapidapi-key': '3ad4a2f8admsh440268a18f36360p163235jsne9d005b72609',
-      'x-rapidapi-host': 'exercisedb.p.rapidapi.com',
-    },
-  };
-  
-  export const fetchData = async (url, options) => {
-    try {
-      const response = await fetch(url, options);
-      const data = await response.json();  // Corrected: invoking json() method properly
-      return data;
-    } catch (error) {
-      console.error('Error fetching data:', error);
+export const fetchData = async (url, options) => {
+  console.log(`Sending request to: ${url}`);  // Log URL to verify
+  try {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      console.error('HTTP error:', response.statusText);
       return null;
     }
-  };
-  
+    const data = await response.json();
+    console.log('Response data:', data);  // Log data received
+    return data;
+  } catch (error) {
+    console.error('Error in fetch:', error);
+    return null;
+  }
+};
+
+// Fetch Body Parts (now using 'primary_muscles' as the body part)
+export const fetchBodyParts = async () => {
+  const url = 'http://192.168.0.117:8000/api/bodyParts/';
+  return fetchData(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+};
+
+// Fetch Exercises for a specific primary muscle
+export const fetchExercisesForBodyPart = async (primaryMuscle) => {
+  const url = `http://192.168.0.117:8000/api/exercises/bodyPart/${primaryMuscle}/`;
+  return fetchData(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+};

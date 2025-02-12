@@ -25,6 +25,7 @@ import Workout from '../screens/HomeAndLogin/Workout';
 import Exercises from '../screens/HomeAndLogin/Exercises';
 import ExeDetails from '../screens/HomeAndLogin/ExeDetails';
 import RepsAndSets from '../screens/HomeAndLogin/RepsAndSets';
+import CreateWorkout from '../screens/HomeAndLogin/CreateWorkout';
 
 
 
@@ -36,7 +37,7 @@ const AppNavigator = () => {
     <NavigationContainer>
 
 
-        <Stack.Navigator initialRouteName="LoginScreen">
+        <Stack.Navigator initialRouteName="Workout">
         <Stack.Screen name="Landing" component={Landing}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading1" component={Loading1}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading2" component={Loading2}  options={{ headerShown: false }}/>
@@ -58,6 +59,7 @@ const AppNavigator = () => {
 
         <Stack.Screen name="Home" component={Home} options={{ headerShown: false }}/>
         <Stack.Screen name="Workout" component={Workout} options={{ headerShown: false }}/>
+        <Stack.Screen name="CreateWorkout" component={CreateWorkout} options={{ headerShown: false }}/>
         <Stack.Screen name="Exercises" component={Exercises} options={{ headerShown: false }}/>
         <Stack.Screen name="ExeDetails" component={ExeDetails} options={{ headerShown: false }}/>
         <Stack.Screen name="RepsAndSets" component={RepsAndSets} />
