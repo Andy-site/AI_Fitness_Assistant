@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -8,13 +8,10 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
-  Keyboard,
 } from 'react-native';
-import { fetchData, exerciseOptions } from '../../utils/ExerciseFetcher';
+import {fetchData, exerciseOptions} from '../../utils/ExerciseFetcher';
 import Footer from '../../components/Footer';
-import { useNavigation } from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Header from '../../components/Header';
 
@@ -67,16 +64,20 @@ const Workout = () => {
       const url = `https://exercisedb.p.rapidapi.com/exercises/`;
 
       try {
-        const data = await fetchData(url, exerciseOptions);
-        if (Array.isArray(data)) {
+        const response = await fetch(url, exerciseOptions);
+        const data = await response.json();
+        if (data && Array.isArray(data)) {
           const lowerCaseSearch = searchQuery.toLowerCase();
           const filtered = data.filter(
-            (exercise) =>
+            exercise =>
               exercise.name.toLowerCase().startsWith(lowerCaseSearch) ||
               exercise.equipment.toLowerCase().startsWith(lowerCaseSearch) ||
-              exercise.target.toLowerCase().startsWith(lowerCaseSearch)
+              exercise.target.toLowerCase().startsWith(lowerCaseSearch),
           );
           setExercises(filtered);
+        } else {
+          console.error('No exercises found');
+          setExercises([]);
         }
       } catch (error) {
         console.error('Error fetching exercises:', error);
@@ -85,74 +86,87 @@ const Workout = () => {
       }
     };
 
-    fetchExercises();
+    fetchExercises(); // Call fetchExercises here
   }, [searchQuery]);
 
-  const handleBodyPartSelect = (part) => {
-    navigation.navigate('Exercises', { bodyPart: part });
+  const handleBodyPartSelect = part => {
+    navigation.navigate('Exercises', {bodyPart: part});
   };
 
-  const handleExerciseSelect = (exercise) => {
-    navigation.navigate('ExeDetails', { exercise });
+  const handleExerciseSelect = exercise => {
+    navigation.navigate('ExeDetails', {exercise});
   };
 
   return (
-    <View style={styles.container} >
+    <View style={styles.container}>
       <Header title="Select Body Parts" />
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <Text style={styles.subtitle}>Select Muscle Groups</Text>
-          {/* Search Bar */}
-          <View style={styles.searchBarContainer}>
-            <TextInput
-              style={styles.searchBar}
-              placeholder="Search exercises..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCorrect={false}
-            />
-            {/* FontAwesome as search icon */}
-            const myIcon = <Icon name="search" size={20} color="#e2f163"  style={styles.searchIcon} />;
-          </View>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Search Bar */}
+        <View style={styles.searchBarContainer}>
+          <TextInput
+            style={styles.searchBar}
+            placeholder="Search for exercises..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCorrect={false}
+          />
+          <Icon
+            name="search"
+            size={25}
+            color="#e2f163"
+            style={styles.searchIcon}
+          />
+        </View>
 
-          {searching ? (
-            <ActivityIndicator size="large" color="#E2F163" style={styles.loader} />
-          ) : (
-            <View style={styles.exercisesContainer}>
-              {searchQuery && exercises.length > 0 ? (
-                exercises.map((exercise, index) => (
+        {searching ? (
+          <ActivityIndicator
+            size="large"
+            color="#E2F163"
+            style={styles.loader}
+          />
+        ) : (
+          <View style={styles.exercisesContainer}>
+            {searchQuery && exercises.length > 0 ? (
+              exercises.map((exercise, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.exerciseItem}
+                  onPress={() => handleExerciseSelect(exercise)}>
+                  <Text style={styles.exerciseText}>Name: {exercise.name}</Text>
+                  <Text style={styles.equipmentText}>
+                    Equipment: {exercise.equipment}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            ) : searchQuery ? (
+              <Text style={styles.noResultsText}>No exercises found</Text>
+            ) : (
+              <View style={styles.bodyPartsContainer}>
+                {bodyParts.map((part, index) => (
                   <TouchableOpacity
                     key={index}
-                    style={styles.exerciseItem}
-                    onPress={() => handleExerciseSelect(exercise)}
-                  >
-                    <Text style={styles.exerciseText}>{exercise.name}</Text>
-                    <Text style={styles.equipmentText}>{exercise.equipment}</Text>
+                    style={styles.bodyPartItem}
+                    onPress={() => handleBodyPartSelect(part)}>
+                    {images[part] && (
+                      <Image
+                        source={images[part]}
+                        style={styles.bodyPartImage}
+                      />
+                    )}
+                    <View style={styles.separator} />
+                    <Text style={styles.bodyPartText}>
+                      {part.charAt(0).toUpperCase() + part.slice(1)}
+                    </Text>
                   </TouchableOpacity>
-                ))
-              ) : searchQuery ? (
-                <Text style={styles.noResultsText}>No exercises found</Text>
-              ) : (
-                <View style={styles.bodyPartsContainer}>
-                  {bodyParts.map((part, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={styles.bodyPartItem}
-                      onPress={() => handleBodyPartSelect(part)}
-                    >
-                      {images[part] && <Image source={images[part]} style={styles.bodyPartImage} />}
-                      <View style={styles.separator} />
-                      <Text style={styles.bodyPartText}>{part.charAt(0).toUpperCase() + part.slice(1)}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-          )}
-        </ScrollView>
-      
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+      </ScrollView>
+
       <Footer />
     </View>
-    
   );
 };
 
@@ -164,10 +178,11 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 80,
     paddingHorizontal: 10,
+    marginTop: 20,
   },
-    subtitle: {
+  subtitle: {
     fontSize: 18,
     fontWeight: '500',
     color: '#E2F163',
@@ -180,12 +195,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 20,
     width: '95%',
-    marginBottom: 20,
-    padding: 10,
+    marginBottom: 30,
+    padding: 5,
   },
   searchIcon: {
     marginLeft: 10,
-    backgroundColor:'#896cfe',
+    backgroundColor: '#896cfe',
     padding: 5,
     borderRadius: 20,
     borderWidth: 1,
@@ -193,8 +208,8 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     flex: 1,
-    color: '#000',
-    fontSize: 15,
+    color: '#000000',
+    fontSize: 13,
   },
   loader: {
     marginTop: 20,
@@ -204,9 +219,11 @@ const styles = StyleSheet.create({
   },
   exerciseItem: {
     padding: 10,
-    backgroundColor: '#B3A0FF',
-    marginBottom: 20,
-    borderRadius: 8,
+    backgroundColor: '#896cfe',
+    marginBottom: 50,
+    borderRadius: 20,
+    borderWidth: 5,
+    bordercolor: '#ffffff',
   },
   exerciseText: {
     fontSize: 16,
@@ -214,7 +231,7 @@ const styles = StyleSheet.create({
   },
   equipmentText: {
     fontSize: 14,
-    color: '#DDDDDD',
+    color: '#e2f163',
   },
   noResultsText: {
     fontSize: 16,

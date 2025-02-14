@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
     backgroundColor: '#000000',
-    marginBottom: 30,
+    
   },
   scrollViewContainer: {
     flexGrow: 1, // Ensure content is scrollable
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center', // Center the content horizontally
-    width: screenWidth - 150,
+    
     alignSelf: 'center',
     marginBottom: 50, // Ensure space at the bottom
   },

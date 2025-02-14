@@ -103,18 +103,18 @@ const RepsAndSets = ({ route }) => {
 
   return (
     <View style={styles.container}>
+      {/* Scrollable content */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Text style={styles.exerciseTitle}>{capitalizeWords(exercise.name)}</Text>
         <Text style={styles.bodyPart}>{capitalizeWords(exercise.bodyPart)}</Text>
 
-        {/* Display the total time in real time if the workout has started */}
         {startTime && (
           <Text style={styles.timeText}>
             Time Elapsed: {totalTime} minutes
           </Text>
         )}
 
-        {/* Render sets */}
+        {/* Sets Input */}
         {sets.map((set, index) => (
           <View key={index} style={styles.setContainer}>
             <Text style={styles.setTitle}>Set {index + 1}</Text>
@@ -141,27 +141,34 @@ const RepsAndSets = ({ route }) => {
               </View>
             </View>
 
-            {/* Delete button */}
-            <TouchableOpacity style={styles.deleteButton} onPress={() => deleteSet(index)}>
-              <Icon name="trash" size={20} color="#ffffff" />
-              <Text style={styles.deleteButtonText}>Delete</Text>
-            </TouchableOpacity>
+            {/* Buttons row for Add and Delete */}
+            <View style={styles.buttonsRow}>
+            <TouchableOpacity style={styles.addSetButton} onPress={addSet}>
+                <Icon name="plus" size={20} color="#000000" />
+                <Text style={styles.addSetButtonText}>Add Set</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.deleteButton} onPress={() => deleteSet(index)}>
+                <Icon name="trash" size={20} color="#ffffff" />
+                <Text style={styles.deleteButtonText}>Delete</Text>
+              </TouchableOpacity>
+
+              
+            </View>
           </View>
         ))}
 
-        {/* Add set button */}
-        <TouchableOpacity style={styles.addSetButton} onPress={addSet}>
-          <Icon name="plus" size={20} color="#00000" />
-          <Text style={styles.addSetButtonText}>Add Set</Text>
+        {/* Finish Workout button */}
+        <TouchableOpacity style={styles.finishButton} onPress={finishWorkout}>
+          <Icon name="check-circle" size={20} color="#ffffff" />
+          <Text style={styles.finishButtonText}>Finish Workout</Text>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Finish button placed below the scrollable content */}
-      <TouchableOpacity style={styles.finishButton} onPress={finishWorkout}>
-        <Icon name="check-circle" size={20} color="#ffffff" />
-        <Text style={styles.finishButtonText}>Finish Workout</Text>
-      </TouchableOpacity>
-      <Footer />
+      {/* Footer - Fixed at Bottom */}
+      <View style={styles.footerContainer}>
+        <Footer />
+      </View>
     </View>
   );
 };
@@ -170,11 +177,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
-    padding: 20,
   },
   scrollContainer: {
     flexGrow: 1,
-    marginBottom: 50, // Adding margin bottom to scroll container
+    paddingBottom: 80, // Ensures content doesn’t overlap with footer
   },
   exerciseTitle: {
     fontSize: 24,
@@ -198,6 +204,7 @@ const styles = StyleSheet.create({
   },
   setContainer: {
     marginBottom: 20,
+    marginHorizontal: 20,
     borderBottomWidth: 1,
     padding: 10,
     backgroundColor: '#896cfe',
@@ -234,16 +241,19 @@ const styles = StyleSheet.create({
     color: '#000000',
     textAlign: 'center',
   },
+  buttonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
   addSetButton: {
     flexDirection: 'row',
     backgroundColor: '#E2F163',
     borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
-    alignSelf: 'center',
   },
   addSetButtonText: {
     fontSize: 16,
@@ -256,11 +266,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF0000',
     borderRadius: 8,
     paddingVertical: 8,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
-    alignSelf: 'center',
   },
   deleteButtonText: {
     fontSize: 16,
@@ -277,7 +285,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 20,
-    marginBottom: 50, // Adding margin bottom to finish button to avoid overlapping with footer
+    marginBottom: 70,
     alignSelf: 'center',
   },
   finishButtonText: {
