@@ -13,13 +13,14 @@ import {capitalizeWords} from '../../utils/StringUtils';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import {useNavigation} from '@react-navigation/native'; // Import useNavigation
+import {useNavigation} from '@react-navigation/native';
 
 const screenWidth = Dimensions.get('window').width;
 
 const ExeDetails = ({route}) => {
   const {exercise} = route.params;
-  const navigation = useNavigation(); // Use useNavigation to handle navigation
+  const {bodyPart} = route.params;
+  const navigation = useNavigation();
 
   // Calculate estimated time based on the number of secondary muscles
   const calculateEstimatedTime = secondaryMusclesCount => {
@@ -31,10 +32,22 @@ const ExeDetails = ({route}) => {
     exercise.secondaryMuscles?.length || 0,
   );
 
-  // Function to handle the Start button press and navigate to the next screen
+  // Function to handle Start button press, start the exercise session, and navigate to the next screen
   const handleStartPress = () => {
     const startTime = Date.now(); // Record the start time
-    navigation.navigate('RepsAndSets', {exercise, startTime}); // Pass start time to next screen
+
+    // Start the exercise session
+    startExerciseSession(startTime);
+
+    // Navigate to the next screen (RepsAndSets)
+    navigation.navigate('RepsAndSets', {exercise, startTime, bodyPart});
+  };
+
+  // Function to start the exercise session (this function can contain any logic for starting the session)
+  const startExerciseSession = startTime => {
+    Alert.alert('Session Started', `Starting session for ${exercise.name}!`);
+    console.log('Exercise started at:', startTime);
+    // Additional logic for starting the session can go here, such as starting a timer
   };
 
   // Function to handle Add to Favourites
@@ -55,14 +68,12 @@ const ExeDetails = ({route}) => {
     <View style={styles.outerContainer}>
       <Header title="Exercise Info" />
       <ScrollView contentContainerStyle={styles.scrollViewContainer}>
-        {/* Back arrow button */}
-
         <View style={styles.titleContainer}>
-  <Text style={styles.title}>{capitalizeWords(exercise.name)}</Text>
-  <TouchableOpacity onPress={handleAddToFavourites} style={styles.heartIconContainer}>
-    <Icon name="heart" size={25} color="#896cfe" />
-  </TouchableOpacity>
-</View>
+          <Text style={styles.title}>{capitalizeWords(exercise.name)}</Text>
+          <TouchableOpacity onPress={handleAddToFavourites} style={styles.heartIconContainer}>
+            <Icon name="heart" size={25} color="#896cfe" />
+          </TouchableOpacity>
+        </View>
 
         <Text style={styles.details}>
           Equipment: {capitalizeWords(exercise.equipment)}
@@ -127,24 +138,16 @@ const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
     backgroundColor: '#000000',
-    
   },
   scrollViewContainer: {
-    flexGrow: 1, // Ensure content is scrollable
+    flexGrow: 1,
     padding: 20,
     paddingTop: 80,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-
   titleContainer: {
-    flexDirection: 'row', // Align items in a row
-    alignItems: 'center', // Align vertically in center
-    justifyContent: 'space-between', // Ensure spacing between title & icon
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 10,
   },
   title: {
@@ -154,7 +157,7 @@ const styles = StyleSheet.create({
     maxWidth: 300,
   },
   heartIconContainer: {
-    paddingLeft: 10, // Ensure proper spacing
+    paddingLeft: 10,
   },
   details: {
     fontSize: 16,
@@ -173,7 +176,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginLeft: 10,
     marginBottom: 5,
-    justifyContent: 'center',
   },
   noDataText: {
     fontSize: 14,
@@ -199,7 +201,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     alignSelf: 'center',
     marginVertical: 20,
-    marginBottom: 30, // Ensure space at the bottom for button
+    marginBottom: 30,
   },
   gifImage: {
     width: '100%',
@@ -214,10 +216,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     alignItems: 'center',
-    justifyContent: 'center', // Center the content horizontally
-    
+    justifyContent: 'center',
     alignSelf: 'center',
-    marginBottom: 50, // Ensure space at the bottom
+    marginBottom: 50,
   },
   startButtonText: {
     fontSize: 16,
@@ -228,12 +229,12 @@ const styles = StyleSheet.create({
   separatorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 10, // Add some space before the separator
+    marginLeft: 10,
   },
   separator: {
     fontSize: 20,
-    color: '#000000', // Color for the separator
-    marginHorizontal: 5, // Space around the separator
+    color: '#000000',
+    marginHorizontal: 5,
   },
   timeContainer: {
     flexDirection: 'row',

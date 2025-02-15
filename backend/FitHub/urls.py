@@ -13,6 +13,11 @@ urlpatterns = [
     path('forgot-password/otp/', views.ForgotPasswordOTPView, name='forgot-password-otp'),
     path('forgot-password/verify/', views.verify_password_reset_otp, name='verify-password-reset-otp'),
     path('reset-password/', views.reset_password, name='reset-password'),
+    path('start-exercise/', views.StartExercise, name='start-exercise'),
+    path('end-exercise/', views.EndExercise, name='end-exercise'),
+    path('log-exercise-performance/', views.LogExercisePerformance, name='log-exercise-performance'),
+
+
 
     
 ]

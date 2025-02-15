@@ -26,6 +26,10 @@ import Exercises from '../screens/HomeAndLogin/Exercises';
 import ExeDetails from '../screens/HomeAndLogin/ExeDetails';
 import RepsAndSets from '../screens/HomeAndLogin/RepsAndSets';
 
+import LandNutri from '../screens/Nutrition/LandNutri';
+import MealSugg from '../screens/Nutrition/MealSugg';
+import Nutrichoices from '../screens/Nutrition/Nutrichoices';
+
 
 
 
@@ -36,7 +40,7 @@ const AppNavigator = () => {
     <NavigationContainer>
 
 
-        <Stack.Navigator initialRouteName="Home">
+        <Stack.Navigator initialRouteName="LoginScreen">
         <Stack.Screen name="Landing" component={Landing}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading1" component={Loading1}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading2" component={Loading2}  options={{ headerShown: false }}/>
@@ -60,7 +64,13 @@ const AppNavigator = () => {
         <Stack.Screen name="Workout" component={Workout} options={{ headerShown: false }}/>
         <Stack.Screen name="Exercises" component={Exercises} options={{ headerShown: false }}/>
         <Stack.Screen name="ExeDetails" component={ExeDetails} options={{ headerShown: false }}/>
-        <Stack.Screen name="RepsAndSets" component={RepsAndSets} />
+        <Stack.Screen name="RepsAndSets" component={RepsAndSets} options={{ headerShown: false }}/>
+
+        <Stack.Screen name="LandNutri" component={LandNutri} options={{ headerShown: false }}/>
+        <Stack.Screen name="MealSugg" component={MealSugg} options={{ headerShown: false }}/>
+        <Stack.Screen name="Nutrichoices" component={Nutrichoices} options={{ headerShown: false }}/>
+
+        
 
 
       </Stack.Navigator>

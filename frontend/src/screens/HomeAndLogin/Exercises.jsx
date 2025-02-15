@@ -36,7 +36,7 @@ const Exercises = ({ navigation }) => {
   }, [bodyPart]);
 
   const handlePress = (exercise) => {
-    navigation.navigate('ExeDetails', { exercise });
+    navigation.navigate('ExeDetails', { bodyPart,exercise });
   };
 
   

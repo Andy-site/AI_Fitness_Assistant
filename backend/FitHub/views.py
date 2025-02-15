@@ -240,35 +240,65 @@ def HomeView(request):
         
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def CreateWorkout(request):
-    """Create a new workout for the authenticated user."""
+def StartExercise(request):
+    """Start an exercise and record the start time."""
     user = request.user
-    workout_data = request.data
-    workout = Workout.objects.create(
+    exercise_data = request.data
+
+    # Get or create today's workout
+    workout, _ = Workout.objects.get_or_create(
         user=user,
         workout_date=now().date(),
-        total_time=timedelta(seconds=workout_data.get('total_time', 0)),
-        total_calories=workout_data.get('total_calories', 0),
-        custom_workout_name=workout_data.get('custom_workout_name', None)
+        defaults={'total_time': timedelta(minutes=0), 'total_calories': 0}
     )
 
-    for exercise_data in workout_data.get('exercises', []):
-        WorkoutExercise.objects.create(
-            workout=workout,
-            exercise_name=exercise_data.get('exercise_name'),
-            body_part=exercise_data.get('body_part'),
-            exercise_date=now().date(),
-            start_time=now(),
-            duration=timedelta(seconds=exercise_data.get('duration', 0))
-        )
+    # Create a new exercise entry
+    workout_exercise = WorkoutExercise.objects.create(
+        workout=workout,
+        exercise_name=exercise_data.get('exercise_name'),
+        body_part=exercise_data.get('body_part'),
+        exercise_date=now().date(),
+        start_time=now()  # Start time is recorded
+    )
 
-    return Response({'message': 'Workout created successfully.'}, status=status.HTTP_201_CREATED)
+    return Response({
+        "message": "Exercise started successfully.",
+        "workout_exercise_id": workout_exercise.id,
+        "start_time": workout_exercise.start_time
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def EndExercise(request):
+    """End an exercise session and update duration and total time."""
+    workout_exercise_id = request.data.get('workout_exercise_id')
+    total_time_seconds = request.data.get('total_time_seconds', 0)
+    calories_burned = request.data.get('calories_burned', 0)
+
+    workout_exercise = get_object_or_404(WorkoutExercise, id=workout_exercise_id)
+    
+    workout_exercise.end_time = now()
+    workout_exercise.duration = workout_exercise.end_time - workout_exercise.start_time
+    workout_exercise.save()
+
+    # Update total workout time and calories
+    workout = workout_exercise.workout
+    workout.total_time += timedelta(seconds=total_time_seconds)
+    workout.total_calories += calories_burned
+    workout.save()
+
+    return Response({
+        "message": "Exercise ended successfully.",
+        "duration_seconds": workout_exercise.duration.total_seconds(),
+        "end_time": workout_exercise.end_time
+    }, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def LogExercisePerformance(request):
-    """Log exercise performance (sets, reps, weight)."""
+    """Log sets, reps, and weight for an exercise."""
     workout_exercise_id = request.data.get('workout_exercise_id')
     set_data = request.data.get('sets', [])
 
