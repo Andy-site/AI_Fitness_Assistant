@@ -80,7 +80,7 @@ REST_FRAMEWORK = {
 
 # Add JWT configuration (optional)
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
@@ -128,7 +128,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'fithub',  # Name of the database you created
+        'NAME': 'Gym',  # Name of the database you created
         'USER': 'postgres',  # The user you created
         'PASSWORD': 'Andy#@!',  # The password you assigned
         'HOST': 'localhost',
@@ -205,5 +205,5 @@ REST_FRAMEWORK = {
 
 CORS_ALLOW_ALL_ORIGINS = True  # For development only
 CORS_ALLOW_CREDENTIALS = True
-
+CSRF_TRUSTED_ORIGINS = ['http://192.168.0.228:3000']
 

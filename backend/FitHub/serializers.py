@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, Workout, WorkoutExercise, ExercisePerformance
+from .models import CustomUser, Workout, WorkoutExercise, ExercisePerformance, WorkoutLibrary, WorkoutLibraryExercise
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,10 +28,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 
 class WorkoutSerializer(serializers.ModelSerializer):
+    workout_library_name = serializers.CharField(source="workout_library.name", read_only=True)  # Get library name
+
     class Meta:
         model = Workout
-        fields = ['id', 'user', 'workout_date', 'total_time', 'total_calories', 'custom_workout_name']
+        fields = ['id', 'user', 'workout_date', 'total_time', 'total_calories', 'workout_library', 'workout_library_name']
         read_only_fields = ['id', 'workout_date']
+
 
 
 class WorkoutExerciseSerializer(serializers.ModelSerializer):
@@ -46,3 +49,16 @@ class ExercisePerformanceSerializer(serializers.ModelSerializer):
         model = ExercisePerformance
         fields = ['id', 'workout_exercise', 'set_number', 'reps', 'weight']
         read_only_fields = ['id']
+        
+
+class WorkoutLibrarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkoutLibrary
+        fields = ['id', 'user', 'name', 'created_at']
+        read_only_fields = ['id', 'user', 'created_at']
+
+class WorkoutLibraryExerciseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkoutLibraryExercise
+        fields = ['id', 'library', 'workout_exercise_id', 'name', 'body_part']
+        read_only_fields = ['id', 'library']

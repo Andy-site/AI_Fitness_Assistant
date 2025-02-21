@@ -6,8 +6,6 @@ import Footer from '../../components/Footer';
 import { capitalizeWords } from '../../utils/StringUtils';
 import Header from '../../components/Header';
 
-
-
 const Exercises = ({ navigation }) => {
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,17 +34,14 @@ const Exercises = ({ navigation }) => {
   }, [bodyPart]);
 
   const handlePress = (exercise) => {
-    navigation.navigate('ExeDetails', { bodyPart,exercise });
+    navigation.navigate('ExeDetails', { exerciseName: exercise.name, bodyPart });
   };
-
   
 
   return (
     <View style={styles.container}>
-     <Header title={`Exercises for ${bodyPart}`} />
+      <Header title={`Exercises for ${bodyPart}`} />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        
-
         {loading ? (
           <ActivityIndicator size="large" color="#E2F163" style={styles.loader} />
         ) : (
@@ -63,13 +58,9 @@ const Exercises = ({ navigation }) => {
                     style={styles.exerciseImage}
                     resizeMode="contain"
                   />
-                  {/* Separator between Name and Details */}
                   <View style={styles.separator} />
                   <Text style={styles.exerciseText}>{capitalizeWords(exercise.name)}</Text>
-                  
-                  {/* Separator between Name and Details */}
                   <View style={styles.separator} />
-                  
                   <Text style={styles.exerciseDetails}>
                     Equipment: {capitalizeWords(exercise.equipment)}
                   </Text>
@@ -101,12 +92,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 70,
     marginTop: 50,
-
   },
-  
   loader: {
     marginTop: 90,
-    
   },
   gridContainer: {
     width: '95%',
@@ -115,15 +103,13 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     paddingHorizontal: 10,
-    marginBottom:40,
+    marginBottom: 40,
   },
   exerciseItem: {
     backgroundColor: '#896CFE',
     borderRadius: 8,
-    // padding: 15,
     marginBottom: 20,
-    width: '45%', // Ensures a grid layout with 2 items per row
-    
+    width: '45%',
   },
   exerciseImage: {
     width: '100%',
@@ -133,7 +119,7 @@ const styles = StyleSheet.create({
   exerciseText: {
     fontSize: 16,
     fontWeight: 600,
-    padding:10,
+    padding: 10,
     color: '#000000',
     textAlign: 'left',
   },
@@ -141,16 +127,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#E2F163',
-    textAlign: 'left', // Align details to the left
-    width: '100%', // Ensure the text takes up the full width of the container
-    marginBottom:5,
-    marginLeft: 10, // Add space to the left of the text to align it with the image
+    textAlign: 'left',
+    width: '100%',
+    marginBottom: 5,
+    marginLeft: 10,
   },
   separator: {
     width: '100%',
     height: 1,
-    backgroundColor: '#ffffff', // Purple color
-    marginVertical: 3, // Add space around the separator
+    backgroundColor: '#ffffff',
+    marginVertical: 3,
   },
   noDataText: {
     fontSize: 14,

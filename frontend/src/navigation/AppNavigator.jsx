@@ -25,6 +25,10 @@ import Workout from '../screens/HomeAndLogin/Workout';
 import Exercises from '../screens/HomeAndLogin/Exercises';
 import ExeDetails from '../screens/HomeAndLogin/ExeDetails';
 import RepsAndSets from '../screens/HomeAndLogin/RepsAndSets';
+import CreateLibrary from '../screens/HomeAndLogin/CreateLibrary';
+import SetExerciseLibrary from '../screens/HomeAndLogin/SetExerciseLibrary';
+import LibraryDetails from '../screens/HomeAndLogin/LibraryDetails';
+
 
 import LandNutri from '../screens/Nutrition/LandNutri';
 import MealSugg from '../screens/Nutrition/MealSugg';
@@ -65,6 +69,9 @@ const AppNavigator = () => {
         <Stack.Screen name="Exercises" component={Exercises} options={{ headerShown: false }}/>
         <Stack.Screen name="ExeDetails" component={ExeDetails} options={{ headerShown: false }}/>
         <Stack.Screen name="RepsAndSets" component={RepsAndSets} options={{ headerShown: false }}/>
+        <Stack.Screen name="CreateLibrary" component={CreateLibrary} options={{ headerShown: false }}/>
+        <Stack.Screen name="LibraryDetails" component={LibraryDetails} options={{ headerShown: false}}/>
+        <Stack.Screen name="SetExerciseLibrary" component={SetExerciseLibrary} options={{ headerShown:false}}/>
 
         <Stack.Screen name="LandNutri" component={LandNutri} options={{ headerShown: false }}/>
         <Stack.Screen name="MealSugg" component={MealSugg} options={{ headerShown: false }}/>

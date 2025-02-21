@@ -5,8 +5,8 @@ from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.conf import settings
-from .serializers import UserRegistrationSerializer
-from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP
+from .serializers import UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer
+from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise
 import logging
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -237,34 +237,39 @@ def get_user_details(request):
 @api_view(['GET'])
 def HomeView(request):
         return Response({'message': 'Welcome to the Home page!'}, status=status.HTTP_200_OK)
-        
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def StartExercise(request):
-    """Start an exercise and record the start time."""
+    """Start an exercise session and record start details."""
     user = request.user
-    exercise_data = request.data
+    exercise_data = request.data  # Receive exercise data from frontend
+
+    # Ensure required fields are provided
+    required_fields = ['exercise_name', 'body_part', 'workout_exercise_id']
+    if not all(field in exercise_data for field in required_fields):
+        return Response({"error": "Incomplete exercise data."}, status=status.HTTP_400_BAD_REQUEST)
 
     # Get or create today's workout
     workout, _ = Workout.objects.get_or_create(
         user=user,
         workout_date=now().date(),
-        defaults={'total_time': timedelta(minutes=0), 'total_calories': 0}
+        defaults={'total_time': timedelta(seconds=0), 'total_calories': 0}
     )
 
-    # Create a new exercise entry
+    # Create a new workout exercise entry
     workout_exercise = WorkoutExercise.objects.create(
         workout=workout,
-        exercise_name=exercise_data.get('exercise_name'),
+        workout_exercise_id=exercise_data['workout_exercise_id'],  # Store API exercise ID
+        name=exercise_data.get('exercise_name'),
         body_part=exercise_data.get('body_part'),
-        exercise_date=now().date(),
-        start_time=now()  # Start time is recorded
+        start_date=now().date()
     )
 
     return Response({
         "message": "Exercise started successfully.",
-        "workout_exercise_id": workout_exercise.id,
-        "start_time": workout_exercise.start_time
+        "workout_exercise_id": workout_exercise.id
     }, status=status.HTTP_201_CREATED)
 
 
@@ -272,34 +277,39 @@ def StartExercise(request):
 @permission_classes([IsAuthenticated])
 def EndExercise(request):
     """End an exercise session and update duration and total time."""
-    workout_exercise_id = request.data.get('workout_exercise_id')
+    workout_exercise_id = int(request.data.get('workout_exercise_id'))  # If it's numeric
+
     total_time_seconds = request.data.get('total_time_seconds', 0)
     calories_burned = request.data.get('calories_burned', 0)
 
     workout_exercise = get_object_or_404(WorkoutExercise, id=workout_exercise_id)
+
     
-    workout_exercise.end_time = now()
-    workout_exercise.duration = workout_exercise.end_time - workout_exercise.start_time
+
+    # Update workout exercise duration and calories
+    workout_exercise.total_time = timedelta(seconds=total_time_seconds)
+    workout_exercise.total_calories += float(calories_burned)
     workout_exercise.save()
 
     # Update total workout time and calories
     workout = workout_exercise.workout
     workout.total_time += timedelta(seconds=total_time_seconds)
-    workout.total_calories += calories_burned
+    workout.total_calories += float(calories_burned)
     workout.save()
 
     return Response({
         "message": "Exercise ended successfully.",
-        "duration_seconds": workout_exercise.duration.total_seconds(),
-        "end_time": workout_exercise.end_time
+        "total_time_seconds": total_time_seconds,
+        "calories_burned": calories_burned
     }, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def LogExercisePerformance(request):
-    """Log sets, reps, and weight for an exercise."""
-    workout_exercise_id = request.data.get('workout_exercise_id')
+    """Log performance details for an exercise."""
+    workout_exercise_id = int(request.data.get('workout_exercise_id'))  # If it's numeric
+
     set_data = request.data.get('sets', [])
 
     workout_exercise = get_object_or_404(WorkoutExercise, id=workout_exercise_id)
@@ -313,3 +323,196 @@ def LogExercisePerformance(request):
         )
 
     return Response({'message': 'Exercise performance logged successfully.'}, status=status.HTTP_201_CREATED)
+
+
+
+
+#-------------------------------------------------------------------
+# Start Exercise View (for WorkoutExercise)
+# -------------------------------------------------------------------
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def start_exercise(request):
+    """
+    Start an exercise session and record start details.
+    
+    Expected payload:
+    {
+        "exercise_name": "Push Ups",
+        "body_part": "Chest",
+        "workout_exercise_id": 123
+    }
+    """
+    user = request.user
+    exercise_data = request.data
+
+    # Ensure required fields are provided
+    required_fields = ['exercise_name', 'body_part', 'workout_exercise_id']
+    if not all(field in exercise_data for field in required_fields):
+        return Response({"error": "Incomplete exercise data."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Get or create today's workout
+    workout, _ = Workout.objects.get_or_create(
+        user=user,
+        workout_date=now().date(),
+        defaults={'total_time': timedelta(seconds=0), 'total_calories': 0}
+    )
+
+    # Create a new workout exercise entry
+    workout_exercise = WorkoutExercise.objects.create(
+        workout=workout,
+        workout_exercise_id=exercise_data['workout_exercise_id'],  # Store API exercise ID
+        name=exercise_data.get('exercise_name'),
+        body_part=exercise_data.get('body_part'),
+        start_date=now().date()
+    )
+
+    return Response({
+        "message": "Exercise started successfully.",
+        "workout_exercise_id": workout_exercise.id
+    }, status=status.HTTP_201_CREATED)
+
+
+# -------------------------------------------------------------------
+# WorkoutLibrary Views
+# -------------------------------------------------------------------
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_workout_library(request):
+    """
+    Create a new workout library for the authenticated user.
+    
+    Expected payload:
+    {
+        "name": "My Library Name"
+    }
+    """
+    user = request.user
+    data = request.data
+
+    if 'name' not in data:
+        return Response({"error": "Library name is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    library = WorkoutLibrary.objects.create(
+        user=user,
+        name=data['name']
+    )
+
+    serializer = WorkoutLibrarySerializer(library)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_workout_libraries(request):
+    """
+    List all workout libraries that belong to the authenticated user.
+    """
+    libraries = WorkoutLibrary.objects.filter(user=request.user)
+    serializer = WorkoutLibrarySerializer(libraries, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_workout_library(request, library_id):
+    """
+    Delete a workout library for the authenticated user.
+    
+    URL should include the 'library_id'.
+    """
+    try:
+        library = WorkoutLibrary.objects.get(id=library_id, user=request.user)
+    except WorkoutLibrary.DoesNotExist:
+        return Response({"error": "Workout library not found."}, status=status.HTTP_404_NOT_FOUND)
+    
+    library.delete()
+    return Response({"message": "Workout library deleted successfully."}, status=status.HTTP_200_OK)
+
+
+# -------------------------------------------------------------------
+# WorkoutLibraryExercise Views
+# -------------------------------------------------------------------
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_exercise_to_library(request, library_id):
+    """
+    Add a new exercise to a specific workout library.
+    
+    URL should include the 'library_id'.
+    
+    Expected payload:
+    {
+        "workout_exercise_id": 456,
+        "name": "Squats",
+        "body_part": "Legs"
+    }
+    """
+    user = request.user
+    data = request.data
+
+    # Ensure required fields are provided
+    required_fields = ['workout_exercise_id', 'name', 'body_part']
+    if not all(field in data for field in required_fields):
+        return Response({"error": "Incomplete exercise data."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Ensure the library exists and belongs to the user
+    try:
+        library = WorkoutLibrary.objects.get(id=library_id, user=user)
+    except WorkoutLibrary.DoesNotExist:
+        return Response({"error": "Workout library not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    # Create the new exercise entry in the library
+    exercise = WorkoutLibraryExercise.objects.create(
+        library=library,
+        workout_exercise_id=data['workout_exercise_id'],
+        name=data['name'],
+        body_part=data['body_part']
+    )
+
+    serializer = WorkoutLibraryExerciseSerializer(exercise)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_library_exercises(request, library_id):
+    """
+    List all exercises within a specific workout library.
+    
+    URL should include the 'library_id'.
+    """
+    try:
+        library = WorkoutLibrary.objects.get(id=library_id, user=request.user)
+    except WorkoutLibrary.DoesNotExist:
+        return Response({"error": "Workout library not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    exercises = library.exercises.all()  # using the related_name "exercises"
+    serializer = WorkoutLibraryExerciseSerializer(exercises, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_library_exercise(request, library_id, exercise_id):
+    """
+    Delete an exercise from a workout library for the authenticated user.
+    
+    URL should include both 'library_id' and 'exercise_id'.
+    """
+    try:
+        library = WorkoutLibrary.objects.get(id=library_id, user=request.user)
+    except WorkoutLibrary.DoesNotExist:
+        return Response({"error": "Workout library not found."}, status=status.HTTP_404_NOT_FOUND)
+    
+    try:
+        exercise = WorkoutLibraryExercise.objects.get(id=exercise_id, library=library)
+    except WorkoutLibraryExercise.DoesNotExist:
+        return Response({"error": "Exercise not found in this library."}, status=status.HTTP_404_NOT_FOUND)
+    
+    exercise.delete()
+    return Response({"message": "Exercise deleted successfully."}, status=status.HTTP_200_OK)
+

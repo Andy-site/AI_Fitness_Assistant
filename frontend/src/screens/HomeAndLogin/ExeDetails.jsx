@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,62 +6,121 @@ import {
   ScrollView,
   Dimensions,
   TouchableOpacity,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
-import {capitalizeWords} from '../../utils/StringUtils';
+import { capitalizeWords } from '../../utils/StringUtils';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
+import { startExercise, getAuthToken, getExerciseDetailsByName } from '../../api/fithubApi';
+import { Alert } from 'react-native';
 
 const screenWidth = Dimensions.get('window').width;
 
-const ExeDetails = ({route}) => {
-  const {exercise} = route.params;
-  const {bodyPart} = route.params;
+const ExeDetails = ({ route }) => {
+  const { exerciseName, bodyPart } = route.params;
   const navigation = useNavigation();
+  const [exerciseDetails, setExerciseDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Calculate estimated time based on the number of secondary muscles
-  const calculateEstimatedTime = secondaryMusclesCount => {
+  // Define the calculateEstimatedTime function
+  const calculateEstimatedTime = (secondaryMusclesCount) => {
     if (secondaryMusclesCount <= 1) return 5; // 5 minutes for one muscle
     return 5 + (secondaryMusclesCount - 1) * 2; // Increase by 2 minutes for each additional muscle
   };
 
-  const estimatedTime = calculateEstimatedTime(
-    exercise.secondaryMuscles?.length || 0,
-  );
+  useEffect(() => {
+    const fetchExerciseDetails = async () => {
+      try {
+        const authToken = await getAuthToken();
+        if (!authToken) throw new Error('User is not authenticated');
 
-  // Function to handle Start button press, start the exercise session, and navigate to the next screen
-  const handleStartPress = () => {
+        const data = await getExerciseDetailsByName(exerciseName, authToken);
+        setExerciseDetails(data);
+      } catch (error) {
+        console.error('Error fetching exercise details:', error);
+        setError(error.message || 'Failed to fetch exercise details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (exerciseName) {
+      fetchExerciseDetails();
+    } else {
+      setError('Exercise name is missing');
+      setLoading(false);
+    }
+  }, [exerciseName]);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#896cfe" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{`Error: ${error}`}</Text>
+      </View>
+    );
+  }
+
+  if (!exerciseDetails) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>No exercise details found.</Text>
+      </View>
+    );
+  }
+
+  const handleStartPress = async () => {
+    if (!exerciseDetails.id || !bodyPart) {
+      Alert.alert('Missing Information', 'Cannot start without exercise data.');
+      return;
+    }
+
     const startTime = Date.now(); // Record the start time
 
-    // Start the exercise session
-    startExerciseSession(startTime);
+    const exerciseData = {
+      workout_exercise_id: exerciseDetails.id, // Exercise ID
+      body_part: bodyPart,       // Body part being targeted
+      start_time: startTime,     // Start time of the exercise session
+      exercise_name: exerciseDetails.name,
+    };
 
-    // Navigate to the next screen (RepsAndSets)
-    navigation.navigate('RepsAndSets', {exercise, startTime, bodyPart});
+    console.log('Exercise Data:', exerciseData); // Debugging log
+
+    try {
+      const authToken = await getAuthToken();
+      if (!authToken) throw new Error('User is not authenticated');
+
+      // Call the API function to start the exercise
+      const result = await startExercise(exerciseData, authToken);
+      console.log('Exercise started with ID:', result.workout_exercise_id);
+
+      // Navigate to the next screen
+      navigation.navigate('RepsAndSets', {
+        workout_exercise_id: exerciseDetails.id,
+        startTime,
+        bodyPart,
+        exercise_id: result.workout_exercise_id,
+        exercise_name: exerciseDetails.name,
+      });
+    } catch (error) {
+      console.error('Error starting exercise:', error);
+      Alert.alert('Error', error.message || 'An error occurred while starting the exercise session.');
+    }
   };
 
-  // Function to start the exercise session (this function can contain any logic for starting the session)
-  const startExerciseSession = startTime => {
-    Alert.alert('Session Started', `Starting session for ${exercise.name}!`);
-    console.log('Exercise started at:', startTime);
-    // Additional logic for starting the session can go here, such as starting a timer
-  };
-
-  // Function to handle Add to Favourites
   const handleAddToFavourites = () => {
-    Alert.alert(
-      'Added to Favourites',
-      `${exercise.name} has been added to your favourites!`,
-    );
-    // Here you would typically call a function to store the exercise in a list of favourites
-  };
-
-  // Function to handle Back Arrow Press
-  const handleBackPress = () => {
-    navigation.goBack(); // Navigate back to the previous screen
+    Alert.alert('Add to Favourites', 'Exercise added to your favourites.');
   };
 
   return (
@@ -69,22 +128,22 @@ const ExeDetails = ({route}) => {
       <Header title="Exercise Info" />
       <ScrollView contentContainerStyle={styles.scrollViewContainer}>
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>{capitalizeWords(exercise.name)}</Text>
+          <Text style={styles.title}>{capitalizeWords(exerciseDetails.name)}</Text>
           <TouchableOpacity onPress={handleAddToFavourites} style={styles.heartIconContainer}>
             <Icon name="heart" size={25} color="#896cfe" />
           </TouchableOpacity>
         </View>
 
         <Text style={styles.details}>
-          Equipment: {capitalizeWords(exercise.equipment)}
+          Equipment: {capitalizeWords(exerciseDetails.equipment)}
         </Text>
         <Text style={styles.details}>
-          Target: {capitalizeWords(exercise.target)}
+          Target: {capitalizeWords(exerciseDetails.target)}
         </Text>
 
         <Text style={styles.instructionsTitle}>Instructions:</Text>
-        {exercise.instructions?.length > 0 ? (
-          exercise.instructions.map((step, index) => (
+        {exerciseDetails.instructions?.length > 0 ? (
+          exerciseDetails.instructions.map((step, index) => (
             <Text key={index} style={styles.instructionText}>
               {index + 1}. {step}
             </Text>
@@ -95,18 +154,18 @@ const ExeDetails = ({route}) => {
 
         <Text style={styles.secondaryMusclesTitle}>Secondary Muscles:</Text>
         <Text style={styles.secondaryMusclesText}>
-          {exercise.secondaryMuscles?.length > 0
-            ? exercise.secondaryMuscles
+          {exerciseDetails.secondaryMuscles?.length > 0
+            ? exerciseDetails.secondaryMuscles
                 .map(muscle => capitalizeWords(muscle))
                 .join(', ')
             : 'No secondary muscles specified.'}
         </Text>
 
-        {exercise.gifUrl && (
+        {exerciseDetails.gifUrl && (
           <View style={styles.gifContainer}>
             <FastImage
               source={{
-                uri: exercise.gifUrl,
+                uri: exerciseDetails.gifUrl,
                 priority: FastImage.priority.high,
                 cache: FastImage.cacheControl.immutable,
               }}
@@ -124,7 +183,7 @@ const ExeDetails = ({route}) => {
             <View style={styles.timeContainer}>
               <Icon name="clock-o" size={20} color="#000000" />
               <Text
-                style={styles.estimatedTimeText}>{`${estimatedTime} min`}</Text>
+                style={styles.estimatedTimeText}>{`${calculateEstimatedTime(exerciseDetails.secondaryMuscles?.length || 0)} min`}</Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -223,7 +282,7 @@ const styles = StyleSheet.create({
   startButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#00000',
+    color: '#000000',
     paddingHorizontal: 50,
   },
   separatorContainer: {
@@ -245,6 +304,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#000000',
     marginLeft: 5,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: 'red',
+    marginBottom: 20,
+    textAlign: 'center',
   },
 });
 

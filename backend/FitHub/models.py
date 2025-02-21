@@ -89,34 +89,53 @@ class OTP(models.Model):
         return False
 
     
+class WorkoutLibrary(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="workout_libraries")
+    name = models.CharField(max_length=255)  # Custom workout name
+    created_at = models.DateTimeField(auto_now_add=True)  # When it was created
+
+    def __str__(self):
+        return f"{self.name} by {self.user.email}"
+    
+    
 class Workout(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     workout_date = models.DateField(default=now)  # Date when the workout was done
     total_time = models.DurationField(null=True, blank=True)  # Total time spent on workout
     total_calories = models.FloatField(null=True, blank=True)  # Calories burned
+    workout_library = models.ForeignKey(WorkoutLibrary, on_delete=models.SET_NULL, null=True, blank=True)  # Optional
 
     def __str__(self):
         return f"Workout for {self.user.email} on {self.workout_date}"
 
-
 class WorkoutExercise(models.Model):
-    workout = models.ForeignKey(Workout, on_delete=models.CASCADE, related_name="exercises")
-    exercise_name = models.CharField(max_length=255)  # Exercise name from API
-    body_part = models.CharField(max_length=100)  # Body part of the exercise
-    exercise_date = models.DateField(default=now)  # Exact date when the exercise was performed
-    start_time = models.DateTimeField(default=now)  # When the user starts the exercise
-    end_time = models.DateTimeField(null=True, blank=True)  # When the user finishes the exercise
-    duration = models.DurationField(null=True, blank=True)  # Exercise time duration (calculated in frontend)
+    workout = models.ForeignKey(Workout, on_delete=models.CASCADE, related_name="exercises", null = True)
+    workout_exercise_id = models.IntegerField(default = 1)  # Store API exercise ID
+    name = models.CharField(max_length=200)  # Store exercise name for quick reference
+    body_part = models.CharField(max_length=100, null=True)  # Store body part info
+    start_date = models.DateField(default=now)  # When the exercise started
+    total_time = models.DurationField(null=True, blank=True)  # Time taken for this exercise
+    total_calories = models.FloatField(null=True, blank=True, default=0.0)  # Calories burned for this exercise
 
     def __str__(self):
-        return f"{self.exercise_name} on {self.exercise_date} for {self.workout}"
-
+        return f"{self.name} ({self.body_part})"
 
 class ExercisePerformance(models.Model):
-    workout_exercise = models.ForeignKey(WorkoutExercise, on_delete=models.CASCADE, related_name="sets")
+    workout_exercise = models.ForeignKey(WorkoutExercise, on_delete=models.CASCADE, related_name="performance")
     set_number = models.IntegerField()
     reps = models.IntegerField()
     weight = models.FloatField()
 
     def __str__(self):
-        return f"Set {self.set_number}: {self.reps} reps @ {self.weight}kg on {self.workout_exercise.exercise_date}"
+        return f"{self.workout_exercise.name} - Set {self.set_number}: {self.reps} reps at {self.weight}kg"
+    
+
+
+class WorkoutLibraryExercise(models.Model):
+    library = models.ForeignKey(WorkoutLibrary, on_delete=models.CASCADE, related_name="exercises")
+    workout_exercise_id = models.IntegerField(default=1)  # Store API exercise ID
+    name = models.CharField(max_length=200)  # Exercise name
+    body_part = models.CharField(max_length=100, null=True)  # Muscle group
+
+    def __str__(self):
+        return f"{self.name} in {self.library.name}"

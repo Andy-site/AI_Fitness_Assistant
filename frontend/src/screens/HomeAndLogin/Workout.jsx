@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,16 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  TextInput,
+  TextInput,TouchableWithoutFeedback,
+ 
 } from 'react-native';
-import {fetchData, exerciseOptions} from '../../utils/ExerciseFetcher';
+import { fetchData, exerciseOptions } from '../../utils/ExerciseFetcher';
 import Footer from '../../components/Footer';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Header from '../../components/Header';
+import { capitalizeWords } from '../../utils/StringUtils';
+
 
 const images = {
   back: require('../../assets/Images/back.png'),
@@ -32,15 +35,17 @@ const Workout = () => {
   const [bodyParts, setBodyParts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exercises, setExercises] = useState([]);
-  const [filteredExercises, setFilteredExercises] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  // This state controls whether the search bar is in "active" mode.
+  const [searchActive, setSearchActive] = useState(false);
   const navigation = useNavigation();
 
   useEffect(() => {
     const fetchBodyParts = async () => {
       const url = 'https://exercisedb.p.rapidapi.com/exercises/bodyPartList/';
-
       try {
         const data = await fetchData(url, exerciseOptions);
         if (Array.isArray(data)) {
@@ -56,28 +61,25 @@ const Workout = () => {
     fetchBodyParts();
   }, []);
 
+  
   useEffect(() => {
-    const fetchExercises = async () => {
-      if (!searchQuery.trim()) return;
-
+    const fetchExercises = async (query, currentPage) => {
+      if (searching || query.trim() === '') return; // Prevent fetching if search query is empty
+  
       setSearching(true);
-      const url = `https://exercisedb.p.rapidapi.com/exercises/`;
-
+      setPage(currentPage); // Reset page number when new search query is initiated.
+  
       try {
-        const response = await fetch(url, exerciseOptions);
-        const data = await response.json();
+        const url = `https://exercisedb.p.rapidapi.com/exercises?limit=10&offset=${currentPage * 10}`;
+  
+        const data = await fetchData(url, exerciseOptions);
+  
         if (data && Array.isArray(data)) {
-          const lowerCaseSearch = searchQuery.toLowerCase();
-          const filtered = data.filter(
-            exercise =>
-              exercise.name.toLowerCase().startsWith(lowerCaseSearch) ||
-              exercise.equipment.toLowerCase().startsWith(lowerCaseSearch) ||
-              exercise.target.toLowerCase().startsWith(lowerCaseSearch),
-          );
-          setExercises(filtered);
+          setExercises(prev => (currentPage === 0 ? data : [...prev, ...data])); // Append data on next pages
+          setHasMore(data.length === 10);
+          setPage(currentPage + 1);
         } else {
-          console.error('No exercises found');
-          setExercises([]);
+          setHasMore(false);
         }
       } catch (error) {
         console.error('Error fetching exercises:', error);
@@ -85,88 +87,125 @@ const Workout = () => {
         setSearching(false);
       }
     };
-
-    fetchExercises(); // Call fetchExercises here
-  }, [searchQuery]);
+  
+    if (searchQuery.trim()) {
+      fetchExercises(searchQuery, 0); // Fetch only if there’s search query
+    }
+  }, [searchQuery, searching]);
+  
+  
+    
 
   const handleBodyPartSelect = part => {
-    navigation.navigate('Exercises', {bodyPart: part});
+    navigation.navigate('Exercises', { bodyPart: part });
   };
 
   const handleExerciseSelect = exercise => {
-    navigation.navigate('ExeDetails', {exercise});
+    navigation.navigate('ExeDetails', { exercise });
+  };
+
+  const handleOutsidePress = () => {
+    setSearchActive(false);
+    setSearchQuery('');
   };
 
   return (
-    <View style={styles.container}>
-      <Header title="Select Body Parts" />
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Search Bar */}
-        <View style={styles.searchBarContainer}>
-          <TextInput
-            style={styles.searchBar}
-            placeholder="Search for exercises..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCorrect={false}
-          />
-          <Icon
-            name="search"
-            size={25}
-            color="#e2f163"
-            style={styles.searchIcon}
-          />
+    <TouchableWithoutFeedback onPress={handleOutsidePress}>
+      <View style={styles.container}>
+        <Header title="Select Body Parts" />
+
+        {/* Top row: Library Button & Search Bar */}
+        <View style={styles.topRow}>
+          {!searchActive && (
+            <TouchableOpacity
+              style={styles.libraryButton}
+              onPress={() => navigation.navigate('CreateLibrary')}
+            >
+              <Text style={styles.libraryButtonText}>My Library</Text>
+              <Icon name="list-ul" size={24} color="#000" />
+            </TouchableOpacity>
+          )}
+          
+          <View style={styles.searchBarRow}>
+          <View style={styles.searchBarRow}>
+  <View
+    style={[
+      styles.searchBarContainer,
+      searchActive ? styles.searchBarActive : styles.searchBarInactive,
+    ]}
+  >
+    <TextInput
+      style={styles.searchBar}
+      placeholder="Search for exercises..."
+      placeholderTextColor="#666"
+      value={searchQuery}
+      onChangeText={setSearchQuery}
+      autoCorrect={false}
+      onFocus={() => setSearchActive(true)}
+      onBlur={() => {
+        if (!searchQuery.trim()) setSearchActive(false);
+      }}
+    />
+    <TouchableOpacity
+      onPress={() => setSearchActive(true)} 
+      style={styles.searchIconContainer} 
+    >
+      <Icon name="search" size={25} color="#e2f163" style={styles.searchIcon} />
+    </TouchableOpacity>
+  </View>
+</View>
+
+
+            
+          </View>
         </View>
 
-        {searching ? (
-          <ActivityIndicator
-            size="large"
-            color="#E2F163"
-            style={styles.loader}
-          />
-        ) : (
-          <View style={styles.exercisesContainer}>
-            {searchQuery && exercises.length > 0 ? (
-              exercises.map((exercise, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.exerciseItem}
-                  onPress={() => handleExerciseSelect(exercise)}>
-                  <Text style={styles.exerciseText}>Name: {exercise.name}</Text>
-                  <Text style={styles.equipmentText}>
-                    Equipment: {exercise.equipment}
-                  </Text>
-                </TouchableOpacity>
-              ))
-            ) : searchQuery ? (
-              <Text style={styles.noResultsText}>No exercises found</Text>
-            ) : (
-              <View style={styles.bodyPartsContainer}>
-                {bodyParts.map((part, index) => (
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          {searching ? (
+            <ActivityIndicator size="large" color="#E2F163" style={styles.loader} />
+          ) : (
+            <View style={styles.exercisesContainer}>
+              {searchQuery && exercises.length > 0 ? (
+                exercises.map((exercise, index) => (
                   <TouchableOpacity
                     key={index}
-                    style={styles.bodyPartItem}
-                    onPress={() => handleBodyPartSelect(part)}>
-                    {images[part] && (
-                      <Image
-                        source={images[part]}
-                        style={styles.bodyPartImage}
-                      />
-                    )}
-                    <View style={styles.separator} />
-                    <Text style={styles.bodyPartText}>
-                      {part.charAt(0).toUpperCase() + part.slice(1)}
+                    style={styles.exerciseItem}
+                    onPress={() => handleExerciseSelect(exercise)}
+                  >
+                    <Text style={styles.exerciseText}>Name: {capitalizeWords(exercise.name)}</Text>
+                    <Text style={styles.equipmentText}>
+                      Equipment: {capitalizeWords(exercise.equipment)}
                     </Text>
                   </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-        )}
-      </ScrollView>
-
-      <Footer />
-    </View>
+                ))
+              ) : searchQuery ? (
+                <Text style={styles.noResultsText}>No exercises found</Text>
+              ) : (
+                <View style={styles.bodyPartsContainer}>
+                  {bodyParts.map((part, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.bodyPartItem}
+                      onPress={() => handleBodyPartSelect(part)}
+                    >
+                      {images[part] && (
+                        <Image source={images[part]} style={styles.bodyPartImage} />
+                      )}
+                      <View style={styles.separator} />
+                      <Text style={styles.bodyPartText}>
+                        {part.charAt(0).toUpperCase() + part.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+        </ScrollView>
+        <Footer />
+      </View>
+    </TouchableWithoutFeedback>
+  
   );
 };
 
@@ -175,28 +214,51 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  scrollContainer: {
-    flexGrow: 1,
+  topRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 80,
-    paddingHorizontal: 10,
-    marginTop: 20,
+    width: '95%',
+    alignSelf: 'center',
+    marginVertical: 15,
+    marginTop: 90,
   },
-  subtitle: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#E2F163',
-    marginBottom: 20,
-    marginTop: 60,
+  libraryButton: {
+    backgroundColor: '#e2f163',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    marginRight: 10,
+    borderBlockColor: '#ffffff',
+    borderEndWidth:1,
+    flexDirection: 'row', // Align icon and text horizontally
+    alignItems: 'center', // Vertically center the items within the button
+  },
+  libraryButtonText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: 'bold',
+    padding:5,
+    marginRight: 5,
+  },
+  searchBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#ffffff',
     borderRadius: 20,
-    width: '95%',
-    marginBottom: 30,
-    padding: 5,
+    padding: 1,
+    flex: 1, // Search bar should take available spacee
+    position: 'relative', // Needed for positioning the icon inside the input
+  },
+  searchBarActive: {
+    flex: 1,
+  },
+  searchBarInactive: {
+    flex: 1,
   },
   searchIcon: {
     marginLeft: 10,
@@ -209,7 +271,14 @@ const styles = StyleSheet.create({
   searchBar: {
     flex: 1,
     color: '#000000',
-    fontSize: 13,
+    fontSize: 15,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    marginTop: 10,
+    paddingBlockEnd:50,
   },
   loader: {
     marginTop: 20,
@@ -218,20 +287,23 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   exerciseItem: {
-    padding: 10,
+    padding: 5,
     backgroundColor: '#896cfe',
-    marginBottom: 50,
-    borderRadius: 20,
-    borderWidth: 5,
-    bordercolor: '#ffffff',
+    marginBottom: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ffffff',
   },
   exerciseText: {
     fontSize: 16,
-    color: '#FFFFFF',
+    color: '#000000',
+    fontWeight: '500',
   },
   equipmentText: {
     fontSize: 14,
     color: '#e2f163',
+    fontWeight: '400',
+    fontFamily:'Times',
   },
   noResultsText: {
     fontSize: 16,
@@ -242,9 +314,10 @@ const styles = StyleSheet.create({
   bodyPartsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     width: '100%',
     marginBottom: 25,
+    gap:5,
   },
   bodyPartItem: {
     width: '45%',

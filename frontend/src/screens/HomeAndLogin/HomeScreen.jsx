@@ -102,6 +102,7 @@ const Home = ({ navigation }) => {
 
   return (
     <View style={styles.outcontainer}>
+      
       <View style={styles.container}>
         <View style={styles.headerContainer}>
           <Text style={styles.greeting}>Hi {firstName}!</Text>
@@ -172,9 +173,9 @@ const styles = StyleSheet.create({
   outcontainer: {
     flex: 1,
     backgroundColor: '#212020',
-    borderWidth: 2,
+    
     borderColor: '#FFFFFF',
-    borderRadius: 20,
+    
   },
   container: {
     flex: 1,

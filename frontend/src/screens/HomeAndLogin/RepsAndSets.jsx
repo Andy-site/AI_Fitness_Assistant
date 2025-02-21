@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { capitalizeWords } from '../../utils/StringUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,12 +20,18 @@ import { useNavigation } from '@react-navigation/native';
 
 const RepsAndSets = ({ route }) => {
   const navigation = useNavigation();
-  const { exercise, startTime, bodyPart } = route.params;
+  // Expecting exercise object, exerciseId, startTime, and bodyPart from the previous screen
+  const { workout_exercise_id, startTime, bodyPart, exercise_name, exercise_id } = route.params;
+
 
   const [sets, setSets] = useState([{ weight: '', reps: '' }]);
   const [totalTime, setTotalTime] = useState(0);
   const [intervalId, setIntervalId] = useState(null);
-  const [workoutExerciseId, setWorkoutExerciseId] = useState(null);
+  // We'll use the passed exerciseId as our workout exercise id
+  const [Exercise_Id] = useState(workout_exercise_id);
+  const [API_Exercise_Id] = useState(exercise_id);
+  const [Exercise_name] = useState(exercise_name);
+  const [Exercise_body]= useState(bodyPart);
   const [userToken, setUserToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -37,15 +52,16 @@ const RepsAndSets = ({ route }) => {
         const elapsedSeconds = Math.floor((now - start) / 1000);
         setTotalTime(elapsedSeconds);
       };
-
-      calculateElapsedTime(); // Initial calculation
+  
+      calculateElapsedTime();
       const id = setInterval(calculateElapsedTime, 1000);
       setIntervalId(id);
-
-      return () => clearInterval(id);
+  
+      return () => clearInterval(id); // Cleanup on unmount
     }
   }, [startTime]);
 
+  // Get user details from AsyncStorage
   const getUserDetails = async () => {
     try {
       setIsLoading(true);
@@ -55,6 +71,9 @@ const RepsAndSets = ({ route }) => {
         setFirstName(user.first_name || 'User');
         setUserWeight(user.weight || 70);
         setUserHeight(user.height || 175);
+        console.log('User details:', user);
+      } else {
+        console.log('No user details found.');
       }
     } catch (error) {
       console.error('Error retrieving user details:', error);
@@ -64,10 +83,12 @@ const RepsAndSets = ({ route }) => {
     }
   };
 
+  // Use the provided getAuthToken function to fetch the token
   const fetchToken = async () => {
     try {
-      const token = await getAuthToken();
-      setUserToken(token);
+      const usertoken = await getAuthToken();
+      console.log('Fetched token:', usertoken);
+      setUserToken(usertoken);
       setLoading(false);
     } catch (error) {
       console.error('Error retrieving user token:', error);
@@ -80,26 +101,32 @@ const RepsAndSets = ({ route }) => {
     fetchToken();
   }, []);
 
+
+
+
   const addSet = () => {
     setSets([...sets, { weight: '', reps: '' }]);
+    console.log('Added set. Total sets:', sets.length + 1);
   };
 
   const deleteSet = (index) => {
     const updatedSets = sets.filter((_, i) => i !== index);
     setSets(updatedSets);
+    console.log('Deleted set at index', index, '. Total sets:', updatedSets.length);
   };
 
   const handleInputChange = (index, field, value) => {
     const updatedSets = [...sets];
     updatedSets[index][field] = value;
     setSets(updatedSets);
+    console.log(`Updated set ${index} ${field}:`, value);
   };
 
   const calculateCaloriesBurned = () => {
     const timeInMinutes = totalTime / 60; // Convert seconds to minutes
     if (isNaN(timeInMinutes) || timeInMinutes <= 0 || !userWeight) return 0;
-
     const caloriesBurned = MET * userWeight * 0.0175 * timeInMinutes;
+    console.log('Calories burned:', caloriesBurned);
     return caloriesBurned.toFixed(2);
   };
 
@@ -109,102 +136,84 @@ const RepsAndSets = ({ route }) => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  useEffect(() => {
-    const initializeExerciseSession = async () => {
-      try {
-        const token = await getAuthToken();
-        setUserToken(token);
-        
-        if (token && exercise) {
-          const response = await startExerciseSession(
-            exercise,
-            setWorkoutExerciseId,
-            setStartTime
-          );
-          
-          console.log('Exercise session initialized:', response);
-          
-          if (response && response.workout_exercise_id) {
-            setWorkoutExerciseId(response.workout_exercise_id);
-          } else {
-            console.error('No workout_exercise_id received from the server');
-          }
-        }
-        setLoading(false);
-      } catch (error) {
-        console.error('Error initializing exercise session:', error);
+  const finishWorkout = async () => {
+    if (!userToken) {
+      Alert.alert('Error', 'User is not logged in.');
+      return;
+    }
+  
+    try {
+      console.log('Current workoutExerciseId:', Exercise_Id);
+      if (!Exercise_Id) {
         Alert.alert(
           'Error',
-          'Failed to start exercise session. Please try again.'
+          'Exercise session not properly initialized. Please restart the exercise.'
         );
-        setLoading(false);
+        return;
       }
-    };
   
-    initializeExerciseSession();
-  }, [exercise]);
+      const calories = calculateCaloriesBurned();
+      const set_data = sets && sets.filter(set => set.weight && set.reps);
+      if (!set_data || set_data.length === 0) {
+        Alert.alert('Error', 'Please enter at least one set with weight and reps.');
+        return;
+      }
+  
+      // Log payload before sending
+      const logPayload = {
+        workout_exercise_id: API_Exercise_Id,
+        sets: set_data.map((set, index) => ({
+          set_number: index + 1,
+          reps: parseInt(set.reps, 10),
+          weight: parseFloat(set.weight),
+        })),
+      };
+      console.log('Logging performance payload:', logPayload);
+  
+      const logResponse = await logExercisePerformance(API_Exercise_Id, set_data, userToken);
+      console.log('Log exercise performance response:', logResponse);
+  
+      // Prepare payload for ending exercise
+      const endPayload = {
+        workout_exercise_id: API_Exercise_Id,
+        total_time_seconds: totalTime,
+        calories_burned: calories,
+      };
+      console.log('Ending exercise payload:', endPayload);
+  
+      const endResponse = await endExerciseSession(API_Exercise_Id, totalTime, userToken, calories);
+      console.log('End exercise session response:', endResponse);
+  
+      Alert.alert(
+        'Workout Finished!',
+        `Total Time: ${formatTime(totalTime)}\nCalories Burned: ${calories} kcal`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              if (intervalId) clearInterval(intervalId);
+              navigation.navigate('Workout');
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Error during workout completion:', error);
+      Alert.alert('Error', `Failed to save workout: ${error.message}`);
+    }
+  };
   
 
-const finishWorkout = async () => {
-  if (!userToken) {
-    Alert.alert('Error', 'User is not logged in.');
-    return;
-  }
+  useEffect(() => {
+    console.log('Current state:', {
+      Exercise_Id,
+      userToken,
+      Exercise_name,
+      totalTime,
+      sets,
+    });
+  }, [Exercise_Id, userToken, Exercise_name, totalTime, sets]);
 
-  try {
-    // Debug log to check workoutExerciseId
-    console.log('Current workoutExerciseId:', workoutExerciseId);
-
-    if (!workoutExerciseId) {
-      Alert.alert('Error', 'Exercise session not properly initialized. Please restart the exercise.');
-      return;
-    }
-
-    const calories = calculateCaloriesBurned();
-    
-    // Only proceed if we have valid sets
-    const validSets = sets.filter(set => set.weight && set.reps);
-    if (validSets.length === 0) {
-      Alert.alert('Error', 'Please enter at least one set with weight and reps.');
-      return;
-    }
-
-    // First log the performance
-    await logExercisePerformance(workoutExerciseId, validSets, userToken);
-    
-    // Then end the session
-    await endExerciseSession(workoutExerciseId, totalTime, userToken, calories);
-
-    Alert.alert(
-      'Workout Finished!',
-      `Total Time: ${formatTime(totalTime)}\nCalories Burned: ${calories} kcal`,
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            if (intervalId) {
-              clearInterval(intervalId);
-            }
-            navigation.navigate('Workout');
-          }
-        }
-      ]
-    );
-  } catch (error) {
-    console.error('Error during workout completion:', error);
-    Alert.alert('Error', `Failed to save workout: ${error.message}`);
-  }
-};
-
-// Add this debug render to check values
-useEffect(() => {
-  console.log('Current state:', {
-    workoutExerciseId,
-    userToken,
-    exercise: exercise?.name,
-    totalTime
-  });
-}, [workoutExerciseId, userToken, exercise, totalTime]);
 
   if (isLoading || loading) {
     return (
@@ -214,7 +223,6 @@ useEffect(() => {
       </View>
     );
   }
-
   if (error) {
     return (
       <View style={styles.errorContainer}>
@@ -222,11 +230,12 @@ useEffect(() => {
       </View>
     );
   }
-
   if (!userToken) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorMessage}>User is not logged in. Please log in to continue.</Text>
+        <Text style={styles.errorMessage}>
+          User is not logged in. Please log in to continue.
+        </Text>
       </View>
     );
   }
@@ -236,10 +245,10 @@ useEffect(() => {
       <Header title="Sets Information" />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Text style={styles.exerciseTitle}>
-          Exercise: {capitalizeWords(exercise.name)}
+          Exercise: {capitalizeWords(Exercise_name)}
         </Text>
         <Text style={styles.bodyPart}>
-          Target Muscle: {capitalizeWords(exercise.bodyPart)}
+          Target Muscle: {capitalizeWords(Exercise_body)}
         </Text>
 
         {startTime && (
@@ -301,8 +310,6 @@ useEffect(() => {
     </View>
   );
 };
-
-
 
 const styles = StyleSheet.create({
   loadingContainer: {
