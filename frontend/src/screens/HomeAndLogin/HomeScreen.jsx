@@ -67,7 +67,7 @@ const Home = ({ navigation }) => {
     {
       icon: require('../../assets/Images/icon3(1).png'),
       label: 'Nutrition',
-      onPress: () => {}
+      onPress: () => navigation.navigate('LandNutri')
     }
   ];
 
@@ -102,7 +102,7 @@ const Home = ({ navigation }) => {
 
   return (
     <View style={styles.outcontainer}>
-      
+
       <View style={styles.container}>
         <View style={styles.headerContainer}>
           <Text style={styles.greeting}>Hi {firstName}!</Text>

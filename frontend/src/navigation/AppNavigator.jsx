@@ -33,6 +33,12 @@ import LibraryDetails from '../screens/HomeAndLogin/LibraryDetails';
 import LandNutri from '../screens/Nutrition/LandNutri';
 import MealSugg from '../screens/Nutrition/MealSugg';
 import Nutrichoices from '../screens/Nutrition/Nutrichoices';
+import MealDetails from '../screens/Nutrition/MealDetails';
+
+
+
+
+import Notification from '../screens/Loading/Notification';
 
 
 
@@ -76,8 +82,10 @@ const AppNavigator = () => {
         <Stack.Screen name="LandNutri" component={LandNutri} options={{ headerShown: false }}/>
         <Stack.Screen name="MealSugg" component={MealSugg} options={{ headerShown: false }}/>
         <Stack.Screen name="Nutrichoices" component={Nutrichoices} options={{ headerShown: false }}/>
+        <Stack.Screen name="MealDetails" component={MealDetails} options={{ headerShown: false }}/>
 
-        
+
+        <Stack.Screen name="Notification" component={Notification} options={{ headerShown: false}}/>
 
 
       </Stack.Navigator>

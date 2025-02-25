@@ -18,7 +18,7 @@ export const registerUser = async (userData) => {
     throw error.response?.data || { message: 'An error occurred during registration.' };
   }
 };
-
+  
 
 export const loginUser = async (email, password) => {
   try {
@@ -87,6 +87,26 @@ export const verifyOtp = async (email, otp) => {
 };
 
 
+export const fetchUserDetails = async () => {
+  try {
+    const response = await axios.get(API_BASE_URL, {
+      headers: {
+        Authorization: `Bearer your-access-token`, // Replace with actual authentication logic
+      },
+    });
+
+    if (response.status === 200) {
+      const user = response.data;
+      await AsyncStorage.setItem('user_details', JSON.stringify(user)); // Store user details
+      return user;
+    } else {
+      throw new Error('Failed to fetch user details');
+    }
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+    throw error;
+  }
+};
 
 
 // API call for sending a password reset token
