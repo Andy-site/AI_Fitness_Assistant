@@ -1,6 +1,7 @@
 import React from 'react';
 import AppNavigator from './src/navigation/AppNavigator';
-import { NotificationProvider } from './src/components/NotificationCOntext'; // Ensure the correct path
+import { NotificationProvider } from './src/components/NotificationContext';
+
 
 const App = () => {
   return (

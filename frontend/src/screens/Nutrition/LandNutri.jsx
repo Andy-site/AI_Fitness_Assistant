@@ -93,7 +93,7 @@ const LandNutri = () => {
         },
         {
           headers: {
-            'x-rapidapi-key': '36a41b8259msh924bc2b06e3845dp15dd8fjsn33da3c418fd1',
+            'x-rapidapi-key': 'cd885471a8mshe716357a6b4de6ap15f168jsn9658f7fd57d7',
             'x-rapidapi-host': 'ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com',
             'Content-Type': 'application/json',
           },

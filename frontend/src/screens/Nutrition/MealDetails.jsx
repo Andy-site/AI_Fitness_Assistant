@@ -1,10 +1,12 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Animated, Dimensions, ScrollView, Alert, TextInput } from 'react-native';
+import React, { useState, useRef, useEffect, useContext } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Animated, 
+         Dimensions, ScrollView, Alert, TextInput, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import PushNotification from 'react-native-push-notification';  // Import the notification library
-import Header from '../../components/Header';  // Adjust path if necessary
-import Footer from '../../components/Footer';  // Adjust path if necessary
-import DateTimePicker from '@react-native-community/datetimepicker';  // Import the date picker
+import Header from '../../components/Header';
+import Footer from '../../components/Footer';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import notifee, { AndroidImportance, TimestampTrigger, TriggerType } from '@notifee/react-native';
+import { NotificationContext } from '../../components/NotificationContext';
 
 const { width } = Dimensions.get('window');
 
@@ -13,31 +15,114 @@ const MealDetails = ({ route }) => {
   const [activeMealIndex, setActiveMealIndex] = useState(0);
   const scrollViewRef = useRef(null);
   const [alarmTime, setAlarmTime] = useState('');
-  const [isAm, setIsAm] = useState(true);
   const [showPicker, setShowPicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState(new Date());
+  const [reminderDate, setReminderDate] = useState('Today');
+  
+  // Get the notification context
+  const { addNotification } = useContext(NotificationContext);
 
-  // Function to trigger a notification
-  const triggerNotification = (MealName, alarmTime) => {
-    const currentTime = new Date().toLocaleTimeString();
-
-    PushNotification.localNotificationSchedule({
-      title: "Meal Suggestion",
-      message: `Don't forget to try: ${MealName}`,
-      date: new Date(Date.now() + 1000 * 10), // Schedule for 10 seconds from now
-      playSound: true,
-      soundName: 'Alarm.wav', // Alarm sound
-      priority: 'high',
-      largeIcon: 'ic_launcher',
-      smallIcon: 'ic_notification',
-      vibrate: true,
-      vibration: 300,
-    });
-
-    Alert.alert("Reminder Set", `Your alarm is set for ${alarmTime}. Current time is: ${currentTime}`);
+  const triggerNotification = async (MealName, alarmTimeDisplay) => {
+    try {
+        console.log("🚀 Trigger Notification Function Called");
+        await notifee.requestPermission();
+  
+        const now = new Date();
+        let targetDate = new Date(selectedTime);
+  
+        // Ensure targetDate is set to the correct local time with today's date
+        targetDate.setFullYear(now.getFullYear(), now.getMonth(), now.getDate());
+        targetDate.setSeconds(0, 0); // Reset seconds and milliseconds for comparison
+  
+        // Log the selected time and current time in the same local format
+        console.log("📅 Selected Time (Corrected):", targetDate.toLocaleString());
+        console.log("⏰ Current Time (Now):", now.toLocaleString());
+  
+        // Compare the selected time with the current time, adjusting for possible time zone issues
+        if (targetDate.getTime() <= now.getTime()) {
+            console.error("⛔ Invalid Time: Selected time must be in the future!");
+            Alert.alert("Invalid Time", "Selected time must be in the future!");
+            return;
+        }
+  
+        targetDate.setSeconds(targetDate.getSeconds() + 5);  // Add a small buffer before triggering the alarm
+        console.log("🔔 Scheduling Notification at:", targetDate.toLocaleString());
+  
+        await notifee.createTriggerNotification(
+            {
+                title: 'Meal Reminder',
+                body: `Don't forget to try: ${MealName}`,
+                android: {
+                    channelId: 'meal-reminders',
+                    importance: AndroidImportance.HIGH,
+                    sound: 'alarm',
+                    largeIcon: 'ic_launcher',
+                    smallIcon: 'ic_notification',
+                },
+                ios: {
+                    categoryId: 'meal-reminder',
+                    sound: 'default',
+                },
+            },
+            {
+                type: TriggerType.TIMESTAMP,
+                timestamp: targetDate.getTime(),
+            }
+        );
+  
+        console.log("✅ Notification successfully scheduled.");
+        Alert.alert("Reminder Set", `Your alarm is set for ${alarmTimeDisplay}`);
+    } catch (error) {
+        console.error("🔥 Error setting notification:", error);
+        Alert.alert("Notification Error", "Failed to set reminder: " + error.message);
+    }
   };
+  
 
-  // Render individual meal page
+
+useEffect(() => {
+  async function setupNotifications() {
+    try {
+      console.log("🔄 Setting up notification permissions...");
+      const permissionStatus = await notifee.requestPermission();
+
+      if (permissionStatus.authorizationStatus === 0) {
+        Alert.alert(
+          "Notification Permission Required",
+          "Please enable notifications in settings to receive meal reminders."
+        );
+        return;
+      }
+
+      console.log("✅ Notification permissions granted.");
+
+      await notifee.createChannel({
+        id: 'meal-reminders',
+        name: 'Meal Reminders',
+        sound: 'alarm',
+        importance: AndroidImportance.HIGH,
+      });
+
+      console.log("📢 Notification channel created.");
+
+      if (Platform.OS === 'ios') {
+        await notifee.setNotificationCategories([
+          {
+            id: 'meal-reminder',
+            actions: [{ id: 'view', title: 'View' }],
+          },
+        ]);
+        console.log("🍏 iOS notification categories set.");
+      }
+    } catch (error) {
+      console.error("⛔ Error setting up notifications:", error);
+    }
+  }
+
+  setupNotifications();
+}, []);
+
+
   const renderMealPage = (meal, index) => {
     return (
       <View style={styles.mealPage} key={index}>
@@ -45,68 +130,76 @@ const MealDetails = ({ route }) => {
           <View style={styles.titleContainer}>
             <Text style={styles.mealTitle}>{meal.meal}</Text>
             <View style={styles.reminderContainer}>
-              {/* Time picker button */}
-              <TouchableOpacity
-                style={styles.notifyButton}
-                onPress={() => setShowPicker(true)} // Show the date picker when clicked
-              >
+              <TouchableOpacity style={styles.notifyButton} onPress={() => setShowPicker(true)}>
                 <Icon name="clock-o" size={20} color="#000" />
                 <Text style={styles.notifyButtonText}>Set Reminder</Text>
               </TouchableOpacity>
-              {/* DateTimePicker */}
+
+              {alarmTime && (
+                <View style={styles.timeDisplayContainer}>
+                  <Text style={styles.timeDisplayText}>Reminder: {reminderDate} at {alarmTime}</Text>
+                </View>
+              )}
+
               {showPicker && (
                 <DateTimePicker
                   value={selectedTime}
                   mode="time"
                   display="default"
                   onChange={(event, selectedDate) => {
-                    setShowPicker(false); // Hide picker after selection
+                    setShowPicker(false);
                     if (selectedDate) {
-                      setSelectedTime(selectedDate); // Update time when selected
-                      setAlarmTime(selectedDate.toLocaleTimeString()); // Set alarm time in hh:mm format
+                      console.log("📅 Selected Date (Before Correction):", selectedDate.toISOString());
+                      const now = new Date();
+                      let targetDate = new Date(selectedDate);
+                      targetDate.setFullYear(now.getFullYear(), now.getMonth(), now.getDate());
+                      targetDate.setHours(selectedDate.getHours(), selectedDate.getMinutes(), 0, 0);
+                      
+                      console.log("📅 Selected Date (Corrected):", targetDate.toISOString());
+
+                      if (targetDate.getTime() < now.getTime()) {
+                        console.error("⛔ Invalid Time: Selected time has already passed today!");
+                        Alert.alert("Invalid Time", "Selected time has already passed today!");
+                        return;
+                      }
+
+                      setReminderDate('Today');
+                      const formattedTime = targetDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+                      setAlarmTime(formattedTime);
+                      console.log("⏰ Alarm set for:", formattedTime);
+
+                      const currentMeal = mealPlan[activeMealIndex];
+                      triggerNotification(currentMeal.meal, `Today at ${formattedTime}`);
+                      setSelectedTime(targetDate);
                     }
                   }}
                 />
               )}
             </View>
           </View>
+
           <FlatList
             data={meal.suggestions}
             keyExtractor={(suggestion, i) => i.toString()}
             renderItem={({ item: suggestion }) => (
-              <Animated.View 
-                style={styles.suggestionContainer}
-                entering={Animated.FadeInRight}
-              >
-                <Text style={styles.suggestionText}>
-                   {suggestion.name}
-                </Text> 
-                
-                <View
-                  style={{
-                    borderBottomColor: 'black',
-                    borderBottomWidth: StyleSheet.hairlineWidth,
-                  }}
-                />
-                {/* Ingredients List */}
+              <View style={styles.suggestionContainer}>
+                <Text style={styles.suggestionText}>{suggestion.name}</Text>
                 <Text style={styles.ingredientTitle}>Ingredients:</Text>
                 {suggestion.ingredients.map((ingredient, i) => (
-                  <Text key={i} style={styles.ingredientText}>
-                    - {ingredient}
-                  </Text>
+                  <Text key={i} style={styles.ingredientText}>- {ingredient}</Text>
                 ))}
-                {/* Calories with Icon */}
                 <View style={styles.calorieContainer}>
                   <Icon name="fire" size={18} color="red" />
                   <Text style={styles.calorieText}>{suggestion.calories} cal</Text>
                 </View>
-              </Animated.View>
+              </View>
             )}
           />
         </View>
       </View>
     );
   };
+
 
   return (
     <View style={styles.outerContainer}>
@@ -151,6 +244,7 @@ const MealDetails = ({ route }) => {
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   outerContainer: {
@@ -227,6 +321,18 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     color: '#555',
   },
+  timeDisplayContainer: {
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    marginLeft: 10,
+  },
+  timeDisplayText: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '500',
+  }, 
   calorieContainer: {
     flexDirection: 'row',
     marginTop: 5,
