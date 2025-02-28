@@ -1,11 +1,14 @@
+import React from 'react';
+import AppNavigator from './src/navigation/AppNavigator';
+import { NotificationProvider } from './src/components/NotificationContext';
 
-import React from 'react'
-import AppNavigator from './src/navigation/AppNavigator'
 
 const App = () => {
   return (
-    <AppNavigator/>
-  )
-}
+    <NotificationProvider>
+      <AppNavigator />
+    </NotificationProvider>
+  );
+};
 
-export default App
+export default App;
