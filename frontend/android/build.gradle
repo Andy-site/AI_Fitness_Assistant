@@ -1,26 +1,19 @@
 buildscript {
     ext {
-        buildToolsVersion = "34.0.0"
+        buildToolsVersion = "35.0.0"
         minSdkVersion = 24
-        compileSdkVersion = 34
+        compileSdkVersion = 35
         targetSdkVersion = 34
-<<<<<<< HEAD
-        ndkVersion = "25.1.8937393"
-        kotlinVersion = "1.8.20"
-=======
         ndkVersion = "26.1.10909125"
         kotlinVersion = "1.7.10"
 
         googlePlayServicesVersion = "21.1.0" // Firebase services version
         firebaseMessagingVersion = "23.1.2" // Firebase Messaging Version
->>>>>>> Nutrition
     }
-
     repositories {
         google()
         mavenCentral()
     }
-
     dependencies {
         classpath("com.android.tools.build:gradle:8.1.2")
         classpath("com.facebook.react:react-native-gradle-plugin")

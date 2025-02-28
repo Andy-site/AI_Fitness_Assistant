@@ -65,9 +65,9 @@ android {
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
-<<<<<<< HEAD
+
     implementation("com.facebook.react:react-android:latest.release")
-=======
+
     implementation("com.facebook.react:react-android")
     implementation platform('com.google.firebase:firebase-bom:33.9.0') // Use latest version
     implementation 'com.google.firebase:firebase-analytics'
@@ -79,7 +79,7 @@ dependencies {
     } else {
         implementation jscFlavor
     }
->>>>>>> Nutrition
+
 }
 
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
