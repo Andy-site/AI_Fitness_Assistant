@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -10,28 +10,29 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { capitalizeWords } from '../../utils/StringUtils';
+import {capitalizeWords} from '../../utils/StringUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Footer from '../../components/Footer';
 import Header from '../../components/Header';
-import { endExerciseSession, logExercisePerformance } from '../../api/fithubApi';
-import { getAuthToken } from '../../api/fithubApi';
-import { useNavigation } from '@react-navigation/native';
-
-const RepsAndSets = ({ route }) => {
+import {endExerciseSession, logExercisePerformance} from '../../api/fithubApi';
+import {getAuthToken} from '../../api/fithubApi';
+import {useNavigation} from '@react-navigation/native';
+import {Picker} from '@react-native-picker/picker';
+const RepsAndSets = ({route}) => {
   const navigation = useNavigation();
   // Expecting exercise object, exerciseId, startTime, and bodyPart from the previous screen
-  const { workout_exercise_id, startTime, bodyPart, exercise_name, exercise_id } = route.params;
+  const {workout_exercise_id, startTime, bodyPart, exercise_name, exercise_id} =
+    route.params;
 
+  const [sets, setSets] = useState([{weight: '', reps: ''}]);
 
-  const [sets, setSets] = useState([{ weight: '', reps: '' }]);
   const [totalTime, setTotalTime] = useState(0);
   const [intervalId, setIntervalId] = useState(null);
   // We'll use the passed exerciseId as our workout exercise id
   const [Exercise_Id] = useState(workout_exercise_id);
   const [API_Exercise_Id] = useState(exercise_id);
   const [Exercise_name] = useState(exercise_name);
-  const [Exercise_body]= useState(bodyPart);
+  const [Exercise_body] = useState(bodyPart);
   const [userToken, setUserToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,11 +53,11 @@ const RepsAndSets = ({ route }) => {
         const elapsedSeconds = Math.floor((now - start) / 1000);
         setTotalTime(elapsedSeconds);
       };
-  
+
       calculateElapsedTime();
       const id = setInterval(calculateElapsedTime, 1000);
       setIntervalId(id);
-  
+
       return () => clearInterval(id); // Cleanup on unmount
     }
   }, [startTime]);
@@ -101,18 +102,20 @@ const RepsAndSets = ({ route }) => {
     fetchToken();
   }, []);
 
-
-
-
   const addSet = () => {
-    setSets([...sets, { weight: '', reps: '' }]);
+    setSets([...sets, {weight: '', reps: ''}]);
     console.log('Added set. Total sets:', sets.length + 1);
   };
 
-  const deleteSet = (index) => {
+  const deleteSet = index => {
     const updatedSets = sets.filter((_, i) => i !== index);
     setSets(updatedSets);
-    console.log('Deleted set at index', index, '. Total sets:', updatedSets.length);
+    console.log(
+      'Deleted set at index',
+      index,
+      '. Total sets:',
+      updatedSets.length,
+    );
   };
 
   const handleInputChange = (index, field, value) => {
@@ -130,7 +133,7 @@ const RepsAndSets = ({ route }) => {
     return caloriesBurned.toFixed(2);
   };
 
-  const formatTime = (seconds) => {
+  const formatTime = seconds => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
@@ -141,24 +144,27 @@ const RepsAndSets = ({ route }) => {
       Alert.alert('Error', 'User is not logged in.');
       return;
     }
-  
+
     try {
       console.log('Current workoutExerciseId:', Exercise_Id);
       if (!Exercise_Id) {
         Alert.alert(
           'Error',
-          'Exercise session not properly initialized. Please restart the exercise.'
+          'Exercise session not properly initialized. Please restart the exercise.',
         );
         return;
       }
-  
+
       const calories = calculateCaloriesBurned();
       const set_data = sets && sets.filter(set => set.weight && set.reps);
       if (!set_data || set_data.length === 0) {
-        Alert.alert('Error', 'Please enter at least one set with weight and reps.');
+        Alert.alert(
+          'Error',
+          'Please enter at least one set with weight and reps.',
+        );
         return;
       }
-  
+
       // Log payload before sending
       const logPayload = {
         workout_exercise_id: API_Exercise_Id,
@@ -169,10 +175,14 @@ const RepsAndSets = ({ route }) => {
         })),
       };
       console.log('Logging performance payload:', logPayload);
-  
-      const logResponse = await logExercisePerformance(API_Exercise_Id, set_data, userToken);
+
+      const logResponse = await logExercisePerformance(
+        API_Exercise_Id,
+        set_data,
+        userToken,
+      );
       console.log('Log exercise performance response:', logResponse);
-  
+
       // Prepare payload for ending exercise
       const endPayload = {
         workout_exercise_id: API_Exercise_Id,
@@ -180,13 +190,20 @@ const RepsAndSets = ({ route }) => {
         calories_burned: calories,
       };
       console.log('Ending exercise payload:', endPayload);
-  
-      const endResponse = await endExerciseSession(API_Exercise_Id, totalTime, userToken, calories);
+
+      const endResponse = await endExerciseSession(
+        API_Exercise_Id,
+        totalTime,
+        userToken,
+        calories,
+      );
       console.log('End exercise session response:', endResponse);
-  
+
       Alert.alert(
         'Workout Finished!',
-        `Total Time: ${formatTime(totalTime)}\nCalories Burned: ${calories} kcal`,
+        `Total Time: ${formatTime(
+          totalTime,
+        )}\nCalories Burned: ${calories} kcal`,
         [
           {
             text: 'OK',
@@ -195,24 +212,14 @@ const RepsAndSets = ({ route }) => {
               navigation.navigate('Workout');
             },
           },
-        ]
+        ],
       );
     } catch (error) {
       console.error('Error during workout completion:', error);
       Alert.alert('Error', `Failed to save workout: ${error.message}`);
     }
   };
-  
 
-  useEffect(() => {
-    console.log('Current state:', {
-      Exercise_Id,
-      userToken,
-      Exercise_name,
-      totalTime,
-      sets,
-    });
-  }, [Exercise_Id, userToken, Exercise_name, totalTime, sets]);
 
 
   if (isLoading || loading) {
@@ -264,23 +271,27 @@ const RepsAndSets = ({ route }) => {
             <View style={styles.tableRow}>
               <View style={styles.inputColumn}>
                 <Text style={styles.inputLabel}>Weight (kg)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Weight"
-                  keyboardType="numeric"
-                  value={set.weight}
-                  onChangeText={(value) => handleInputChange(index, 'weight', value)}
-                />
+                <Picker
+          selectedValue={set.weight}
+          style={[styles.picker, {  backgroundColor: 'white', borderWidth: 1, borderColor: '#000', borderRadius: 5 }]}
+          onValueChange={(value) => handleInputChange(index, 'weight', value)}
+        >
+                  {[...Array(31)].map((_, i) => (
+                    <Picker.Item key={i} label={`${i * 5}`} value={i * 5} />
+                  ))}
+                </Picker>
               </View>
               <View style={styles.inputColumn}>
                 <Text style={styles.inputLabel}>Reps</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Reps"
-                  keyboardType="numeric"
-                  value={set.reps}
-                  onChangeText={(value) => handleInputChange(index, 'reps', value)}
-                />
+                <Picker
+          selectedValue={set.reps}
+          style={[styles.picker, { backgroundColor: 'white', borderWidth: 1, borderColor: '#000', borderRadius: 5 }]}
+          onValueChange={(value) => handleInputChange(index, 'reps', value)}
+        >
+                  {[...Array(51)].map((_, i) => (
+                    <Picker.Item key={i} label={`${i}`} value={i} />
+                  ))}
+                </Picker>
               </View>
             </View>
 
@@ -290,7 +301,9 @@ const RepsAndSets = ({ route }) => {
                 <Text style={styles.addSetButtonText}>Add Set</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.deleteButton} onPress={() => deleteSet(index)}>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => deleteSet(index)}>
                 <Icon name="trash" size={20} color="#ffffff" />
                 <Text style={styles.deleteButtonText}>Delete</Text>
               </TouchableOpacity>
@@ -396,15 +409,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     textAlign: 'center',
   },
-  input: {
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    fontSize: 16,
-    color: '#000000',
-    textAlign: 'center',
-  },
+
   buttonsRow: {
     flexDirection: 'row',
     justifyContent: 'center',

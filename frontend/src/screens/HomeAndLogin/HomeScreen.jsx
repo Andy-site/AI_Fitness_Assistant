@@ -67,7 +67,7 @@ const Home = ({ navigation }) => {
     {
       icon: require('../../assets/Images/icon3(1).png'),
       label: 'Nutrition',
-      onPress: () => navigation.navigate('LandNutri')
+      onPress: () => navigation.navigate('MealSugg')
     }
   ];
 

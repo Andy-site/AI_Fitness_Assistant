@@ -58,8 +58,9 @@ const fetchUserDetails = async (accessToken) => {
   try {
     console.log('Access Token:', accessToken);  // Log token for debugging
 
-    // const response = await fetch('http://192.168.0.117:8000/api/user-details/', {
-    const response = await fetch('http://192.168.64.1:8000/api/user-details/', {
+    const response = await fetch('http://192.168.0.117:8000/api/user-details/', {
+      
+    // const response = await fetch('http://192.168.64.1:8000/api/user-details/', {
 
       method: 'GET',
       headers: {

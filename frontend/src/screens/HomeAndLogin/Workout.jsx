@@ -150,7 +150,7 @@ const Workout = () => {
       onPress={() => setSearchActive(true)} 
       style={styles.searchIconContainer} 
     >
-      <Icon name="search" size={25} color="#e2f163" style={styles.searchIcon} />
+      <Icon name="search" size={20} color="#e2f163" style={styles.searchIcon} />
     </TouchableOpacity>
   </View>
 </View>
@@ -262,6 +262,7 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     marginLeft: 10,
+    marginRight:5,
     backgroundColor: '#896cfe',
     padding: 5,
     borderRadius: 20,

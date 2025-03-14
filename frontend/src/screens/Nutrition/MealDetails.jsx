@@ -2,16 +2,15 @@ import React, {useState, useRef, useEffect, useContext} from 'react';
 import {
   View,
   Text,
-  FlatList,
+  VirtualizedList,
   StyleSheet,
   TouchableOpacity,
-  Animated,
   Dimensions,
   ScrollView,
   Alert,
   TextInput,
   Platform,
-
+  timestamp,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Header from '../../components/Header';
@@ -19,23 +18,23 @@ import Footer from '../../components/Footer';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import notifee, {
   AndroidImportance,
-  TimestampTrigger,
   TriggerType,
-  EventType,  // Add this
+  EventType,
 } from '@notifee/react-native';
 import {NotificationContext} from '../../components/NotificationContext';
 
 const {width} = Dimensions.get('window');
 
-notifee.onBackgroundEvent(async ({ type, detail }) => {
+notifee.onBackgroundEvent(async ({type, detail}) => {
   if (type === EventType.PRESS) {
-    // User pressed the notification
-    console.log('User pressed the notification in the background', detail.notification);
+    console.log(
+      'User pressed the notification in the background',
+      detail.notification,
+    );
   }
-  
-  // Return a promise to ensure the background task stays alive until completed
   return Promise.resolve();
 });
+
 const MealDetails = ({route}) => {
   const {macronutrients, mealPlan} = route.params;
   const [activeMealIndex, setActiveMealIndex] = useState(0);
@@ -44,45 +43,50 @@ const MealDetails = ({route}) => {
   const [showPicker, setShowPicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState(new Date());
   const [reminderDate, setReminderDate] = useState('Today');
+  const pickerKey = useRef(0); // Unique key for DateTimePicker
 
   // Get the notification context
   const {addNotification} = useContext(NotificationContext);
 
-  const triggerNotification = async (MealName, alarmTimeDisplay) => {
+  const triggerNotification = async (
+    MealName,
+    alarmTimeDisplay,
+    newSelectedTime,
+  ) => {
     try {
-      console.log(' Trigger Notification Function Called');
-     
-      // Create a trigger without TypeScript typing
+      const now = new Date();
       const trigger = {
         type: TriggerType.TIMESTAMP,
-        timestamp: selectedTime.getTime(),
+        timestamp: newSelectedTime.getTime(),
       };
 
-      // Create the notification
+      if (newSelectedTime <= now) {
+        console.error('Selected time must be in the future.');
+        Alert.alert('Invalid Time', 'Selected time must be in the future.');
+        return;
+      }
+
       await notifee.createTriggerNotification(
         {
           title: 'Meal Reminder',
-          body: `Its time for you ${MealName}, 
-           Enjoy your meal!!`,
+          body: `It's time for you ${MealName}, Enjoy your meal!`,
           android: {
             channelId: 'meal-reminders',
             importance: AndroidImportance.HIGH,
-            sound: 'default',
+            sound: 'alarm', // No need for file extension
             vibrationPattern: [500, 1000],
           },
           ios: {
             categoryId: 'meal-reminder',
-            sound: 'default',
+            sound: 'alarm.wav', // iOS might require the file extension
           },
         },
         trigger,
       );
 
-      console.log(' Notification successfully scheduled.');
       Alert.alert('Reminder Set', `Your alarm is set for ${alarmTimeDisplay}`);
-      
     } catch (error) {
-      console.error(' Error setting notification:', error);
+      console.error('Error setting notification:', error);
       Alert.alert(
         'Notification Error',
         'Failed to set reminder: ' + error.message,
@@ -90,13 +94,11 @@ const MealDetails = ({route}) => {
     }
   };
 
-  // Keep notification setup only in useEffect, not in triggerNotification
   useEffect(() => {
     async function setupNotifications() {
       try {
         const settings = await notifee.requestPermission();
         if (settings.authorizationStatus !== 1) {
-          // Use exact comparison
           Alert.alert(
             'Notification Permission Required',
             'Please enable notifications in settings to receive meal reminders.',
@@ -107,7 +109,7 @@ const MealDetails = ({route}) => {
         await notifee.createChannel({
           id: 'meal-reminders',
           name: 'Meal Reminders',
-          sound: 'alarm',
+          sound: 'alarm', // Use the sound file name here, without extension
           importance: AndroidImportance.HIGH,
         });
 
@@ -121,14 +123,14 @@ const MealDetails = ({route}) => {
         }
         return true;
       } catch (error) {
-        console.error(' Error setting up notifications:', error);
+        console.error('Error setting up notifications:', error);
         return false;
       }
     }
 
     setupNotifications();
 
-    const unsubscribe = notifee.onForegroundEvent(({ type, detail }) => {
+    const unsubscribe = notifee.onForegroundEvent(({type, detail}) => {
       switch (type) {
         case EventType.PRESS:
           console.log('User pressed notification', detail.notification);
@@ -142,14 +144,14 @@ const MealDetails = ({route}) => {
       }
     });
 
-      return () => {
-        unsubscribe();
-      };
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const renderMealPage = (meal, index) => {
     return (
-      <View style={styles.mealPage} key={index}>
+      <View style={styles.mealPage} key={meal.id || index}>
         <View style={styles.mealContainer}>
           <View style={styles.titleContainer}>
             <Text style={styles.mealTitle}>{meal.meal}</Text>
@@ -161,74 +163,50 @@ const MealDetails = ({route}) => {
                 <Text style={styles.notifyButtonText}>Set Reminder</Text>
               </TouchableOpacity>
 
-                {showPicker && (
+              {showPicker && (
                 <DateTimePicker
-                mode="time"
-                display="default"
-                
-                value={selectedTime}
-                onChange={(event, selectedDate) => {
-                  // Don't set showPicker to false immediately
-                  // We'll handle it based on the action
-                  // Get current time for comparison
+                  key={pickerKey.current} // Unique key to force re-render
+                  mode="time"
+                  display="default"
+                  value={selectedTime}
+                  onChange={(event, selectedDate) => {
                     const now = new Date();
 
-                  if (event.type === "dismissed") {
-                    // User canceled the picker
-                    console.log(' User cancelled the time picker.');
-                    setShowPicker(false);
-                    return;
-                  }
+                    if (event.type === 'dismissed') {
+                      setShowPicker(false);
+                      return;
+                    }
 
-                  
-              
-                  // Clone the selected date
-                  const targetDate = new Date(selectedDate);
-              
-                  // Set the date part to today
-                  targetDate.setFullYear(now.getFullYear());
-                  targetDate.setMonth(now.getMonth());
-                  targetDate.setDate(now.getDate());
-              
-                  // Check if the time is in the past
-                  if (targetDate <= now) {
-                    setTimeout(() => {
-                      Alert.alert(
-                        'Invalid Time',
-                        'Selected time must be in the future!',
-                      );
-                    }, 100);
-                    setShowPicker(false); // Close picker on invalid time
-                    return;
-                  }
-              
-                  // Format time for display
-                  const formattedTime = targetDate.toLocaleTimeString([], {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true,
-                  });
-              
-                  setAlarmTime(formattedTime);
-                  setSelectedTime(targetDate);
-              
-                  const currentMeal = mealPlan[activeMealIndex];
-                  triggerNotification(
-                    currentMeal.meal,
-                    `Today at ${formattedTime}`,
-                  );
-                  
-                  // Now close the picker after everything is done
-                  setShowPicker(false);
-                }}
-              />
+                    const targetDate = new Date(selectedDate);
+                    targetDate.setFullYear(now.getFullYear());
+                    targetDate.setMonth(now.getMonth());
+                    targetDate.setDate(now.getDate());
+
+                    setSelectedTime(targetDate);
+                    pickerKey.current += 1; // Update key to force re-render
+
+                    const currentMeal = mealPlan[activeMealIndex];
+                    const alarmTimeDisplay = `Today at ${targetDate.toLocaleTimeString(
+                      [],
+                      {hour: 'numeric', minute: '2-digit', hour12: true},
+                    )}`;
+
+                    triggerNotification(
+                      currentMeal.meal,
+                      alarmTimeDisplay,
+                      targetDate,
+                    );
+
+                    setShowPicker(false);
+                  }}
+                />
               )}
             </View>
           </View>
 
-          <FlatList
-            data={meal.suggestions}
-            keyExtractor={(suggestion, i) => i.toString()}
+          <VirtualizedList
+            data={meal.suggestions || []}
+            keyExtractor={(suggestion, i) => suggestion.id || i.toString()}
             renderItem={({item: suggestion}) => (
               <View style={styles.suggestionContainer}>
                 <Text style={styles.suggestionText}>{suggestion.name}</Text>
@@ -246,6 +224,8 @@ const MealDetails = ({route}) => {
                 </View>
               </View>
             )}
+            getItemCount={() => meal.suggestions.length}
+            getItem={(data, index) => data[index]}
           />
         </View>
       </View>
@@ -256,7 +236,6 @@ const MealDetails = ({route}) => {
     <View style={styles.outerContainer}>
       <Header title="Meal Plan" />
       <View style={styles.innercontainer}>
-        {/* Macronutrients Overview */}
         <View style={styles.macronutrientCard}>
           <Text style={styles.sectionTitle1}>Macronutrient</Text>
           <View style={styles.container}>
@@ -270,7 +249,6 @@ const MealDetails = ({route}) => {
           </View>
         </View>
 
-        {/* Horizontal Scrollable Meal Plan */}
         <Text style={styles.sectionTitle}>Your Meal Plan</Text>
         <ScrollView
           ref={scrollViewRef}
@@ -281,12 +259,13 @@ const MealDetails = ({route}) => {
             const newIndex = Math.round(
               event.nativeEvent.contentOffset.x / width,
             );
-            setActiveMealIndex(newIndex);
+            if (newIndex >= 0 && newIndex < mealPlan.length) {
+              setActiveMealIndex(newIndex);
+            }
           }}>
           {mealPlan.map((meal, index) => renderMealPage(meal, index))}
         </ScrollView>
 
-        {/* Page Indicator Dots */}
         <View style={styles.paginationContainer}>
           {mealPlan.map((_, index) => (
             <View
@@ -339,9 +318,9 @@ const styles = StyleSheet.create({
     paddingRight: 10,
   },
   titleContainer: {
-    flexDirection: 'row', // Align items horizontally
-    justifyContent: 'space-between', // Push the meal title to the left and button to the right
-    alignItems: 'center', // Align items vertically centered
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 10,
     backgroundColor: '#896cfe',
   },
@@ -379,7 +358,6 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     color: '#555',
   },
-
   calorieContainer: {
     flexDirection: 'row',
     marginTop: 5,
@@ -426,11 +404,11 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
   },
   reminderContainer: {
-    flexDirection: 'row', // Ensures icon and text are in a row
-    alignItems: 'center', // Aligns items vertically centered
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   notifyButton: {
-    flexDirection: 'row', // Arranges icon and text in a row
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#e2f163',
     paddingVertical: 8,
@@ -438,10 +416,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   notifyButtonText: {
-    marginLeft: 5, // Adds space between the icon and the text
+    marginLeft: 5,
     fontSize: 14,
     color: '#000',
-    fontWeight: '500',
   },
 });
 

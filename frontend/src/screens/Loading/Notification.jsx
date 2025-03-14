@@ -2,6 +2,7 @@ import React, { useContext } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { NotificationContext } from '../../components/NotificationContext';
 
+
 const Notification = () => {
   const { notifications } = useContext(NotificationContext);
 
