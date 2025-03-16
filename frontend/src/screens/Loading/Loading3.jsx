@@ -1,13 +1,13 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-
+import Icon from 'react-native-vector-icons/MaterialIcons';
 const Loading3 = ({ navigation }) => {
   const handleNextPress = () => {
     navigation.navigate('Loading4'); // Navigate to Loading4 when Next button is pressed
   };
 
   const handleSkipPress = () => {
-    navigation.navigate('Email'); // Navigate to Email when Skip button is pressed
+    navigation.navigate('LoginScreen'); // Navigate to Email when Skip button is pressed
   };
 
   return (
@@ -31,7 +31,8 @@ const Loading3 = ({ navigation }) => {
          {/* Skip Button with Arrow */}
          <TouchableOpacity style={styles.skipButton} onPress={handleSkipPress}>
            <Text style={styles.skipText}>Skip</Text>
-           <Image source={require('../../assets/Images/Arrow.png')} style={styles.arrowIcon} />
+           <View style={styles.separator} />
+           <Icon name="skip-next" size={30} color="#e2f163" />
          </TouchableOpacity>
    
          {/* Start Your Journey Text */}
@@ -110,12 +111,13 @@ const Loading3 = ({ navigation }) => {
        color: '#E2F163',
        marginRight: 5, 
      },
-     arrowIcon: {
-       width: 8,
-       height: 8,
-       marginTop: 3,
-       marginLeft: 3,
-     },
+     separator: {
+      width: 1, // Thin vertical line
+      height: 20, // Adjust height to match text and icon
+      backgroundColor: '#e2f163', // Same color as the text/icon for consistency
+      marginHorizontal: 8, // Spacing between elements
+    },
+     
      startJourneyText: {
        position: 'absolute',
        width: 309,

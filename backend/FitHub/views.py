@@ -234,7 +234,7 @@ def get_user_details(request):
 
     return Response(serializer.data)
 
-@api_view(['PUT', 'PATCH'])
+@api_view(['PUT', 'PATCH']) 
 @permission_classes([IsAuthenticated])
 def user_profile_update(request):
     """Update the profile of the authenticated user."""

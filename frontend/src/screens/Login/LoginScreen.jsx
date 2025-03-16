@@ -1,94 +1,48 @@
 import React, { useState } from 'react';
 import { View, Text, Alert, StyleSheet, TouchableOpacity } from 'react-native';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';  
 import InputField from '../../components/InputField';
-import PasswordInput from '../../components/PasswordInput'; // Import the PasswordInput component
+import PasswordInput from '../../components/PasswordInput';
 import NextButton from '../../components/NextButton';
-import AsyncStorage from '@react-native-async-storage/async-storage';  // Add AsyncStorage for JWT storage
-import { loginUser } from '../../api/fithubApi'; // Import the loginUser function
+
+import { loginUser, fetchUserDetails } from '../../api/fithubApi'; // Import API functions
 
 function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
 
-
-// In your handleSubmit method
-const handleSubmit = async () => {
-  if (!email.trim() || !password.trim()) {
-    Alert.alert('Validation Error', 'Please enter both email and password.');
-    return;
-  }
-
-  try {
-    console.log('Login data:', { email, password });
-
-    // Call the loginUser API function from api.js
-    const response = await loginUser(email, password);
-    console.log('Login response:', response);
-
-    if (!response || !response.access) {
-      throw new Error('No access token received');
+  const handleSubmit = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Validation Error', 'Please enter both email and password.');
+      return;
     }
 
-    // Store the JWT token securely using AsyncStorage
-    await AsyncStorage.setItem('jwt_token', response.access);
+    try {
+      console.log('Attempting login with:', { email, password });
 
-    // Now fetch the user details using the JWT token
-    const userResponse = await fetchUserDetails(response.access);
-    console.log('User details:', userResponse);
+      // Call the login function
+      const response = await loginUser(email, password);
+      console.log('Login response:', response);
 
-    if (!userResponse) {
-      throw new Error('Failed to fetch user details');
-    }
+      if (!response || !response.access) {
+        throw new Error('No access token received');
+      }
 
-    // Store the user details in AsyncStorage
-    await AsyncStorage.setItem('user_details', JSON.stringify(userResponse));
+      // Store JWT token in AsyncStorage
+      await AsyncStorage.setItem('jwt_token', response.access);
+      console.log('JWT token saved.');
 
-    // Navigate to the HomeScreen after successful login
-    navigation.navigate('Home');
-  } catch (err) {
-    console.error('Login error:', err);
-    setError('Invalid email or password');
-    Alert.alert('Error', err.message || 'An error occurred during login.');
-  }
-};
-
-const fetchUserDetails = async (accessToken) => {
-  try {
-    console.log('Access Token:', accessToken);  // Log token for debugging
-
-    const response = await fetch('http://192.168.0.117:8000/api/user-details/', {
       
-    // const response = await fetch('http://192.168.64.1:8000/api/user-details/', {
 
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',  // Ensure content type is set
-      },
-    });
-
-    const text = await response.text();
-    console.log('Raw response:', text);
-
-    if (!response.ok) {
-      const errorData = JSON.parse(text); // Capture error details
-      throw new Error(errorData.detail || 'Failed to fetch user details');
+      // Navigate to the Home screen after successful login
+      navigation.navigate('Home');
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Invalid email or password');
+      Alert.alert('Error', err.message || 'An error occurred during login.');
     }
-
-    // Parse the response if it's valid JSON
-    const data = JSON.parse(text);
-    return data;
-  } catch (error) {
-    console.error('Error fetching user details:', error);
-    throw error;
-  }
-};
-
-
-
-
+  };
 
   return (
     <View style={styles.container}>
@@ -132,21 +86,22 @@ const fetchUserDetails = async (accessToken) => {
   );
 }
 
+// Styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: '#000000', // Black background
+    backgroundColor: '#000000',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF', // White text for contrast
+    color: '#FFFFFF',
     marginBottom: 20,
     textAlign: 'center',
   },
   purpleBackground: {
-    backgroundColor: '#B3A0FF', // Purple background for the input container
+    backgroundColor: '#B3A0FF',
     padding: 20,
     marginBottom: 20,
   },
@@ -168,7 +123,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-    backgroundColor: '#D1C4E9', // Light purple separator line
+    backgroundColor: '#D1C4E9',
     marginVertical: 10,
   },
   errorMessage: {
@@ -182,7 +137,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'right',
     marginTop: 10,
-    fontWeight: 450,
+    fontWeight: '450',
   },
   footer: {
     alignItems: 'center',

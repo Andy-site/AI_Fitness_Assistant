@@ -3,7 +3,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 
 const Loading4 = ({ navigation }) => {
   const handleNextPress = () => {
-    navigation.navigate('Email'); // Navigate to Email when Skip button is pressed
+    navigation.navigate('LoginScreen'); // Navigate to Email when Skip button is pressed
   };
 
   return (

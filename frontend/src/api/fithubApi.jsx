@@ -148,24 +148,34 @@ export const verifyOtp = async (email, otp) => {
   }
 };
 
-
 export const fetchUserDetails = async () => {
   try {
-    const response = await axios.get(API_BASE_URL, {
+    // Retrieve the stored token
+    const token = await AsyncStorage.getItem('access_token');
+    
+
+    if (!token) {
+      throw new Error('No access token found');
+    }
+
+    const response = await fetch(`${API_BASE_URL}user-details/`, {
+      method: 'GET',
       headers: {
-        Authorization: `Bearer your-access-token`, // Replace with actual authentication logic
-      },
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` // Include the token
+      }
     });
 
-    if (response.status === 200) {
-      const user = response.data;
-      await AsyncStorage.setItem('user_details', JSON.stringify(user)); // Store user details
-      return user;
-    } else {
-      throw new Error('Failed to fetch user details');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch user details: ${response.statusText}`);
     }
+
+    const user = await response.json(); // Parse JSON response
+    await AsyncStorage.setItem('user_details', JSON.stringify(user)); // Store user details
+
+    return user;
   } catch (error) {
-    console.error('Error fetching user details:', error);
+    console.error('Error fetching user details:', error.message);
     throw error;
   }
 };
