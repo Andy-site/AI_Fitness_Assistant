@@ -36,7 +36,7 @@ export const loginUser = async (email, password) => {
 
     // Log the full response for debugging
     const text = await response.text();
-    console.log('Raw response:', text); // See what the server returns
+    
 
     // Check if response is valid JSON
     const data = JSON.parse(text);

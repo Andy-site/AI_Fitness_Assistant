@@ -229,10 +229,11 @@ def get_user_details(request):
     """Retrieve details of the authenticated user."""
     user = request.user  # The authenticated user
 
-    # Serialize the user data
-    serializer = UserRegistrationSerializer(user)
+    # Serialize the user data with the UserProfileSerializer to include the profile_photo
+    serializer = UserProfileSerializer(user)
 
     return Response(serializer.data)
+
 
 @api_view(['PUT', 'PATCH']) 
 @permission_classes([IsAuthenticated])

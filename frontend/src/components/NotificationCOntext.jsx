@@ -36,7 +36,7 @@ export const NotificationProvider = ({ children }) => {
     saveNotifications();
   }, [notifications]);
 
-  // Add a new notification
+  // Add a new notification (Only unique reminders)
   const addNotification = (mealName, time, date) => {
     const newNotification = {
       id: Date.now().toString(),
@@ -45,7 +45,13 @@ export const NotificationProvider = ({ children }) => {
       timestamp: new Date().getTime(),
     };
 
-    setNotifications(prevNotifications => [...prevNotifications, newNotification]);
+    setNotifications(prevNotifications => {
+      const isDuplicate = prevNotifications.some(
+        notification => notification.message === newNotification.message && notification.time === newNotification.time
+      );
+
+      return isDuplicate ? prevNotifications : [...prevNotifications, newNotification];
+    });
   };
 
   // Clear a notification by ID
@@ -67,3 +73,4 @@ export const NotificationProvider = ({ children }) => {
     </NotificationContext.Provider>
   );
 };
+ 
