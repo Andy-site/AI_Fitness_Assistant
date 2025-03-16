@@ -40,6 +40,7 @@ import CreateNutri from '../screens/Nutrition/CreateNutri';
 
 
 import Notification from '../screens/Loading/Notification';
+import EditProfile from '../screens/ProfileAndSetting/EditProfile';
 
 
 
@@ -87,7 +88,7 @@ const AppNavigator = () => {
         <Stack.Screen name="CreateNutri" component={CreateNutri} options={{ headerShown: false }}/>
 
         <Stack.Screen name="Notification" component={Notification} options={{ headerShown: false}}/>
-
+        <Stack.Screen name="EditProfile" component = {EditProfile} options={{headerShown: false}}/>
 
       </Stack.Navigator>
     </NavigationContainer>

@@ -51,6 +51,67 @@ export const loginUser = async (email, password) => {
   }
 };
 
+// API call for updating the user profile
+export const updateUserProfile = async (userData, profileImage) => {
+  
+  try {
+    const token = await getAuthToken();
+
+    if (!API_BASE_URL) {
+      throw new Error("API_BASE_URL is not defined. Check your config.");
+    }
+
+    console.log('API_BASE_URL:', API_BASE_URL);
+    console.log('Updating profile at:', `${API_BASE_URL}profile/update/`);
+    console.log('User Data:', userData);
+    console.log('Profile Image:', profileImage);
+
+    const formData = new FormData();
+    formData.append('first_name', userData.first_name);
+    formData.append('last_name', userData.last_name);
+    formData.append('age', userData.age.toString());
+    formData.append('height', userData.height.toString());
+    formData.append('weight', userData.weight.toString());
+    formData.append('goal', userData.goal);
+
+    if (profileImage) {
+      formData.append('profile_photo', {
+        uri: profileImage.uri,
+        type: profileImage.type || 'image/jpeg',
+        name: profileImage.fileName || 'profile.jpg',
+      });
+    }
+
+    const response = await fetch(`${API_BASE_URL}profile/update/`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        // Remove 'Content-Type' for FormData (it will be auto-set)
+      },
+      body: formData,
+    });
+
+    const text = await response.text();
+    console.log('Raw response:', text);
+
+    try {
+      const data = JSON.parse(text);
+      
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to update profile');
+      }
+
+      console.log('Profile updated successfully:', data);
+      return data;
+    } catch (jsonError) {
+      throw new Error('Server response is not valid JSON: ' + text);
+    }
+
+  } catch (error) {
+    console.error('Update Profile error:', error.message);
+    throw new Error(error.message || 'An error occurred while updating the profile.');
+  }
+};
 
 
 // Function to get the token from AsyncStorage

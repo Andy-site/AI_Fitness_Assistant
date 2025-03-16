@@ -35,7 +35,7 @@ const Footer = () => {
       <TouchableOpacity style={styles.footerIconButton} onPress={() => navigation.navigate('Stars')}>
         <Image source={require('../assets/Images/Stars.png')} style={styles.footerIconImage} resizeMode="contain" />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.footerIconButton} onPress={() => navigation.navigate('Help')}>
+      <TouchableOpacity style={styles.footerIconButton} onPress={() => navigation.navigate('EditProfile')}>
         <Image source={require('../assets/Images/Help.png')} style={styles.footerIconImage} resizeMode="contain" />
       </TouchableOpacity>
     </View>

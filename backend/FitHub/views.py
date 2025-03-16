@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.conf import settings
-from .serializers import UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer
+from .serializers import UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer, UserProfileSerializer
 from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise
 import logging
 from django.contrib.auth import authenticate
@@ -233,6 +233,30 @@ def get_user_details(request):
     serializer = UserRegistrationSerializer(user)
 
     return Response(serializer.data)
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def user_profile_update(request):
+    """Update the profile of the authenticated user."""
+    user = request.user  # Get the current authenticated user
+    
+    # Fetch the user instance to be updated
+    try:
+        user_instance = CustomUser.objects.get(id=user.id)
+    except CustomUser.DoesNotExist:
+        return Response({"detail": "User not found."}, status=404)
+    
+    # Use the serializer to validate and update user profile data
+    if request.method == 'PUT' or request.method == 'PATCH':
+        serializer = UserProfileSerializer(user_instance, data=request.data, partial=True)  # partial=True allows for partial updates
+        if serializer.is_valid():
+            # Save the updated user data
+            serializer.save()
+            return Response(serializer.data, status=200)
+        return Response(serializer.errors, status=400)
+
+    return Response({"detail": "Invalid method"}, status=405)
+
 
 @api_view(['GET'])
 def HomeView(request):

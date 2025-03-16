@@ -25,7 +25,26 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = CustomUser.objects.create_user(**validated_data)
         return user
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    profile_photo = serializers.ImageField(required=False)  # If you want the user to be able to upload an image
 
+    class Meta:
+        model = CustomUser
+        fields = ['email', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'profile_photo']
+        read_only_fields = ['email']  # Make sure the email is not editable
+    
+    def update(self, instance, validated_data):
+        # Check if profile photo is provided and update
+        profile_photo = validated_data.pop('profile_photo', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        # If a new profile photo is uploaded, update it
+        if profile_photo:
+            instance.profile_photo = profile_photo
+        
+        instance.save()
+        return instance
 
 class WorkoutSerializer(serializers.ModelSerializer):
     workout_library_name = serializers.CharField(source="workout_library.name", read_only=True)  # Get library name

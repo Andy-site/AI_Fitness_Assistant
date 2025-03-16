@@ -26,6 +26,8 @@ urlpatterns = [
     path('libraries/<int:library_id>/exercises/', views.list_library_exercises, name='list-library-exercises'),
     path('libraries/<int:library_id>/exercises/add/', views.add_exercise_to_library, name='add-exercise-to-library'),
     path('libraries/<int:library_id>/exercises/<int:exercise_id>/delete/', views.delete_library_exercise, name='delete-library-exercise'),
+
+    path('profile/update/', views.user_profile_update, name='profile-update'),
 ]
 
 
