@@ -38,7 +38,7 @@ class CustomUser(AbstractUser):
     reset_otp = models.CharField(max_length=6, null=True, blank=True)
     otp_created_at = models.DateTimeField(null=True, blank=True)
     otp_verified = models.BooleanField(default=False)
-    profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)  
+    profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']

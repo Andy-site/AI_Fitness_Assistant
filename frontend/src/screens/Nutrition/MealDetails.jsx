@@ -21,7 +21,8 @@ import notifee, {
   TriggerType,
   EventType,
 } from '@notifee/react-native';
-import {NotificationContext} from '../../components/NotificationContext';
+import { NotificationContext } from '../../components/NotificationContext';
+
 
 const {width} = Dimensions.get('window');
 

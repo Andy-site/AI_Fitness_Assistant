@@ -36,10 +36,8 @@ export const loginUser = async (email, password) => {
 
     // Log the full response for debugging
     const text = await response.text();
-    
-
-    // Check if response is valid JSON
     const data = JSON.parse(text);
+    console.log(data);
     
     if (!response.ok) {
       throw new Error(data.detail || 'Failed to log in');
@@ -149,21 +147,21 @@ export const verifyOtp = async (email, otp) => {
 };
 
 export const fetchUserDetails = async () => {
+  const API_BASE_URL = 'http://192.168.0.117:8000/'; 
+  // const API_BASE_URL = 'http://192.168.64.1:8000/api/'; 
   try {
-    // Retrieve the stored token
     const token = await AsyncStorage.getItem('access_token');
-    
-
+    console.log('Stored token:', token);
     if (!token) {
       throw new Error('No access token found');
     }
 
-    const response = await fetch(`${API_BASE_URL}user-details/`, {
+    const response = await fetch(`${API_BASE_URL}api/user-details/`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}` // Include the token
-      }
+        'Authorization': `Bearer ${token}`, // Include the token
+      },
     });
 
     if (!response.ok) {

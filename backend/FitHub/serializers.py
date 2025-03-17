@@ -30,7 +30,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['email', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'profile_photo']
+        fields = ['email', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal','profile_photo']
         read_only_fields = ['email']  # Make sure the email is not editable
     
     def update(self, instance, validated_data):

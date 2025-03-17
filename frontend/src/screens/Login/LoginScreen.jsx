@@ -5,7 +5,7 @@ import InputField from '../../components/InputField';
 import PasswordInput from '../../components/PasswordInput';
 import NextButton from '../../components/NextButton';
 
-import { loginUser, fetchUserDetails } from '../../api/fithubApi'; // Import API functions
+import { loginUser } from '../../api/fithubApi'; // Import API functions
 
 function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -19,30 +19,30 @@ function LoginScreen({ navigation }) {
     }
 
     try {
-      console.log('Attempting login with:', { email, password });
+  console.log('Attempting login with:', { email, password });
 
-      // Call the login function
-      const response = await loginUser(email, password);
-      console.log('Login response:', response);
+  // Call the login function
+  const response = await loginUser(email, password);
 
-      if (!response || !response.access) {
-        throw new Error('No access token received');
-      }
+  if (!response || !response.access) {
+    throw new Error('No access token received');
+  }
 
-      // Store JWT token in AsyncStorage
-      await AsyncStorage.setItem('jwt_token', response.access);
-      console.log('JWT token saved.');
+  // Store tokens in AsyncStorage
+  await AsyncStorage.setItem('access_token', response.access);
+  await AsyncStorage.setItem('refresh_token', response.refresh);
 
-      
+  console.log('Tokens saved successfully!');
 
-      // Navigate to the Home screen after successful login
-      navigation.navigate('Home');
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('Invalid email or password');
-      Alert.alert('Error', err.message || 'An error occurred during login.');
-    }
-  };
+  // Navigate to the Home screen after successful login
+  navigation.navigate('Home');
+} catch (err) {
+  console.error('Login error:', err);
+  setError('Invalid email or password');
+  Alert.alert('Error', err.message || 'An error occurred during login.');
+}
+  }
+
 
   return (
     <View style={styles.container}>

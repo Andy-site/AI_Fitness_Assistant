@@ -35,6 +35,7 @@ const Home = ({ navigation }) => {
         const userDetails = await AsyncStorage.getItem('user_details');
         if (userDetails) {
           const user = JSON.parse(userDetails);
+          console.log(user);
           setFirstName(user.first_name || 'User');
         }
       } catch (error) {
