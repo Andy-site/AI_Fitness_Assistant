@@ -8,6 +8,7 @@ urlpatterns = [
     path('send-otp/', views.SendOtpView, name='send-otp'),
     path('verify-otp/', views.VerifyOtpView, name='verify-otp'),
     path('login/', views.LoginView, name='login'),  
+    path('logout/', views.LogoutView, name='logout'),
     path('reset-password/', views.reset_password, name='reset-password'),
     path('home/', views.HomeView, name='home'),
     path('forgot-password/otp/', views.ForgotPasswordOTPView, name='forgot-password-otp'),

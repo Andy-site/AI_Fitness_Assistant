@@ -113,6 +113,22 @@ def LoginView(request):
             status=status.HTTP_401_UNAUTHORIZED,
         )
 
+@api_view(['POST'])
+def LogoutView(request):
+    try:
+        # Extract the refresh token from the request body
+        refresh_token = request.data.get('refresh', None)
+        if not refresh_token:
+            return Response({"detail": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Blacklist the refresh token
+        token = RefreshToken(refresh_token)
+        token.blacklist()  # This will mark the token as invalid
+
+        return Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)      
 
 @api_view(['POST'])
 @permission_classes([AllowAny])

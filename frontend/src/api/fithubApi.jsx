@@ -19,8 +19,6 @@ export const registerUser = async (userData) => {
     throw error.response?.data || { message: 'An error occurred during registration.' };
   }
 };
-  
-
 export const loginUser = async (email, password) => {
   try {
     const response = await fetch(`${API_BASE_URL}login/`, {
@@ -38,17 +36,17 @@ export const loginUser = async (email, password) => {
     const text = await response.text();
     const data = JSON.parse(text);
     console.log(data);
-    
+
     if (!response.ok) {
       throw new Error(data.detail || 'Failed to log in');
     }
 
     return data; // { access, refresh }
   } catch (error) {
+    console.error('Login error:', error.message);
     throw error;
   }
 };
-
 
 // Function to get the token from AsyncStorage
 export const getAuthToken = async () => {
@@ -56,10 +54,57 @@ export const getAuthToken = async () => {
     const token = await AsyncStorage.getItem('access_token');
     return token;
   } catch (error) {
-    console.error('Error retrieving token:', error);
+    console.error('Error retrieving token:', error.message);
     return null;
   }
 };
+
+export const getRefreshToken = async () => {
+  try {
+    const token = await AsyncStorage.getItem('refresh_token');
+    return token;
+  } catch (error) {
+    console.error('Error retrieving token:', error.message);
+    return null;
+  }
+};
+
+
+
+
+export const logout = async () => {
+  try {
+    // Retrieve the refresh token from AsyncStorage
+    const refreshToken = await getRefreshToken(); // Use the refresh token
+
+    if (refreshToken) {
+      const response = await fetch(`${API_BASE_URL}logout/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refresh: refreshToken }), // Send refresh token in the body
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        // Clear the tokens from AsyncStorage (both access and refresh tokens)
+        await AsyncStorage.removeItem('access_token');
+        await AsyncStorage.removeItem('refresh_token');
+        console.log('Logged out successfully');
+      } else {
+        console.log('Error logging out:', data.detail || 'Failed to log out');
+      }
+    } else {
+      console.log('No refresh token found. You are already logged out.');
+    }
+  } catch (error) {
+    console.error('Error during logout:', error.message);
+  }
+};
+
+
+
 
 // Function to handle updating the profile
 export const updateUserProfile = async (userData, profileImage) => {

@@ -41,6 +41,7 @@ import CreateNutri from '../screens/Nutrition/CreateNutri';
 
 import Notification from '../screens/Loading/Notification';
 import EditProfile from '../screens/ProfileAndSetting/EditProfile';
+import LogoutScreen from '../screens/ProfileAndSetting/LogoutScreen';
 
 
 
@@ -89,7 +90,7 @@ const AppNavigator = () => {
 
         <Stack.Screen name="Notification" component={Notification} options={{ headerShown: false}}/>
         <Stack.Screen name="EditProfile" component = {EditProfile} options={{headerShown: false}}/>
-
+        <Stack.Screen name="LogoutScreen" component={LogoutScreen} options={{ headerShown: false}}/>
       </Stack.Navigator>
     </NavigationContainer>
   );
