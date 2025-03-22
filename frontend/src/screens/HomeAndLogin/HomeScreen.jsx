@@ -128,6 +128,14 @@ const Home = ({ navigation }) => {
           <TouchableOpacity>
             <Text style={styles.seeAll}>See all</Text>
           </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('CameraScreen')}>
+  <Text style={styles.seeAll}>Camera</Text>
+</TouchableOpacity>
+
+<TouchableOpacity onPress={() => navigation.navigate('PoseDetectionScreen')}>
+  <Text style={styles.seeAll}>Pose</Text>
+</TouchableOpacity>
+
         </View>
 
         <View style={styles.cardContainer}>
