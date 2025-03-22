@@ -1,4 +1,4 @@
-import React, {useState, useRef, useEffect, useContext} from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   Alert,
   TextInput,
   Platform,
-  timestamp,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Header from '../../components/Header';
@@ -23,21 +22,17 @@ import notifee, {
 } from '@notifee/react-native';
 import { NotificationContext } from '../../components/NotificationContext';
 
+const { width } = Dimensions.get('window');
 
-const {width} = Dimensions.get('window');
-
-notifee.onBackgroundEvent(async ({type, detail}) => {
+notifee.onBackgroundEvent(async ({ type, detail }) => {
   if (type === EventType.PRESS) {
-    console.log(
-      'User pressed the notification in the background',
-      detail.notification,
-    );
+    console.log('User pressed the notification in the background', detail.notification);
   }
   return Promise.resolve();
 });
 
-const MealDetails = ({route}) => {
-  const {macronutrients, mealPlan} = route.params;
+const MealDetails = ({ route }) => {
+  const { macronutrients, mealPlan } = route.params;
   const [activeMealIndex, setActiveMealIndex] = useState(0);
   const scrollViewRef = useRef(null);
   const [alarmTime, setAlarmTime] = useState('');
@@ -47,7 +42,7 @@ const MealDetails = ({route}) => {
   const pickerKey = useRef(0); // Unique key for DateTimePicker
 
   // Get the notification context
-  const {addNotification} = useContext(NotificationContext);
+  const { addNotification } = useContext(NotificationContext);
 
   const triggerNotification = async (
     MealName,
@@ -74,24 +69,24 @@ const MealDetails = ({route}) => {
           android: {
             channelId: 'meal-reminders',
             importance: AndroidImportance.HIGH,
-            sound: 'alarm', // No need for file extension
+            sound: 'alarm',
             vibrationPattern: [500, 1000],
           },
           ios: {
             categoryId: 'meal-reminder',
-            sound: 'alarm.wav', // iOS might require the file extension
+            sound: 'alarm.wav',
           },
         },
         trigger,
       );
 
+      // Add notification to context
+      addNotification(MealName, alarmTimeDisplay, reminderDate);
+
       Alert.alert('Reminder Set', `Your alarm is set for ${alarmTimeDisplay}`);
     } catch (error) {
       console.error('Error setting notification:', error);
-      Alert.alert(
-        'Notification Error',
-        'Failed to set reminder: ' + error.message,
-      );
+      Alert.alert('Notification Error', 'Failed to set reminder: ' + error.message);
     }
   };
 
@@ -110,7 +105,7 @@ const MealDetails = ({route}) => {
         await notifee.createChannel({
           id: 'meal-reminders',
           name: 'Meal Reminders',
-          sound: 'alarm', // Use the sound file name here, without extension
+          sound: 'alarm',
           importance: AndroidImportance.HIGH,
         });
 
@@ -118,7 +113,7 @@ const MealDetails = ({route}) => {
           await notifee.setNotificationCategories([
             {
               id: 'meal-reminder',
-              actions: [{id: 'view', title: 'View'}],
+              actions: [{ id: 'view', title: 'View' }],
             },
           ]);
         }
@@ -131,7 +126,7 @@ const MealDetails = ({route}) => {
 
     setupNotifications();
 
-    const unsubscribe = notifee.onForegroundEvent(({type, detail}) => {
+    const unsubscribe = notifee.onForegroundEvent(({ type, detail }) => {
       switch (type) {
         case EventType.PRESS:
           console.log('User pressed notification', detail.notification);
@@ -140,7 +135,7 @@ const MealDetails = ({route}) => {
           console.log('Notification triggered', detail.notification);
           break;
         case EventType.DELIVERED:
-          console.log('Notification delivered', detail.notification);
+          console.log('Notification delivered', detail.notification );
           break;
       }
     });
@@ -159,7 +154,8 @@ const MealDetails = ({route}) => {
             <View style={styles.reminderContainer}>
               <TouchableOpacity
                 style={styles.notifyButton}
-                onPress={() => setShowPicker(true)}>
+                onPress={() => setShowPicker(true)}
+              >
                 <Icon name="clock-o" size={20} color="#000" />
                 <Text style={styles.notifyButtonText}>Set Reminder</Text>
               </TouchableOpacity>
@@ -189,7 +185,7 @@ const MealDetails = ({route}) => {
                     const currentMeal = mealPlan[activeMealIndex];
                     const alarmTimeDisplay = `Today at ${targetDate.toLocaleTimeString(
                       [],
-                      {hour: 'numeric', minute: '2-digit', hour12: true},
+                      { hour: 'numeric', minute: '2-digit', hour12: true },
                     )}`;
 
                     triggerNotification(
@@ -208,7 +204,7 @@ const MealDetails = ({route}) => {
           <VirtualizedList
             data={meal.suggestions || []}
             keyExtractor={(suggestion, i) => suggestion.id || i.toString()}
-            renderItem={({item: suggestion}) => (
+            renderItem={({ item: suggestion }) => (
               <View style={styles.suggestionContainer}>
                 <Text style={styles.suggestionText}>{suggestion.name}</Text>
                 <Text style={styles.ingredientTitle}>Ingredients:</Text>
@@ -263,7 +259,8 @@ const MealDetails = ({route}) => {
             if (newIndex >= 0 && newIndex < mealPlan.length) {
               setActiveMealIndex(newIndex);
             }
-          }}>
+          }}
+        >
           {mealPlan.map((meal, index) => renderMealPage(meal, index))}
         </ScrollView>
 
@@ -402,7 +399,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
   },
   reminderContainer: {
     flexDirection: 'row',

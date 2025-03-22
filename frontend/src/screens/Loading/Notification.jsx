@@ -1,10 +1,10 @@
 import React, { useContext, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { NotificationContext } from '../../components/NotificationContext';
-import Icon from 'react-native-vector-icons/Ionicons'; // Make sure to install react-native-vector-icons
+import Icon from 'react-native-vector-icons/Ionicons'; // Ensure you have installed react-native-vector-icons
 
 const Notification = ({ navigation }) => {
-  const { notifications, markAsRead, removeNotification } = useContext(NotificationContext);
+  const { notifications, removeNotification, clearAllNotifications } = useContext(NotificationContext);
 
   // Filter unique notifications based on date and time
   const uniqueNotifications = Array.from(
@@ -38,11 +38,7 @@ const Notification = ({ navigation }) => {
 
   const renderNotificationItems = () => {
     return uniqueNotifications.map((item) => (
-      <TouchableOpacity 
-        key={item.id}
-        style={[styles.notificationItem, !item.read && styles.unreadNotification]}
-        onPress={() => markAsRead && markAsRead(item.id)}
-      >
+      <View key={item.id} style={[styles.notificationItem, !item.read && styles.unreadNotification]}>
         <View style={styles.iconContainer}>
           {getNotificationIcon(item.type || 'default')}
         </View>
@@ -52,11 +48,11 @@ const Notification = ({ navigation }) => {
         </View>
         <TouchableOpacity 
           style={styles.deleteButton}
-          onPress={() => removeNotification && removeNotification(item.id)}
+          onPress={() => removeNotification(item.id)}
         >
-          <Icon name="close-circle" size={22} color="#DDD" />
+          <Icon name="close-circle" size={22} color="#F44336" />
         </TouchableOpacity>
-      </TouchableOpacity>
+      </View>
     ));
   };
 
@@ -65,7 +61,7 @@ const Notification = ({ navigation }) => {
       <View style={styles.header}>
         <Text style={styles.title}>Notifications</Text>
         {uniqueNotifications.length > 0 && (
-          <TouchableOpacity>
+          <TouchableOpacity onPress={clearAllNotifications}>
             <Text style={styles.clearAllText}>Clear All</Text>
           </TouchableOpacity>
         )}
@@ -180,9 +176,6 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 5,
-    fontsize: 12,
-    fontWeight: '600',
-    color: '#999',
     position: 'absolute',
     top: 5,
     right: 5,
