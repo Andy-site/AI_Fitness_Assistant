@@ -69,7 +69,7 @@ export const NotificationProvider = ({ children }) => {
       time: `${date} at ${time}`,
       timestamp: notificationTime,
     };
-    console.log(newNotification);
+    
   
     setNotifications(prevNotifications => {
       const isDuplicate = prevNotifications.some(
@@ -96,7 +96,7 @@ export const NotificationProvider = ({ children }) => {
         timestamp: notificationTime, // 
       }
     );
-    console.log(`🎉 Notification (ID: ${notificationId}) scheduled successfully!`);
+    
   };
   
   

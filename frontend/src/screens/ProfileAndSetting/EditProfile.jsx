@@ -121,22 +121,27 @@ const EditProfile = () => {
         <Header title="Profile" />
 
         <ScrollView style={styles.scrollContainer}>
-          <View style={styles.profileImageContainer}>
-            <TouchableOpacity
-              onPress={() => {
-                launchImageLibrary({mediaType: 'photo'}, handleImageResponse);
-              }}
-              style={styles.profileImageButton}>
-              {profileImage ? (
-                <Image
-                  source={{uri: profileImage.uri}}
-                  style={styles.profileImage}
-                />
-              ) : (
-                <Text style={styles.addPhotoText}>+ Add Photo</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+        <View style={styles.profileImageContainer}>
+  <TouchableOpacity
+    onPress={() => {
+      launchImageLibrary({mediaType: 'photo'}, handleImageResponse);
+    }}
+    style={styles.profileImageButton}>
+    {profileImage ? (
+      <Image
+        source={{uri: profileImage.uri}}
+        style={styles.profileImage}
+      />
+    ) : (
+      <Text style={styles.addPhotoText}>+ Add Photo</Text>
+    )}
+    {/* Overlay with Edit Icon */}
+    <View style={styles.editIconOverlay}>
+      <MaterialIcons name="edit" size={20} color="#896cfe" />
+    </View>
+  </TouchableOpacity>
+</View>
+
 
           <View style={styles.formContainer}>
             {[
@@ -229,6 +234,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom:10,
+    position: 'relative', 
+  },
+  editIconOverlay: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+    borderRadius: 25,
+    padding: 5,
   },
   profileImage: {width: 130, height: 130, borderRadius: 75},
   addPhotoText: {fontSize: 16, color: '#fff', fontWeight: 'bold'},

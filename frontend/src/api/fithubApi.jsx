@@ -49,11 +49,26 @@ export const loginUser = async (email, password) => {
   }
 };
 
-// API call for updating the user profile
+
+// Function to get the token from AsyncStorage
+export const getAuthToken = async () => {
+  try {
+    const token = await AsyncStorage.getItem('access_token');
+    return token;
+  } catch (error) {
+    console.error('Error retrieving token:', error);
+    return null;
+  }
+};
+
+// Function to handle updating the profile
 export const updateUserProfile = async (userData, profileImage) => {
-  
   try {
     const token = await getAuthToken();
+
+    if (!token) {
+      throw new Error('No valid token found. Please log in again.');
+    }
 
     if (!API_BASE_URL) {
       throw new Error("API_BASE_URL is not defined. Check your config.");
@@ -92,10 +107,15 @@ export const updateUserProfile = async (userData, profileImage) => {
     const text = await response.text();
     console.log('Raw response:', text);
 
+    // Handle non-JSON responses and parse JSON
     try {
       const data = JSON.parse(text);
-      
+
       if (!response.ok) {
+        // Check for expired token (specific error message from the server)
+        if (data.code === 'token_not_valid' || response.status === 401) {
+          throw new Error('Token expired or invalid. Please log in again.');
+        }
         throw new Error(data.detail || 'Failed to update profile');
       }
 
@@ -107,21 +127,21 @@ export const updateUserProfile = async (userData, profileImage) => {
 
   } catch (error) {
     console.error('Update Profile error:', error.message);
+    // Handle the case where the token is expired
+    if (error.message.includes('Token expired or invalid')) {
+      // You can navigate the user to the login page or show a login prompt
+      // For example: navigate to login screen
+      // or clear AsyncStorage and prompt for login again
+      await AsyncStorage.removeItem('jwt_token');
+      // Redirect user to the login page
+      // navigation.navigate('Login');
+    }
     throw new Error(error.message || 'An error occurred while updating the profile.');
   }
 };
 
 
-// Function to get the token from AsyncStorage
-export const getAuthToken = async () => {
-  try {
-    const token = await AsyncStorage.getItem('jwt_token');  // Consistent key for token
-    return token;
-  } catch (error) {
-    console.error('Error retrieving token:', error);
-    return null;
-  }
-};
+
 
 
 // API call for sending OTP to the user's email
