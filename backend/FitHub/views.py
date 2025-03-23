@@ -557,3 +557,52 @@ def delete_library_exercise(request, library_id, exercise_id):
     exercise.delete()
     return Response({"message": "Exercise deleted successfully."}, status=status.HTTP_200_OK)
 
+
+
+
+
+# import os
+# import cv2
+# import numpy as np
+# import tensorflow.lite as tflite
+# from django.conf import settings
+# from django.http import JsonResponse
+# from django.views.decorators.csrf import csrf_exempt
+
+# # Load the TFLite model
+# MODEL_PATH = settings.MODEL_PATH  # Get model path from settings
+# interpreter = tflite.Interpreter(model_path=MODEL_PATH)
+# interpreter.allocate_tensors()
+
+# # Get input and output tensor details
+# input_details = interpreter.get_input_details()
+# output_details = interpreter.get_output_details()
+
+# def detect_pose(image):
+#     img = cv2.resize(image, (input_details[0]['shape'][1], input_details[0]['shape'][2]))
+#     img = np.expand_dims(img, axis=0).astype(np.float32)
+
+#     interpreter.set_tensor(input_details[0]['index'], img)
+#     interpreter.invoke()
+
+#     keypoints = interpreter.get_tensor(output_details[0]['index'])
+#     return keypoints
+
+# @csrf_exempt
+# def pose_detection_api(request):
+#     if request.method == "POST" and request.FILES.get("image"):
+#         image_file = request.FILES["image"]
+#         image_path = os.path.join(settings.MEDIA_ROOT, image_file.name)
+
+#         # Save the uploaded file
+#         with open(image_path, "wb") as f:
+#             for chunk in image_file.chunks():
+#                 f.write(chunk)
+
+#         # Read the saved image
+#         img = cv2.imread(image_path)
+#         keypoints = detect_pose(img)
+
+#         return JsonResponse({"keypoints": keypoints.tolist()})
+
+#     return JsonResponse({"error": "Invalid request"}, status=400)

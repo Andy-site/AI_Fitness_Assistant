@@ -29,6 +29,7 @@ urlpatterns = [
     path('libraries/<int:library_id>/exercises/<int:exercise_id>/delete/', views.delete_library_exercise, name='delete-library-exercise'),
 
     path('profile/update/', views.user_profile_update, name='profile-update'),
+    # path("pose-detection/", views.pose_detection_api, name="pose-detection"),
 ]
 
 

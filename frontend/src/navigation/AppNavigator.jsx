@@ -43,9 +43,10 @@ import Notification from '../screens/Loading/Notification';
 import EditProfile from '../screens/ProfileAndSetting/EditProfile';
 import LogoutScreen from '../screens/ProfileAndSetting/LogoutScreen';
 
+import PoseScreen from '../screens/Pose/PoseScreen';
 
-import CameraScreen from '../PoseDetection/CameraScreen';
-import PoseDetectionScreen from '../PoseDetection/PoseDetectionScreen';
+
+
 
 
 const Stack = createNativeStackNavigator();
@@ -95,10 +96,8 @@ const AppNavigator = () => {
         <Stack.Screen name="LogoutScreen" component={LogoutScreen} options={{ headerShown: false}}/>
 
 
-        <Stack.Screen name="CameraScreen" component={CameraScreen} options={{ headerShown: false }}/>
-        <Stack.Screen name="PoseDetectionScreen" component={PoseDetectionScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="PoseScreen" component={PoseScreen} options={{ headerShown: false }}/>
 
-        
       </Stack.Navigator>
     </NavigationContainer>
   );
