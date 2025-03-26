@@ -24,11 +24,6 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
-# Path to your model file
-
-MODEL_PATH = os.path.join(BASE_DIR, "FitHub", "tensorModel", "pose_landmarker_lite.task")
-print("Model Path:", MODEL_PATH)
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import Footer from '../../components/Footer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 // Separate component for the icon button
 const IconButton = ({ icon, label, onPress }) => (
   <TouchableOpacity style={styles.iconButton} onPress={onPress}>
@@ -56,8 +56,8 @@ const Home = ({ navigation }) => {
       onPress: () => {}
     },
     {
-      icon: require('../../assets/Images/Progress.png'),
-      label: 'Progress',
+      icon: require('../../assets/Images/Scan.png'),
+      label: 'Pose Estimation',
       onPress: () => {}
     },
     {
@@ -129,8 +129,8 @@ const Home = ({ navigation }) => {
             <Text style={styles.seeAll}>See all</Text>
           </TouchableOpacity>
           
-<TouchableOpacity onPress={() => navigation.navigate('PoseScreen')}>
-  <Text style={styles.seeAll}>POse</Text>
+<TouchableOpacity onPress={() => navigation.navigate('LandPose')}>
+  <Text style={styles.seeAll}>Pose</Text>
 </TouchableOpacity>
 
 
@@ -213,10 +213,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconImage: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 35, // Increase width
+    height: 35, // Increase height
+    // borderRadius: 20, // Adjust border radius if necessary
   },
+  
   iconText: {
     marginTop: 8,
     fontSize: 12,
