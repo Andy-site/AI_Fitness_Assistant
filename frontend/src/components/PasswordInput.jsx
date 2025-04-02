@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, TextInput, Pressable, Text, StyleSheet } from 'react-native';
-
+import Ionicons from 'react-native-vector-icons/Ionicons'; // Import the Ionicons icon set
 const PasswordInput = ({ value, onChangeText, placeholder }) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -13,13 +13,18 @@ const PasswordInput = ({ value, onChangeText, placeholder }) => {
         onChangeText={onChangeText}
         style={styles.input}
       />
-      <Pressable 
-        onPress={() => setIsVisible(!isVisible)}
-        style={styles.visibilityButton}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Text style={styles.visibilityButtonText}>{isVisible ?  '👁️' : '🙈' }</Text>
-      </Pressable>
+      <Pressable
+      onPress={() => setIsVisible(!isVisible)}
+      style={styles.visibilityButton}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <Ionicons
+        name={isVisible ? 'eye' : 'eye-off'}  // Toggle between eye and eye-off icons
+        size={30}
+        color="black" // You can change the color based on your design
+        style={styles.visibilityButtonText}
+      />
+    </Pressable>
     </View>
   );
 };
@@ -46,9 +51,10 @@ const styles = StyleSheet.create({
     right: 15,
     top: 12,
     zIndex: 1,
+    
   },
   visibilityButtonText: {
-    fontSize: 18,
+    fontSize: 25,
   },
 });
 

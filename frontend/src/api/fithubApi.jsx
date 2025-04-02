@@ -20,39 +20,32 @@ export const registerUser = async (userData) => {
     throw error.response?.data || { message: 'An error occurred during registration.' };
   }
 };
+// **Login Function**
 export const loginUser = async (email, password) => {
   try {
-    const response = await fetch(`${API_BASE_URL}login/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: email,
-        password: password,
-      }),
-    });
+    const response = await apiClient.post('login/', { email, password });
 
-    // Log the full response for debugging
-    const text = await response.text();
-    const data = JSON.parse(text);
-    console.log(data);
+    console.log('Login Response:', response.data); // Debugging
 
-    if (!response.ok) {
-      throw new Error(data.detail || 'Failed to log in');
+    if (response.data.access && response.data.refresh) {
+      await AsyncStorage.setItem('access_token', response.data.access);
+      await AsyncStorage.setItem('refresh_token', response.data.refresh);
+      console.log('Tokens stored successfully');
+      return response.data;
+    } else {
+      throw new Error('Missing access or refresh token in response');
     }
-
-    return data; // { access, refresh }
   } catch (error) {
-    console.error('Login error:', error.message);
+    console.error('Login error:', error.response?.data || error.message);
     throw error;
   }
 };
 
-// Function to get the token from AsyncStorage
+// **Get Token Function**
 export const getAuthToken = async () => {
   try {
     const token = await AsyncStorage.getItem('access_token');
+    console.log('Retrieved auth token:', token);
     return token;
   } catch (error) {
     console.error('Error retrieving token:', error.message);
@@ -60,41 +53,32 @@ export const getAuthToken = async () => {
   }
 };
 
+// **Get Refresh Token Function**
 export const getRefreshToken = async () => {
   try {
     const token = await AsyncStorage.getItem('refresh_token');
+    console.log('Retrieved refresh token:', token);
     return token;
   } catch (error) {
-    console.error('Error retrieving token:', error.message);
+    console.error('Error retrieving refresh token:', error.message);
     return null;
   }
 };
 
-
-
-
+// **Logout Function**
 export const logout = async () => {
   try {
-    // Retrieve the refresh token from AsyncStorage
     const refreshToken = await getRefreshToken(); // Use the refresh token
 
     if (refreshToken) {
-      const response = await fetch(`${API_BASE_URL}logout/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refresh: refreshToken }), // Send refresh token in the body
-      });
+      const response = await apiClient.post('logout/', { refresh: refreshToken });
 
-      const data = await response.json();
-      if (response.ok) {
-        // Clear the tokens from AsyncStorage (both access and refresh tokens)
+      if (response.status === 200 || response.status === 204) {
         await AsyncStorage.removeItem('access_token');
         await AsyncStorage.removeItem('refresh_token');
         console.log('Logged out successfully');
       } else {
-        console.log('Error logging out:', data.detail || 'Failed to log out');
+        console.log('Error logging out:', response.data?.detail || 'Failed to log out');
       }
     } else {
       console.log('No refresh token found. You are already logged out.');
@@ -110,20 +94,11 @@ export const logout = async () => {
 // Function to handle updating the profile
 export const updateUserProfile = async (userData, profileImage) => {
   try {
-    const token = await getAuthToken();
+    const token = await AsyncStorage.getItem('access_token');
 
     if (!token) {
       throw new Error('No valid token found. Please log in again.');
     }
-
-    if (!API_BASE_URL) {
-      throw new Error("API_BASE_URL is not defined. Check your config.");
-    }
-
-    console.log('API_BASE_URL:', API_BASE_URL);
-    console.log('Updating profile at:', `${API_BASE_URL}profile/update/`);
-    console.log('User Data:', userData);
-    console.log('Profile Image:', profileImage);
 
     const formData = new FormData();
     formData.append('first_name', userData.first_name);
@@ -141,56 +116,22 @@ export const updateUserProfile = async (userData, profileImage) => {
       });
     }
 
-    const response = await fetch(`${API_BASE_URL}profile/update/`, {
-      method: 'PATCH',
+    const response = await axios.patch(`${API_BASE_URL}profile/update/`, formData, {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        // Remove 'Content-Type' for FormData (it will be auto-set)
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data', // Required for FormData
       },
-      body: formData,
     });
 
-    const text = await response.text();
-    console.log('Raw response:', text);
-
-    // Handle non-JSON responses and parse JSON
-    try {
-      const data = JSON.parse(text);
-
-      if (!response.ok) {
-        // Check for expired token (specific error message from the server)
-        if (data.code === 'token_not_valid' || response.status === 401) {
-          throw new Error('Token expired or invalid. Please log in again.');
-        }
-        throw new Error(data.detail || 'Failed to update profile');
-      }
-
-      console.log('Profile updated successfully:', data);
-      return data;
-    } catch (jsonError) {
-      throw new Error('Server response is not valid JSON: ' + text);
-    }
-
+    console.log('Profile updated successfully:', response.data);
+    return response.data;
   } catch (error) {
-    console.error('Update Profile error:', error.message);
-    // Handle the case where the token is expired
-    if (error.message.includes('Token expired or invalid')) {
-      // You can navigate the user to the login page or show a login prompt
-      // For example: navigate to login screen
-      // or clear AsyncStorage and prompt for login again
-      await AsyncStorage.removeItem('jwt_token');
-      // Redirect user to the login page
-      // navigation.navigate('Login');
-    }
-    throw new Error(error.message || 'An error occurred while updating the profile.');
+    console.error('Update Profile error:', error.response?.data || error.message);
+    throw error.response?.data || { message: 'An error occurred while updating the profile.' };
   }
 };
 
-
-
-
-
-// API call for sending OTP to the user's email
+// **Send OTP to Email**
 export const sendOtp = async (email) => {
   try {
     const response = await apiClient.post('send-otp/', { email });
@@ -201,7 +142,7 @@ export const sendOtp = async (email) => {
   }
 };
 
-// API call for verifying the OTP
+// **Verify OTP**
 export const verifyOtp = async (email, otp) => {
   try {
     const response = await apiClient.post('verify-otp/', { email, otp });
@@ -212,35 +153,27 @@ export const verifyOtp = async (email, otp) => {
   }
 };
 
+// **Fetch User Details**
 export const fetchUserDetails = async () => {
-  const API_BASE_URL = 'http://192.168.0.117:8000/'; 
-  // const API_BASE_URL = 'http://192.168.64.1:8000/api/'; 
   try {
     const token = await AsyncStorage.getItem('access_token');
     console.log('Stored token:', token);
+    
     if (!token) {
       throw new Error('No access token found');
     }
 
-    const response = await fetch(`${API_BASE_URL}api/user-details/`, {
-      method: 'GET',
+    const response = await apiClient.get('user-details/', {
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`, // Include the token
+        Authorization: `Bearer ${token}`,
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch user details: ${response.statusText}`);
-    }
-
-    const user = await response.json(); // Parse JSON response
-    await AsyncStorage.setItem('user_details', JSON.stringify(user)); // Store user details
-
-    return user;
+    await AsyncStorage.setItem('user_details', JSON.stringify(response.data));
+    return response.data;
   } catch (error) {
-    console.error('Error fetching user details:', error.message);
-    throw error;
+    console.error('Error fetching user details:', error.response?.data || error.message);
+    throw error.response?.data || { message: 'Failed to fetch user details.' };
   }
 };
 
@@ -284,28 +217,25 @@ export const verifyPasswordResetOTP = async (email, otp) => {
   }
 };
 
-
-export const startExercise = async (exerciseData, token) => {
+export const startExercise = async (exerciseData) => {
   try {
-    const response = await fetch(`${API_BASE_URL}start-exercise/`, {
-      method: 'POST',
+    const token = await AsyncStorage.getItem('access_token');
+
+    if (!token) {
+      throw new Error('No valid token found. Please log in again.');
+    }
+
+    const response = await apiClient.post('start-exercise/', exerciseData, {
       headers: {
-        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(exerciseData),
     });
 
-    const data = await response.json();
-    console.log('Start Exercise Response:', data); // Debugging log
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to start exercise');
-    }
-    return data;
+    console.log('Start Exercise Response:', response.data);
+    return response.data;
   } catch (error) {
-    console.error('Error in startExercise:', error);
-    throw error;
+    console.error('Error in startExercise:', error.response?.data || error.message);
+    throw error.response?.data || { message: 'Failed to start exercise' };
   }
 };
 
@@ -368,68 +298,72 @@ export const logExercisePerformance = async (Exercise_Id, set_data, userToken) =
 // Workout Library Endpoints
 // ------------------------------
 
-export const createWorkoutLibrary = async (libraryData, token) => {
+// **Create Workout Library**
+export const createWorkoutLibrary = async (libraryData) => {
   try {
-    const response = await fetch(`${API_BASE_URL}libraries/create/`, {
-      method: 'POST',
+    const token = await AsyncStorage.getItem('access_token');
+
+    if (!token) {
+      throw new Error('No valid token found. Please log in again.');
+    }
+
+    const response = await apiClient.post('libraries/create/', libraryData, {
       headers: {
-        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(libraryData),
     });
 
-    const data = await response.json();
-    console.log('Create Library Response:', data);
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to create workout library');
-    }
-    return data;
+    console.log('Create Library Response:', response.data);
+    return response.data;
   } catch (error) {
-    console.error('Error in createWorkoutLibrary:', error);
-    throw error;
+    console.error('Error in createWorkoutLibrary:', error.response?.data || error.message);
+    throw error.response?.data || { message: 'Failed to create workout library' };
   }
 };
 
-export const getWorkoutLibraries = async (token) => {
+// **Get Workout Libraries**
+export const getWorkoutLibraries = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}libraries/`, {
+    const token = await AsyncStorage.getItem('access_token');
+
+    if (!token) {
+      throw new Error('No valid token found. Please log in again.');
+    }
+
+    const response = await apiClient.get('libraries/', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    const data = await response.json();
-    console.log('Get Libraries Response:', data);
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to fetch workout libraries');
-    }
-    return data;
+    console.log('Get Libraries Response:', response.data);
+    return response.data;
   } catch (error) {
-    console.error('Error in getWorkoutLibraries:', error);
-    throw error;
+    console.error('Error in getWorkoutLibraries:', error.response?.data || error.message);
+    throw error.response?.data || { message: 'Failed to fetch workout libraries' };
   }
 };
 
-export const deleteWorkoutLibrary = async (libraryId, token) => {
+// **Delete Workout Library**
+export const deleteWorkoutLibrary = async (libraryId) => {
   try {
-    const response = await fetch(`${API_BASE_URL}libraries/${libraryId}/delete/`, {
-      method: 'DELETE',
+    const token = await AsyncStorage.getItem('access_token');
+
+    if (!token) {
+      throw new Error('No valid token found. Please log in again.');
+    }
+
+    const response = await apiClient.delete(`libraries/${libraryId}/delete/`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    const data = await response.json();
-    console.log('Delete Library Response:', data);
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to delete workout library');
-    }
-    return data;
+    console.log('Delete Library Response:', response.data);
+    return response.data;
   } catch (error) {
-    console.error('Error in deleteWorkoutLibrary:', error);
-    throw error;
+    console.error('Error in deleteWorkoutLibrary:', error.response?.data || error.message);
+    throw error.response?.data || { message: 'Failed to delete workout library' };
   }
 };
 

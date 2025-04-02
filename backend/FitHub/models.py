@@ -5,8 +5,6 @@ from django.utils.timezone import now, timedelta
 from datetime import timedelta
 from django.utils import timezone
 
-
-
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, first_name, last_name, password=None, **extra_fields):
         """Create and return a regular user with an email."""
@@ -140,3 +138,14 @@ class WorkoutLibraryExercise(models.Model):
 
     def __str__(self):
         return f"{self.name} in {self.library.name}"
+
+
+class Exercise(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    category = models.CharField(max_length=100, blank=True, null=True)  # e.g., "Strength", "Cardio"
+    equipment = models.CharField(max_length=255, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    image_url = models.URLField(blank=True, null=True)
+
+    def __str__(self):
+        return self.name

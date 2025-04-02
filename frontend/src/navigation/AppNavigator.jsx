@@ -60,7 +60,7 @@ const AppNavigator = () => {
     <NavigationContainer>
 
 
-        <Stack.Navigator initialRouteName="Home">
+        <Stack.Navigator initialRouteName="Landing">
         <Stack.Screen name="Landing" component={Landing}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading1" component={Loading1}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading2" component={Loading2}  options={{ headerShown: false }}/>
