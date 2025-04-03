@@ -221,6 +221,69 @@ export const verifyPasswordResetOTP = async (email, otp) => {
 // Fetch Exercise from backend
 // -------------------------------------------------------------------
 
+// Function to check if an exercise is in the favorites
+
+export const checkFavoriteStatus = async (exerciseName) => {
+  try {
+    // Retrieve the auth token
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    // Log token and URL for debugging
+    const url = `favorites/status/${exerciseName}`;
+    console.log(`Making API call to check favorite status for ${exerciseName}`);
+    console.log('Full API URL:', url);
+
+    // Set up headers with the Authorization token
+    const headers = {
+      Authorization: `Bearer ${token}`,
+    };
+
+    // Make the API call with the token in the Authorization header
+    const response = await apiClient.get(url, { headers });
+
+    // Log the request and response for debugging
+    console.log('Request headers:', response.config.headers);
+    console.log('Favorite status response:', response.data);
+
+    return response.data;
+
+  } catch (error) {
+    console.error('Error checking favorite status:', error.message);
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+    }
+  }
+};
+
+
+
+
+
+
+export const toggleFavoriteExercise = async (exerciseName) => {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const response = await apiClient.post('favorites/', { exercise_name: exerciseName }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Error toggling favorite:", error);
+    throw error;
+  }
+};
+
+
+
+
 // Fetch exercises based on filters (category, equipment, and search query)
 export const fetchExercises = async (selectedCategory, selectedEquipment, searchQuery) => {
   try {

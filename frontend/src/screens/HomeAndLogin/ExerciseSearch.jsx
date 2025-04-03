@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   TextInput,
@@ -18,18 +18,17 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { capitalizeWords } from '../../utils/StringUtils';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
-import debounce from 'lodash/debounce'; // You'll need to install lodash: npm install lodash
+import { checkFavoriteStatus, toggleFavoriteExercise } from '../../api/fithubApi';
 
 const API_URL = "http://192.168.0.117:8000/api/exercises/";
 
 const ExerciseSearch = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredExercises, setFilteredExercises] = useState([]);
+  const [favoriteExercises, setFavoriteExercises] = useState({});
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState(null);
   const navigation = useNavigation();
-  const isMounted = useRef(true);
-  const abortController = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -37,79 +36,69 @@ const ExerciseSearch = () => {
       setSearchQuery('');
     };
   }, []);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setFilteredExercises([]);
+      return;
+    }
   
-
-  // Debounced search function
-  const debouncedSearch = useCallback(
-    debounce(async (query) => {
-      if (!query.trim()) {
-        if (isMounted.current) setFilteredExercises([]);
-        return;
+    setSearching(true);
+    setError(null);
+    Keyboard.dismiss();
+    
+    try {
+      const url = `${API_URL}?name=${encodeURIComponent(searchQuery.trim())}`;
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
       }
-
-      if (isMounted.current) {
-        setSearching(true);
-        setError(null);
-      }
-      // Keyboard.dismiss();
-
-      try {
-        abortController.current = new AbortController();
-        const url = `${API_URL}?name=${encodeURIComponent(query.trim())}`;
-        const response = await fetch(url, { signal: abortController.current.signal });
-
-        if (!response.ok) {
-          throw new Error(`Server responded with status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const filteredData = data.filter((exercise) =>
-          exercise.name.toLowerCase().startsWith(query.toLowerCase())
-        );
-
-        if (isMounted.current) {
-          setFilteredExercises(filteredData);
-        }
-      } catch (error) {
-        if (error.name === 'AbortError') return;
-        console.error('Error fetching exercises:', error);
-        if (isMounted.current) {
-          setError('Failed to fetch exercises. Please try again.');
-        }
-      } finally {
-        if (isMounted.current) {
-          setSearching(false);
-        }
-      }
-    },300), // 300ms debounce delay
-    []
-  );
-
-  const handleSearch = () => {
-    debouncedSearch(searchQuery);
+      
+      const data = await response.json();
+  
+      const filteredData = data.filter((exercise) =>
+        exercise.name.toLowerCase().startsWith(searchQuery.toLowerCase())
+      );
+  
+      setFilteredExercises(filteredData);
+    } catch (error) {
+      console.error('Error fetching exercises:', error);
+      setError('Failed to fetch exercises. Please try again.');
+    } finally {
+      setSearching(false);
+    }
   };
 
   const handleClearSearch = () => {
     setSearchQuery('');
     setFilteredExercises([]);
     setError(null);
-    debouncedSearch.cancel(); // Cancel any pending debounced calls
-  };
-
-  const navigateToExerciseDetails = (exercise) => {
-    navigation.navigate('ExeDetails', { 
-      exerciseName: exercise.name, 
-      bodyPart: exercise.category // Ensure this is the correct field
-    });
   };
   
+  const navigateToExerciseDetails = async (exercise) => {
+    try {
+      const isFavorite = await checkFavoriteStatus(encodeURIComponent(exercise.name));
+      setFavoriteExercises((prev) => ({ ...prev, [exercise.name]: isFavorite }));
+      
+      navigation.navigate('ExeDetails', { 
+        exerciseName: exercise.name, 
+        bodyPart: exercise.category, 
+        isFavorite 
+      });
+    } catch (error) {
+      console.error("Error fetching favorite status:", error);
+    }
+  };
+  
+
 
   const getItem = (data, index) => data[index];
   const getItemCount = (data) => data.length;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
+      <KeyboardAvoidingView 
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : null}
         keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
@@ -118,7 +107,6 @@ const ExerciseSearch = () => {
         
         <Header title="Search Exercises" />
         
-        {/* Search Input Section */}
         <View style={styles.searchContainer}>
           <View style={styles.inputContainer}>
             <Icon name="search" size={18} color="#666" style={styles.searchIcon} />
@@ -127,10 +115,7 @@ const ExerciseSearch = () => {
               placeholder="Search for an exercise..."
               placeholderTextColor="#999"
               value={searchQuery}
-              onChangeText={(text) => {
-                setSearchQuery(text);
-                debouncedSearch(text); // Trigger search on text change
-              }}
+              onChangeText={setSearchQuery}
               returnKeyType="search"
               onSubmitEditing={handleSearch}
               autoCapitalize="none"
@@ -142,8 +127,8 @@ const ExerciseSearch = () => {
               </TouchableOpacity>
             ) : null}
           </View>
-          <TouchableOpacity
-            style={styles.searchButton}
+          <TouchableOpacity 
+            style={styles.searchButton} 
             onPress={handleSearch}
             disabled={!searchQuery.trim()}
           >
@@ -151,7 +136,6 @@ const ExerciseSearch = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Results Section */}
         <View style={styles.resultsContainer}>
           {searching ? (
             <View style={styles.loadingContainer}>
@@ -173,7 +157,7 @@ const ExerciseSearch = () => {
               initialNumToRender={10}
               maxToRenderPerBatch={15}
               windowSize={7}
-              removeClippedSubviews={false}
+              removeClippedSubviews={true}
               getItemLayout={(data, index) => ({
                 length: 88,
                 offset: 88 * index,
@@ -182,20 +166,14 @@ const ExerciseSearch = () => {
               getItem={getItem}
               getItemCount={getItemCount}
               renderItem={({ item }) => (
-                <TouchableOpacity
+                <TouchableOpacity 
                   style={styles.exerciseItem}
                   onPress={() => navigateToExerciseDetails(item)}
                 >
                   <Text style={styles.exerciseText}>{capitalizeWords(item.name)}</Text>
                   <View style={styles.exerciseDetails}>
-                    <Text style={styles.equipmentText}>
-                      <Text style={styles.labelText}>Equipment: </Text>
-                      {capitalizeWords(item.equipment)}
-                    </Text>
-                    <Text style={styles.bodyPartText}>
-                      <Text style={styles.labelText}>Body Part: </Text>
-                      {capitalizeWords(item.category)}
-                    </Text>
+                    <Text style={styles.equipmentText}><Text style={styles.labelText}>Equipment: </Text>{capitalizeWords(item.equipment)}</Text>
+                    <Text style={styles.bodyPartText}><Text style={styles.labelText}>Body Part: </Text>{capitalizeWords(item.category)}</Text>
                   </View>
                 </TouchableOpacity>
               )}
@@ -215,6 +193,7 @@ const ExerciseSearch = () => {
     </SafeAreaView>
   );
 };
+
 
 const styles = StyleSheet.create({
   safeArea: {

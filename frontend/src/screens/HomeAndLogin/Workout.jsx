@@ -92,7 +92,8 @@ const Workout = () => {
   const navigateToExerciseDetails = (exercise) => {
     navigation.navigate('ExeDetails', { 
       exerciseName: exercise.name, 
-      bodyPart: exercise.category // Ensure this is the correct field
+      bodyPart: exercise.category, // Ensure this is the correct field
+      isFavorite: favoriteExercises.includes(exercise.name)
     });
   };
   

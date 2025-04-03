@@ -35,7 +35,8 @@ urlpatterns = [
     
     #exercise
     path('exercises/', views.ExerciseListView.as_view(), name='exercise-list'),
-    path('exercises/equipment/<str:equipment>/', views.ExercisesByEquipmentList.as_view(), name='exercises-by-equipment'),
+    path('favorites/status/<str:exercise_name>/', views.CheckFavoriteStatus.as_view(), name='check_favorite_status'),
+    path('favorites/', views.ToggleFavoriteExercise.as_view(), name='toggle_favorite_exercise'),    path('exercises/equipment/<str:equipment>/', views.ExercisesByEquipmentList.as_view(), name='exercises-by-equipment'),
     path('exercises/category/<str:category>/', views.ExercisesByCategoryList.as_view(), name='exercises-by-category'),
     path('exercises/categories/', views.ExerciseCategoriesView.as_view(), name='exercise-categories'),  # New endpoint for categories
     path('exercises/equipment/', views.ExerciseEquipmentView.as_view(), name='exercise-equipment'),  # New endpoint for equipment

@@ -149,3 +149,11 @@ class Exercise(models.Model):
 
     def __str__(self):
         return self.name
+    
+
+class FavoriteExercise(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('user', 'exercise')

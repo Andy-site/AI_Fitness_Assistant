@@ -5,8 +5,8 @@ from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.conf import settings
-from .serializers import UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer, UserProfileSerializer, ExerciseSerializer
-from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise, Exercise
+from .serializers import UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer, UserProfileSerializer, ExerciseSerializer, FavoriteExerciseSerializer
+from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise
 import logging
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -459,6 +459,52 @@ class ExerciseEquipmentView(APIView):
     def get(self, request):
         equipment = Exercise.objects.values_list('equipment', flat=True).distinct()
         return Response([{"equipment": eq} for eq in equipment])
+
+
+class CheckFavoriteStatus(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, exercise_name):
+        """Check if an exercise is in the user's favorites."""
+        user = request.user
+        
+        # Try to find the exercise by name (case insensitive)
+        try:
+            exercise = Exercise.objects.get(name__iexact=exercise_name)
+        except Exercise.DoesNotExist:
+            return Response({"error": "Exercise not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the exercise is in the user's favorite list
+        is_favorite = FavoriteExercise.objects.filter(user=user, exercise=exercise).exists()
+        return Response({"is_favorite": is_favorite})
+
+
+class ToggleFavoriteExercise(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """Add or remove exercise from favorites."""
+        user = request.user
+        exercise_name = request.data.get("exercise_name")
+
+        if not exercise_name:
+            return Response({"error": "Exercise name is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Try to find the exercise by name (case insensitive)
+        try:
+            exercise = Exercise.objects.get(name__iexact=exercise_name)
+        except Exercise.DoesNotExist:
+            return Response({"error": "Exercise not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the exercise is already in the user's favorite list
+        favorite, created = FavoriteExercise.objects.get_or_create(user=user, exercise=exercise)
+
+        if created:
+            return Response({"message": f"{exercise_name} added to favorites"}, status=status.HTTP_201_CREATED)
+        else:
+            # If the exercise is already in favorites, remove it
+            favorite.delete()
+            return Response({"message": f"{exercise_name} removed from favorites"}, status=status.HTTP_200_OK)
 
 # -------------------------------------------------------------------
 # WorkoutLibrary Views
