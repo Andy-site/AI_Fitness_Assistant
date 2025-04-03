@@ -89,6 +89,13 @@ const Workout = () => {
     setSelectedEquipment(null);
     setFilteredExercises(exercises);
   };
+  const navigateToExerciseDetails = (exercise) => {
+    navigation.navigate('ExeDetails', { 
+      exerciseName: exercise.name, 
+      bodyPart: exercise.category // Ensure this is the correct field
+    });
+  };
+  
 
   const renderLoadingState = () => (
     <View style={styles.loadingContainer}>
@@ -272,7 +279,7 @@ const Workout = () => {
                   <TouchableOpacity 
                     key={index} 
                     style={styles.exerciseItem} 
-                    onPress={() => navigation.navigate('ExeDetails', { exercise })}
+                    onPress={() => navigateToExerciseDetails(exercise)}
                   >
                     <Text style={styles.exerciseText}>{capitalizeWords(exercise.name)}</Text>
                     <View style={styles.exerciseDetails}>

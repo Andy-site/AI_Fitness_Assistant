@@ -97,8 +97,12 @@ const ExerciseSearch = () => {
   };
 
   const navigateToExerciseDetails = (exercise) => {
-    navigation.navigate('ExeDetails', { exercise });
+    navigation.navigate('ExeDetails', { 
+      exerciseName: exercise.name, 
+      bodyPart: exercise.category // Ensure this is the correct field
+    });
   };
+  
 
   const getItem = (data, index) => data[index];
   const getItemCount = (data) => data.length;
