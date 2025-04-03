@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, Workout, WorkoutExercise, ExercisePerformance, WorkoutLibrary, WorkoutLibraryExercise
+from .models import CustomUser, Workout, WorkoutExercise, ExercisePerformance, WorkoutLibrary, WorkoutLibraryExercise, Exercise
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,6 +45,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
         
         instance.save()
         return instance
+
+
+class ExerciseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Exercise
+        fields = '__all__'  # Expose all fields in the API response
+
+
 
 class WorkoutSerializer(serializers.ModelSerializer):
     workout_library_name = serializers.CharField(source="workout_library.name", read_only=True)  # Get library name

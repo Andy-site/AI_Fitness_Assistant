@@ -2,36 +2,43 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # Authentication URLs
+    path('register/', views.RegisterView.as_view(), name='register'),
+    path('login/', views.LoginView.as_view(), name='login'),
+    path('logout/', views.LogoutView.as_view(), name='logout'),
+    path('send-otp/', views.SendOtpView.as_view(), name='send_otp'),
+    path('verify-otp/', views.VerifyOtpView.as_view(), name='verify_otp'),
     
-    path('register/', views.RegisterView, name='register'),
-    path('user-details/', views.get_user_details, name='get_user_details'),
-    path('send-otp/', views.SendOtpView, name='send-otp'),
-    path('verify-otp/', views.VerifyOtpView, name='verify-otp'),
-    path('login/', views.LoginView, name='login'),  
-    path('logout/', views.LogoutView, name='logout'),
-    path('reset-password/', views.reset_password, name='reset-password'),
-    path('home/', views.HomeView, name='home'),
-    path('forgot-password/otp/', views.ForgotPasswordOTPView, name='forgot-password-otp'),
-    path('forgot-password/verify/', views.verify_password_reset_otp, name='verify-password-reset-otp'),
-    path('reset-password/', views.reset_password, name='reset-password'),
-    path('log-exercise-performance/', views.LogExercisePerformance, name='log-exercise-performance'),
-    path('start-exercise/', views.StartExercise, name='start-exercise'),
-    path('end-exercise/', views.EndExercise, name='end-exercise'),
-
-
-    path('libraries/', views.list_workout_libraries, name='list-libraries'),
-    path('libraries/create/', views.create_workout_library, name='create-library'),
-    path('libraries/<int:library_id>/delete/', views.delete_workout_library, name='delete-library'),
-
-    # WorkoutLibraryExercise endpoints (nested under a library)
-    path('libraries/<int:library_id>/exercises/', views.list_library_exercises, name='list-library-exercises'),
-    path('libraries/<int:library_id>/exercises/add/', views.add_exercise_to_library, name='add-exercise-to-library'),
-    path('libraries/<int:library_id>/exercises/<int:exercise_id>/delete/', views.delete_library_exercise, name='delete-library-exercise'),
-
-    path('profile/update/', views.user_profile_update, name='profile-update'),
-    # path("pose-detection/", views.pose_detection_api, name="pose-detection"),
+    # Password Reset URLs
+    path('forgot-password-otp/', views.ForgotPasswordOTPView.as_view(), name='forgot_password_otp'),
+    path('verify-password-reset-otp/', views.VerifyPasswordResetOtpView.as_view(), name='verify_password_reset_otp'),
+    path('reset-password/', views.ResetPasswordView.as_view(), name='reset_password'),
+    
+    # User Profile URLs
+    path('user/profile/', views.UserDetailsView.as_view(), name='user_details'),
+    path('user/profile/update/', views.UserProfileUpdateView.as_view(), name='user_profile_update'),
+    
+    # Exercise URLs
+    path('start-exercise/', views.StartExerciseView.as_view(), name='start_exercise'),
+    path('end-exercise/', views.EndExerciseView.as_view(), name='end_exercise'),
+    path('log-exercise-performance/', views.LogExercisePerformanceView.as_view(), name='log_exercise_performance'),
+    
+    # Workout Library URLs
+    path('workout-libraries/', views.WorkoutLibraryListView.as_view(), name='workout_libraries'),
+    path('workout-libraries/create/', views.WorkoutLibraryCreateView.as_view(), name='create_workout_library'),
+    path('workout-libraries/<int:library_id>/delete/', views.WorkoutLibraryDeleteView.as_view(), name='delete_workout_library'),
+    
+    # Workout Library Exercise URLs
+    path('workout-libraries/<int:library_id>/exercises/', views.WorkoutLibraryExerciseListView.as_view(), name='list_library_exercises'),
+    path('workout-libraries/<int:library_id>/exercises/add/', views.WorkoutLibraryExerciseAddView.as_view(), name='add_exercise_to_library'),
+    path('workout-libraries/<int:library_id>/exercises/<int:exercise_id>/delete/', views.WorkoutLibraryExerciseDeleteView.as_view(), name='delete_library_exercise'),
+    
+    #exercise
+    path('exercises/', views.ExerciseListView.as_view(), name='exercise-list'),
+    path('exercises/equipment/<str:equipment>/', views.ExercisesByEquipmentList.as_view(), name='exercises-by-equipment'),
+    path('exercises/category/<str:category>/', views.ExercisesByCategoryList.as_view(), name='exercises-by-category'),
+    path('exercises/categories/', views.ExerciseCategoriesView.as_view(), name='exercise-categories'),  # New endpoint for categories
+    path('exercises/equipment/', views.ExerciseEquipmentView.as_view(), name='exercise-equipment'),  # New endpoint for equipment
+    # Home URL
+    path('', views.HomeView.as_view(), name='home'),
 ]
-
-
-
-    

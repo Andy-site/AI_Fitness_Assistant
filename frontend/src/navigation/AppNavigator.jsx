@@ -51,6 +51,10 @@ import ChoosePose from '../screens/Pose/ChoosePose';
 import ChooseDifficulty from '../screens/Pose/ChooseDifficulty';
 
 
+import ExerciseSearch from '../screens/HomeAndLogin/ExerciseSearch';
+import ExerciseEquipment from '../screens/HomeAndLogin/ExerciseEquipment';
+
+
 
 
 const Stack = createNativeStackNavigator();
@@ -60,7 +64,7 @@ const AppNavigator = () => {
     <NavigationContainer>
 
 
-        <Stack.Navigator initialRouteName="Landing">
+        <Stack.Navigator initialRouteName="Workout">
         <Stack.Screen name="Landing" component={Landing}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading1" component={Loading1}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading2" component={Loading2}  options={{ headerShown: false }}/>
@@ -104,6 +108,11 @@ const AppNavigator = () => {
         <Stack.Screen name="PoseScreen" component={PoseScreen} options={{ headerShown: false }}/>
         <Stack.Screen name="ChoosePose" component={ChoosePose} options={{ headerShown: false }}/>
         <Stack.Screen name="ChooseDifficulty" component={ChooseDifficulty} options={{ headerShown: false }}/>
+        <Stack.Screen name="ExerciseSearch" component={ExerciseSearch} options={{ headerShown: false }}/>
+        <Stack.Screen name="ExerciseEquipment" component={ExerciseEquipment} options={{ headerShown: false }}/>
+
+
+
       </Stack.Navigator>
     </NavigationContainer>
   );

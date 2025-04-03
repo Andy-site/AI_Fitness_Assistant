@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = 'http://192.168.0.117:8000/api/'; // Replace with your actual server IP and port
-// const API_BASE_URL = 'http://192.168.64.1:8000/api/'; // Replace with your actual server IP and port
+
 
 
 const apiClient = axios.create({
@@ -216,6 +216,56 @@ export const verifyPasswordResetOTP = async (email, otp) => {
     throw error.response?.data || { message: 'Failed to verify OTP' };
   }
 };
+
+// -------------------------------------------------------------------
+// Fetch Exercise from backend
+// -------------------------------------------------------------------
+
+// Fetch exercises based on filters (category, equipment, and search query)
+export const fetchExercises = async (selectedCategory, selectedEquipment, searchQuery) => {
+  try {
+    const params = {};
+
+    // Build the query parameters only if they are provided
+    if (selectedCategory) params.category = selectedCategory;
+    if (selectedEquipment) params.equipment = selectedEquipment;
+    if (searchQuery) params.search = searchQuery;
+
+    // Send a GET request to the backend with the query parameters
+    const response = await apiClient.get('exercises/', { params });
+
+    // Return the fetched exercises
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching exercises:', error);
+    throw error;
+  }
+};
+
+// Fetch categories
+export const fetchCategories = async () => {
+  try {
+    const response = await apiClient.get('exercises/categories/');
+    return response.data;  // Returns a list of categories
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    throw error;
+  }
+};
+
+// Fetch equipment
+export const fetchEquipmentList = async () => {
+  try {
+    const response = await apiClient.get('exercises/equipment/');
+    return response.data;  // Returns a list of equipment
+  } catch (error) {
+    console.error('Error fetching equipment:', error);
+    throw error;
+  }
+};
+
+
+
 
 export const startExercise = async (exerciseData) => {
   try {
