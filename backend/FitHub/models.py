@@ -154,6 +154,8 @@ class Exercise(models.Model):
 class FavoriteExercise(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user', 'exercise')
+        unique_together = ('user', 'exercise') 

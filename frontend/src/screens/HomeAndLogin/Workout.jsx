@@ -16,6 +16,7 @@ import Footer from '../../components/Footer';
 import { Picker } from '@react-native-picker/picker';
 import { fetchExercises } from '../../api/fithubApi';
 import { capitalizeWords } from '../../utils/StringUtils';
+import { checkFavoriteStatus} from '../../api/fithubApi';
 
 const categories = [
   'chest', 'back', 'cardio', 'lower arms', 'waist', 'shoulders',
@@ -36,9 +37,11 @@ const Workout = () => {
   const [loading, setLoading] = useState(true);
   const [exercises, setExercises] = useState([]);
   const [filteredExercises, setFilteredExercises] = useState([]);
+  const [favoriteExercises, setFavoriteExercises] = useState({});
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [shouldFetch, setShouldFetch] = useState(true);
   const [error, setError] = useState(null);
   const navigation = useNavigation();
 
@@ -46,11 +49,21 @@ const Workout = () => {
     const fetchAllExercises = async () => {
       setLoading(true);
       setError(null);
+  
       try {
-        const exercisesData = await fetchExercises();
-        if (exercisesData && exercisesData.length > 0) {
-          setExercises(exercisesData);
-          setFilteredExercises(exercisesData);
+        const exercisesData = await fetchExercises(
+          selectedCategory,
+          selectedEquipment,
+          '', // No search query for now
+          1,  // Page 1
+          20  // Fetch 20 exercises
+        );
+  
+        console.log("API Response:", exercisesData); // Debugging log
+  
+        if (exercisesData && exercisesData.results) {
+          setExercises(exercisesData.results);
+          setFilteredExercises(exercisesData.results);
         } else {
           setError('No exercises found.');
         }
@@ -59,44 +72,49 @@ const Workout = () => {
         setError('Failed to load exercises. Please try again later.');
       } finally {
         setLoading(false);
+        setShouldFetch(false); // Reset the fetch trigger
       }
     };
-    fetchAllExercises();
-  }, []);
   
-  useEffect(() => {
-    if (!exercises.length) return;
-    
+    if (shouldFetch) {
+      fetchAllExercises();
+    }
+  }, [shouldFetch]);
+
+  const applyFilters = () => {
     let filtered = [...exercises];
-  
+
     if (selectedCategory) {
-      filtered = filtered.filter(exercise => 
-        exercise.category.toLowerCase() === selectedCategory.toLowerCase()
+      filtered = filtered.filter(exercise =>
+        exercise.category?.toLowerCase() === selectedCategory.toLowerCase()
       );
     }
-    
+
     if (selectedEquipment) {
-      filtered = filtered.filter(exercise => 
-        exercise.equipment.toLowerCase() === selectedEquipment.toLowerCase()
+      filtered = filtered.filter(exercise =>
+        exercise.equipment?.toLowerCase() === selectedEquipment.toLowerCase()
       );
     }
-  
+
+    console.log("Filtered Exercises:", filtered); // Debugging log
     setFilteredExercises(filtered);
-  }, [selectedCategory, selectedEquipment, exercises]);
-  
+    setShouldFetch(true);
+    setFilterModalVisible(false); // Close the modal after applying filters
+  };
+
   const clearFilters = () => {
     setSelectedCategory(null);
     setSelectedEquipment(null);
-    setFilteredExercises(exercises);
+    setShouldFetch(true);
   };
-  const navigateToExerciseDetails = (exercise) => {
-    navigation.navigate('ExeDetails', { 
-      exerciseName: exercise.name, 
-      bodyPart: exercise.category, // Ensure this is the correct field
-      isFavorite: favoriteExercises.includes(exercise.name)
-    });
+
+  const navigateToExerciseDetails = async (exercise) => {
+      navigation.navigate('ExeDetails', { 
+        exerciseName: exercise.name, 
+        bodyPart: exercise.category, 
+
+      });
   };
-  
 
   const renderLoadingState = () => (
     <View style={styles.loadingContainer}>
@@ -118,7 +136,13 @@ const Workout = () => {
             setLoading(true);
             setError(null);
             try {
-              const exercisesData = await fetchExercises();
+              const exercisesData = await fetchExercises(
+                selectedCategory,
+                selectedEquipment,
+                '', // You can add a searchQuery if needed
+                1, // Starting page number (you can change this for pagination)
+                20 // Limit the number of exercises per page
+              );
               setExercises(exercisesData);
               setFilteredExercises(exercisesData);
             } catch (error) {
@@ -250,7 +274,7 @@ const Workout = () => {
                   <View style={styles.modalActions}>
                     <TouchableOpacity 
                       style={styles.applyFilterButton} 
-                      onPress={() => setFilterModalVisible(false)}
+                      onPress={applyFilters}
                     >
                       <Text style={styles.applyFilterButtonText}>Apply Filters</Text>
                     </TouchableOpacity>
@@ -279,7 +303,7 @@ const Workout = () => {
                 {filteredExercises.map((exercise, index) => (
                   <TouchableOpacity 
                     key={index} 
-                    style={styles.exerciseItem} 
+                    style={styles.exerciseItem}
                     onPress={() => navigateToExerciseDetails(exercise)}
                   >
                     <Text style={styles.exerciseText}>{capitalizeWords(exercise.name)}</Text>
@@ -298,12 +322,8 @@ const Workout = () => {
               </ScrollView>
             ) : (
               <View style={styles.noResultsContainer}>
-                <Icon name="exclamation-circle" size={40} color="#E2F163" />
                 <Text style={styles.noResultsText}>No exercises match your filters</Text>
-                <TouchableOpacity 
-                  style={styles.clearFiltersButton} 
-                  onPress={clearFilters}
-                >
+                <TouchableOpacity onPress={clearFilters}>
                   <Text style={styles.clearFiltersText}>Clear Filters</Text>
                 </TouchableOpacity>
               </View>
@@ -316,6 +336,7 @@ const Workout = () => {
     </SafeAreaView>
   );
 };
+
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -422,6 +443,7 @@ const styles = StyleSheet.create({
   },
   labelText: {
     fontWeight: 'bold',
+    color: '#fff',
   },
   equipmentText: {
     fontSize: 14,

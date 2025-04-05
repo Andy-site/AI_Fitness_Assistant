@@ -53,6 +53,7 @@ import ChooseDifficulty from '../screens/Pose/ChooseDifficulty';
 
 import ExerciseSearch from '../screens/HomeAndLogin/ExerciseSearch';
 import ExerciseEquipment from '../screens/HomeAndLogin/ExerciseEquipment';
+import FavoriteExercises from '../screens/HomeAndLogin/FavoriteExercises';
 
 
 
@@ -64,7 +65,7 @@ const AppNavigator = () => {
     <NavigationContainer>
 
 
-        <Stack.Navigator initialRouteName="LoginScreen">
+        <Stack.Navigator initialRouteName="Landing">
         <Stack.Screen name="Landing" component={Landing}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading1" component={Loading1}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading2" component={Loading2}  options={{ headerShown: false }}/>
@@ -92,6 +93,7 @@ const AppNavigator = () => {
         <Stack.Screen name="CreateLibrary" component={CreateLibrary} options={{ headerShown: false }}/>
         <Stack.Screen name="LibraryDetails" component={LibraryDetails} options={{ headerShown: false}}/>
         <Stack.Screen name="SetExerciseLibrary" component={SetExerciseLibrary} options={{ headerShown:false}}/>
+        <Stack.Screen name="FavoriteExercises" component={FavoriteExercises} options={{headerShown:false}}/>
 
         <Stack.Screen name="LandNutri" component={LandNutri} options={{ headerShown: false }}/>
         <Stack.Screen name="MealSugg" component={MealSugg} options={{ headerShown: false }}/>

@@ -2,6 +2,9 @@ import React, { useContext, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { NotificationContext } from '../../components/NotificationContext';
 import Icon from 'react-native-vector-icons/Ionicons'; // Ensure you have installed react-native-vector-icons
+import Header from '../../components/Header';
+import Footer from '../../components/Footer';
+
 
 const Notification = ({ navigation }) => {
   const { notifications, removeNotification, clearAllNotifications } = useContext(NotificationContext);
@@ -20,11 +23,15 @@ const Notification = ({ navigation }) => {
     return unsubscribe;
   }, [navigation]);
 
-  // Get notification icon based on type
+  // Get notification icon - optimized for reminder notifications
   const getNotificationIcon = (type) => {
+    // Since we only have reminder notifications for now
+    if (type === 'reminder' || !type) {
+      return <Icon name="alarm-outline" size={24} color="#896CFE" />;
+    }
+    
+    // Keep this structure for future expansion if needed
     switch(type) {
-      case 'reminder':
-        return <Icon name="alarm-outline" size={24} color="#896CFE" />;
       case 'achievement':
         return <Icon name="trophy-outline" size={24} color="#FFB347" />;
       case 'workout':
@@ -40,7 +47,7 @@ const Notification = ({ navigation }) => {
     return uniqueNotifications.map((item) => (
       <View key={item.id} style={[styles.notificationItem, !item.read && styles.unreadNotification]}>
         <View style={styles.iconContainer}>
-          {getNotificationIcon(item.type || 'default')}
+          {getNotificationIcon(item.type || 'reminder')}
         </View>
         <View style={styles.contentContainer}>
           <Text style={styles.notificationText}>{item.message}</Text>
@@ -58,8 +65,11 @@ const Notification = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Header Component */}
+      <Header title="Notifications" />
+      
       <View style={styles.header}>
-        <Text style={styles.title}>Notifications</Text>
+        <Text style={styles.title}>Reminders</Text>
         {uniqueNotifications.length > 0 && (
           <TouchableOpacity onPress={clearAllNotifications}>
             <Text style={styles.clearAllText}>Clear All</Text>
@@ -81,6 +91,9 @@ const Notification = ({ navigation }) => {
           {renderNotificationItems()}
         </ScrollView>
       )}
+      
+      {/* Footer Component */}
+      <Footer navigation={navigation} />
     </View>
   );
 };
@@ -88,7 +101,7 @@ const Notification = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    paddingTop: 20,
+    paddingTop: 0,
     backgroundColor: '#000',
   },
   header: {
@@ -99,6 +112,7 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#222',
+    marginTop:70,
     marginBottom: 10
   },
   title: { 

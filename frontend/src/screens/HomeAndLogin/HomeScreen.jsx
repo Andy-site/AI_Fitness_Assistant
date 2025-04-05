@@ -4,21 +4,15 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ImageBackground,
   Image,
   ActivityIndicator,
 } from 'react-native';
 import Footer from '../../components/Footer';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-// Separate component for the icon button
+import { fetchUserDetails } from '../../api/fithubApi';
+
 const IconButton = ({ icon, label, onPress }) => (
   <TouchableOpacity style={styles.iconButton} onPress={onPress}>
-    <Image
-      source={icon}
-      style={styles.iconImage}
-      resizeMode="contain"
-    />
+    <Image source={icon} style={styles.iconImage} resizeMode="contain" />
     <Text style={styles.iconText}>{label}</Text>
   </TouchableOpacity>
 );
@@ -32,14 +26,10 @@ const Home = ({ navigation }) => {
     const getUserDetails = async () => {
       try {
         setIsLoading(true);
-        const userDetails = await AsyncStorage.getItem('user_details');
-        if (userDetails) {
-          const user = JSON.parse(userDetails);
-          console.log(user);
-          setFirstName(user.first_name || 'User');
-        }
-      } catch (error) {
-        console.error('Error retrieving user details:', error);
+        const user = await fetchUserDetails();
+        setFirstName(user.first_name || 'User');
+      } catch (err) {
+        console.error('Error retrieving user details:', err);
         setError('Failed to load user details');
       } finally {
         setIsLoading(false);
@@ -53,23 +43,23 @@ const Home = ({ navigation }) => {
     {
       icon: require('../../assets/Images/Vector.png'),
       label: 'People',
-      onPress: () => {}
+      onPress: () => {},
     },
     {
       icon: require('../../assets/Images/Scan.png'),
       label: 'Pose Estimation',
-      onPress: () => {}
+      onPress: () => {},
     },
     {
       icon: require('../../assets/Images/Dumbell.png'),
       label: 'Workout',
-      onPress: () => navigation.navigate('Workout')
+      onPress: () => navigation.navigate('Workout'),
     },
     {
       icon: require('../../assets/Images/icon3(1).png'),
       label: 'Nutrition',
-      onPress: () => navigation.navigate('MealSugg')
-    }
+      onPress: () => navigation.navigate('MealSugg'),
+    },
   ];
 
   if (isLoading) {
@@ -89,21 +79,8 @@ const Home = ({ navigation }) => {
     );
   }
 
-  const renderCard = (image, index) => (
-    <ImageBackground
-      key={index}
-      source={image}
-      style={styles.card}
-      imageStyle={styles.cardImage}>
-      <View style={styles.cardOverlay}>
-        <Text style={styles.cardText}>Workout {index + 1}</Text>
-      </View>
-    </ImageBackground>
-  );
-
   return (
     <View style={styles.outcontainer}>
-
       <View style={styles.container}>
         <View style={styles.headerContainer}>
           <Text style={styles.greeting}>Hi {firstName}!</Text>
@@ -113,11 +90,7 @@ const Home = ({ navigation }) => {
         <View style={styles.iconRow}>
           {iconData.map((item, index) => (
             <React.Fragment key={item.label}>
-              <IconButton
-                icon={item.icon}
-                label={item.label}
-                onPress={item.onPress}
-              />
+              <IconButton icon={item.icon} label={item.label} onPress={item.onPress} />
               {index < iconData.length - 1 && <View style={styles.separator} />}
             </React.Fragment>
           ))}
@@ -125,32 +98,17 @@ const Home = ({ navigation }) => {
 
         <View style={styles.recommendationsContainer}>
           <Text style={styles.sectionTitle}>Recommendations</Text>
-          <TouchableOpacity>
-            <Text style={styles.seeAll}>See all</Text>
-          </TouchableOpacity>
-          
-<TouchableOpacity onPress={() => navigation.navigate('LandPose')}>
-  <Text style={styles.seeAll}>Pose</Text>
-</TouchableOpacity>
-
-
-
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity onPress={() => navigation.navigate('LandPose')}>
+              <Text style={styles.seeAll}>Pose</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('FavoriteExercises')}>
+              <Text style={styles.seeAll}>Favourites</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-
-        <View style={styles.cardContainer}>
-          {[
-            require('../../assets/Images/Girl1.png'),
-            require('../../assets/Images/Girl2.png')
-          ].map((image, index) => renderCard(image, index))}
-        </View>
-
-        <View style={styles.weeklyChallenge}>
-          <Text style={styles.challengeTitle}>Weekly Challenge</Text>
-          <Text style={styles.challengeText}>Plank With Hip Twist</Text>
-        </View>
-
-        <Text style={styles.articlesTips}>Articles & Tips</Text>
       </View>
+
       <Footer />
     </View>
   );
@@ -181,9 +139,6 @@ const styles = StyleSheet.create({
   outcontainer: {
     flex: 1,
     backgroundColor: '#212020',
-    
-    borderColor: '#FFFFFF',
-    
   },
   container: {
     flex: 1,
@@ -213,11 +168,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconImage: {
-    width: 35, // Increase width
-    height: 35, // Increase height
-    // borderRadius: 20, // Adjust border radius if necessary
+    width: 35,
+    height: 35,
   },
-  
   iconText: {
     marginTop: 8,
     fontSize: 12,
@@ -230,70 +183,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#896CFE',
   },
   recommendationsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginTop: 40,
   },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '500',
     color: '#E2F163',
+    marginBottom: 10,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    gap: 15,
   },
   seeAll: {
     fontSize: 12,
     fontWeight: '500',
     color: '#FFFFFF',
-  },
-  cardContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  card: {
-    width: '48%',
-    height: 138,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  cardImage: {
-    resizeMode: 'cover',
-  },
-  cardOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'flex-end',
-    padding: 10,
-  },
-  cardText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  weeklyChallenge: {
-    backgroundColor: '#212020',
-    borderRadius: 20,
-    padding: 20,
-    marginTop: 30,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-  },
-  challengeTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#E2F163',
-  },
-  challengeText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#FFFFFF',
-    marginTop: 10,
-  },
-  articlesTips: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#E2F163',
-    marginTop: 30,
+    marginRight: 10,
   },
 });
 

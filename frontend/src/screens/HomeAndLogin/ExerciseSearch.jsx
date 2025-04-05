@@ -1,26 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   TextInput,
-  VirtualizedList,
+  FlatList, // Changed from VirtualizedList to FlatList
   TouchableOpacity,
   Text,
   ActivityIndicator,
   StyleSheet,
   SafeAreaView,
-  Keyboard,
-  KeyboardAvoidingView,
   Platform,
   StatusBar,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native'; // Added useFocusEffect
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { capitalizeWords } from '../../utils/StringUtils';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
-import { checkFavoriteStatus, toggleFavoriteExercise } from '../../api/fithubApi';
-
-const API_URL = "http://192.168.0.117:8000/api/exercises/";
+import { fetchExercises, checkFavoriteStatus } from '../../api/fithubApi';
 
 const ExerciseSearch = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,44 +25,98 @@ const ExerciseSearch = () => {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState(null);
   const navigation = useNavigation();
+  const listRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+  const isMounted = useRef(true);
 
-  useEffect(() => {
-    return () => {
-      setFilteredExercises([]);
+  // Replace useEffect with useFocusEffect for better navigation handling
+  useFocusEffect(
+    React.useCallback(() => {
+      // This runs when screen comes into focus
       setSearchQuery('');
+      setFilteredExercises([]);
+      setError(null);
+      setFavoriteExercises({});
+      
+      return () => {
+        // This runs when screen goes out of focus
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = null;
+        }
+      };
+    }, [])
+  );
+
+  // Component mount/unmount handling
+  useEffect(() => {
+    isMounted.current = true;
+    
+    return () => {
+      isMounted.current = false;
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
     };
   }, []);
 
-  const handleSearch = async () => {
+  useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredExercises([]);
       return;
     }
-  
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      if (isMounted.current) {
+        handleSearch();
+      }
+    }, 500);
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+    };
+  }, [searchQuery]);
+
+  const handleSearch = async () => {
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery || !isMounted.current) {
+      return;
+    }
+
     setSearching(true);
     setError(null);
-    Keyboard.dismiss();
-    
+
     try {
-      const url = `${API_URL}?name=${encodeURIComponent(searchQuery.trim())}`;
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`);
+      const exercisesData = await fetchExercises(null, null, trimmedQuery, 1, 20);
+
+      if (!isMounted.current) return;
+
+      if (exercisesData && exercisesData.results) {
+        const filteredData = exercisesData.results.filter((exercise) =>
+          exercise.name.toLowerCase().startsWith(trimmedQuery.toLowerCase())
+        );
+        setFilteredExercises(filteredData);
+      } else {
+        setFilteredExercises([]);
+        setError('No exercises found.');
       }
-      
-      const data = await response.json();
-  
-      const filteredData = data.filter((exercise) =>
-        exercise.name.toLowerCase().startsWith(searchQuery.toLowerCase())
-      );
-  
-      setFilteredExercises(filteredData);
     } catch (error) {
       console.error('Error fetching exercises:', error);
-      setError('Failed to fetch exercises. Please try again.');
+      if (isMounted.current) {
+        setError('Failed to fetch exercises. Please try again.');
+      }
     } finally {
-      setSearching(false);
+      if (isMounted.current) {
+        setSearching(false);
+      }
     }
   };
 
@@ -75,34 +125,83 @@ const ExerciseSearch = () => {
     setFilteredExercises([]);
     setError(null);
   };
-  
-  const navigateToExerciseDetails = async (exercise) => {
-    try {
-      const isFavorite = await checkFavoriteStatus(encodeURIComponent(exercise.name));
-      setFavoriteExercises((prev) => ({ ...prev, [exercise.name]: isFavorite }));
-      
-      navigation.navigate('ExeDetails', { 
-        exerciseName: exercise.name, 
-        bodyPart: exercise.category, 
-        isFavorite 
-      });
-    } catch (error) {
-      console.error("Error fetching favorite status:", error);
+
+    const navigateToExerciseDetails = async (exercise) => {
+        if (isMounted.current) {
+          navigation.navigate('ExeDetails', { 
+            exerciseName: exercise.name, 
+            bodyPart: exercise.category, 
+          });
+        }
+    };
+
+  const renderExerciseItem = ({ item }) => (
+    <TouchableOpacity 
+      style={styles.exerciseItem}
+      onPress={() => navigateToExerciseDetails(item)}
+    >
+      <Text style={styles.exerciseText}>{capitalizeWords(item.name)}</Text>
+      <View style={styles.exerciseDetails}>
+        <Text style={styles.equipmentText}>
+          <Text style={styles.labelText}>Equipment: </Text>{capitalizeWords(item.equipment)}
+        </Text>
+        <Text style={styles.bodyPartText}>
+          <Text style={styles.labelText}>Body Part: </Text>{capitalizeWords(item.category)}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderContent = () => {
+    if (searching) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#E2F163" />
+          <Text style={styles.loadingText}>Searching exercises...</Text>
+        </View>
+      );
     }
+    
+    if (error) {
+      return (
+        <View style={styles.errorContainer}>
+          <Icon name="exclamation-triangle" size={40} color="#E2F163" />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={handleSearch}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    
+    if (filteredExercises.length > 0) {
+      return (
+        <FlatList
+          ref={listRef}
+          data={filteredExercises}
+          keyExtractor={(item) => `exercise-${item.id || item.name.replace(/\s+/g, '-').toLowerCase()}`}
+          renderItem={renderExerciseItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          removeClippedSubviews={false} // Important to set this false
+          keyboardShouldPersistTaps="handled"
+        />
+      );
+    }
+    
+    return (
+      <View style={styles.emptyContainer}>
+        <Icon name="search" size={40} color="#666" />
+        <Text style={styles.hintText}>Search for exercises by name</Text>
+      </View>
+    );
   };
-  
-
-
-  const getItem = (data, index) => data[index];
-  const getItemCount = (data) => data.length;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : null}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
-      >
+      <View style={styles.container}>
         <StatusBar barStyle="light-content" />
         
         <Header title="Search Exercises" />
@@ -117,7 +216,6 @@ const ExerciseSearch = () => {
               value={searchQuery}
               onChangeText={setSearchQuery}
               returnKeyType="search"
-              onSubmitEditing={handleSearch}
               autoCapitalize="none"
               autoCorrect={false}
             />
@@ -137,63 +235,14 @@ const ExerciseSearch = () => {
         </View>
 
         <View style={styles.resultsContainer}>
-          {searching ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#E2F163" />
-              <Text style={styles.loadingText}>Searching exercises...</Text>
-            </View>
-          ) : error ? (
-            <View style={styles.errorContainer}>
-              <Icon name="exclamation-triangle" size={40} color="#E2F163" />
-              <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={handleSearch}>
-                <Text style={styles.retryButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : filteredExercises.length > 0 ? (
-            <VirtualizedList
-              data={filteredExercises}
-              keyExtractor={(item) => `exercise-${item.id || Math.random().toString()}`}
-              initialNumToRender={10}
-              maxToRenderPerBatch={15}
-              windowSize={7}
-              removeClippedSubviews={true}
-              getItemLayout={(data, index) => ({
-                length: 88,
-                offset: 88 * index,
-                index,
-              })}
-              getItem={getItem}
-              getItemCount={getItemCount}
-              renderItem={({ item }) => (
-                <TouchableOpacity 
-                  style={styles.exerciseItem}
-                  onPress={() => navigateToExerciseDetails(item)}
-                >
-                  <Text style={styles.exerciseText}>{capitalizeWords(item.name)}</Text>
-                  <View style={styles.exerciseDetails}>
-                    <Text style={styles.equipmentText}><Text style={styles.labelText}>Equipment: </Text>{capitalizeWords(item.equipment)}</Text>
-                    <Text style={styles.bodyPartText}><Text style={styles.labelText}>Body Part: </Text>{capitalizeWords(item.category)}</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-            />
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Icon name="search" size={40} color="#666" />
-              <Text style={styles.hintText}>Search for exercises by name</Text>
-            </View>
-          )}
+          {renderContent()}
         </View>
         
         <Footer />
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 };
-
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -204,23 +253,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  backButtonContainer: {
-    paddingHorizontal: 15,
-    marginTop: 90,
-    marginBottom: 10,
-  },
-  backButton: {
-    backgroundColor: '#e2f163',
-    padding: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 40,
-    height: 40,
-  },
   searchContainer: {
     flexDirection: 'row',
-    marginTop:70,
+    marginTop: 70,
     paddingHorizontal: 15,
     paddingVertical: 15,
     backgroundColor: '#111',
@@ -309,30 +344,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  noResultsText: {
-    fontSize: 16,
-    color: '#E2F163',
-    textAlign: 'center',
-    marginTop: 15,
-    marginBottom: 20,
-  },
   hintText: {
     fontSize: 16,
     color: '#999',
     textAlign: 'center',
     marginTop: 15,
-  },
-  clearSearchButton: {
-    borderWidth: 1,
-    borderColor: '#896cfe',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  clearSearchText: {
-    color: '#896cfe',
-    fontWeight: 'bold',
-    fontSize: 16,
   },
   exerciseItem: {
     padding: 15,

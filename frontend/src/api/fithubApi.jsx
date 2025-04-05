@@ -2,8 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = 'http://192.168.0.117:8000/api/'; // Replace with your actual server IP and port
-
-
+// const API_BASE_URL = 'http://10.0.1.89:8000/api/'; // Replace with your actual server IP and port
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -20,6 +19,8 @@ export const registerUser = async (userData) => {
     throw error.response?.data || { message: 'An error occurred during registration.' };
   }
 };
+
+// **Login Function**
 // **Login Function**
 export const loginUser = async (email, password) => {
   try {
@@ -31,6 +32,16 @@ export const loginUser = async (email, password) => {
       await AsyncStorage.setItem('access_token', response.data.access);
       await AsyncStorage.setItem('refresh_token', response.data.refresh);
       console.log('Tokens stored successfully');
+      
+      // Fetch user details after successful login
+      try {
+        const userDetails = await fetchUserDetails();
+        console.log('User details fetched and stored after login:', userDetails);
+      } catch (detailsError) {
+        console.error('Failed to fetch user details after login:', detailsError);
+        // Continue with login success even if fetching details fails
+      }
+      
       return response.data;
     } else {
       throw new Error('Missing access or refresh token in response');
@@ -45,7 +56,7 @@ export const loginUser = async (email, password) => {
 export const getAuthToken = async () => {
   try {
     const token = await AsyncStorage.getItem('access_token');
-    console.log('Retrieved auth token:', token);
+    // console.log('Retrieved auth token:', token);
     return token;
   } catch (error) {
     console.error('Error retrieving token:', error.message);
@@ -57,7 +68,7 @@ export const getAuthToken = async () => {
 export const getRefreshToken = async () => {
   try {
     const token = await AsyncStorage.getItem('refresh_token');
-    console.log('Retrieved refresh token:', token);
+    // console.log('Retrieved refresh token:', token);
     return token;
   } catch (error) {
     console.error('Error retrieving refresh token:', error.message);
@@ -89,8 +100,6 @@ export const logout = async () => {
 };
 
 
-
-
 // Function to handle updating the profile
 export const updateUserProfile = async (userData, profileImage) => {
   try {
@@ -116,7 +125,7 @@ export const updateUserProfile = async (userData, profileImage) => {
       });
     }
 
-    const response = await axios.patch(`${API_BASE_URL}profile/update/`, formData, {
+    const response = await axios.patch(`${API_BASE_URL}user/profile/update/`, formData, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'multipart/form-data', // Required for FormData
@@ -157,13 +166,13 @@ export const verifyOtp = async (email, otp) => {
 export const fetchUserDetails = async () => {
   try {
     const token = await AsyncStorage.getItem('access_token');
-    console.log('Stored token:', token);
+    // console.log('Stored token:', token);
     
     if (!token) {
       throw new Error('No access token found');
     }
 
-    const response = await apiClient.get('user-details/', {
+    const response = await apiClient.get('user/profile/', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -223,109 +232,126 @@ export const verifyPasswordResetOTP = async (email, otp) => {
 
 // Function to check if an exercise is in the favorites
 
+
 export const checkFavoriteStatus = async (exerciseName) => {
   try {
-    // Retrieve the auth token
-    const token = await getAuthToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
-    // Log token and URL for debugging
-    const url = `favorites/status/${exerciseName}`;
-    console.log(`Making API call to check favorite status for ${exerciseName}`);
-    console.log('Full API URL:', url);
-
-    // Set up headers with the Authorization token
-    const headers = {
-      Authorization: `Bearer ${token}`,
-    };
-
-    // Make the API call with the token in the Authorization header
-    const response = await apiClient.get(url, { headers });
-
-    // Log the request and response for debugging
-    console.log('Request headers:', response.config.headers);
-    console.log('Favorite status response:', response.data);
-
-    return response.data;
-
+    const token = await getAuthToken(); // Get the authentication token
+    const response = await apiClient.post(`toggle-favorite/?action=check`, { exercise_name: exerciseName }, {
+      headers: { Authorization: `Bearer ${token}` }, // Include the token in the headers
+    });
+    return response.data.is_favorite;
   } catch (error) {
-    console.error('Error checking favorite status:', error.message);
-    if (error.response) {
-      console.error('Error response:', error.response.data);
-    }
+    console.error('Error checking favorite status:', error);
+    throw error;
   }
 };
 
+export const toggleFavoriteStatus = async (exerciseName) => {
+  try {
+    const token = await getAuthToken(); // Get the authentication token
+    const response = await apiClient.post('toggle-favorite/?action=toggle', { exercise_name: exerciseName }, {
+      headers: { Authorization: `Bearer ${token}` }, // Include the token in the headers
+    });
+    return response.data.message;
+  } catch (error) {
+    console.error('Error toggling favorite status:', error);
+    throw error;
+  }
+};
 
-
-
-
-
-export const toggleFavoriteExercise = async (exerciseName) => {
+export const getFavoriteExercises = async () => {
   try {
     const token = await getAuthToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
-    const response = await apiClient.post('favorites/', { exercise_name: exerciseName }, {
-      headers: { Authorization: `Bearer ${token}` }
+    console.log(token);
+    const response = await apiClient.get('/favorites/', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
-
     return response.data;
   } catch (error) {
-    console.error("Error toggling favorite:", error);
+    console.error('Error fetching favorite exercises:', error);
+    throw error;
+  }
+};
+
+export const addToFavorites = async (exerciseId) => {
+  try {
+    const token = await getAuthToken();
+    const response = await apiClient.post(
+      '/favorites/',
+      { exercise_id: exerciseId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error adding to favorites:', error);
+    throw error;
+  }
+};
+
+export const removeFromFavorites = async (favoriteId) => {
+  try {
+    const token = await getAuthToken();
+    console.log(token);
+    const response = await apiClient.delete(`/favorites/${favoriteId}/`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error removing from favorites:', error);
     throw error;
   }
 };
 
 
-
-
-// Fetch exercises based on filters (category, equipment, and search query)
-export const fetchExercises = async (selectedCategory, selectedEquipment, searchQuery) => {
+export const fetchExercises = async (selectedCategory, selectedEquipment, searchQuery, page = 1, limit = 20) => {
   try {
-    const params = {};
+    // Log the parameters being sent to the API
+    console.log('Fetching exercises with parameters:', {
+      selectedCategory,
+      selectedEquipment,
+      searchQuery,
+      page,
+      limit
+    });
 
-    // Build the query parameters only if they are provided
+    const params = {
+      page,  // Enables pagination
+      limit, // Restricts number of exercises fetched
+    };
+
     if (selectedCategory) params.category = selectedCategory;
     if (selectedEquipment) params.equipment = selectedEquipment;
     if (searchQuery) params.search = searchQuery;
 
-    // Send a GET request to the backend with the query parameters
+    console.log('API request parameters:', params);  // Log the request parameters
+    
     const response = await apiClient.get('exercises/', { params });
 
-    // Return the fetched exercises
-    return response.data;
+    // Log the response data
+    console.log('Exercises fetched successfully:', response.data);
+
+    return response.data;  // Returns paginated results
+
   } catch (error) {
-    console.error('Error fetching exercises:', error);
-    throw error;
+    // Log error details for debugging
+    if (error.response) {
+      console.error('Error fetching exercises:', error.response.data);
+    } else {
+      console.error('Error fetching exercises:', error.message);
+    }
+
+    return { error: 'Failed to load exercises. Please try again later.' };
   }
 };
 
-// Fetch categories
-export const fetchCategories = async () => {
-  try {
-    const response = await apiClient.get('exercises/categories/');
-    return response.data;  // Returns a list of categories
-  } catch (error) {
-    console.error('Error fetching categories:', error);
-    throw error;
-  }
-};
-
-// Fetch equipment
-export const fetchEquipmentList = async () => {
-  try {
-    const response = await apiClient.get('exercises/equipment/');
-    return response.data;  // Returns a list of equipment
-  } catch (error) {
-    console.error('Error fetching equipment:', error);
-    throw error;
-  }
-};
 
 
 
@@ -420,7 +446,7 @@ export const createWorkoutLibrary = async (libraryData) => {
       throw new Error('No valid token found. Please log in again.');
     }
 
-    const response = await apiClient.post('libraries/create/', libraryData, {
+    const response = await apiClient.post('workout-libraries/create/', libraryData, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -443,7 +469,7 @@ export const getWorkoutLibraries = async () => {
       throw new Error('No valid token found. Please log in again.');
     }
 
-    const response = await apiClient.get('libraries/', {
+    const response = await apiClient.get('workout-libraries/', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -466,7 +492,7 @@ export const deleteWorkoutLibrary = async (libraryId) => {
       throw new Error('No valid token found. Please log in again.');
     }
 
-    const response = await apiClient.delete(`libraries/${libraryId}/delete/`, {
+    const response = await apiClient.delete(`workout-libraries/${libraryId}/delete/`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -484,15 +510,15 @@ export const deleteWorkoutLibrary = async (libraryId) => {
 // Workout Library Exercise Endpoints
 // ------------------------------
 
-export const addExerciseToLibrary = async (libraryId, exerciseData, token) => {
-  // Map the 'id' field to 'workout_exercise_id'
+// **Add Exercise to Library**
+export const addExerciseToLibrary = async (libraryId, exerciseData) => {
+  const token = await AsyncStorage.getItem('access_token');
   const updatedExerciseData = {
     ...exerciseData,
-    workout_exercise_id: exerciseData.id,  // Use 'id' as 'workout_exercise_id'
-    body_part: exerciseData.bodyPart,  // Convert 'bodyPart' to 'body_part'
+    workout_exercise_id: exerciseData.id,  // Map 'id' to 'workout_exercise_id'
+    body_part: exerciseData.bodyPart,  // Map 'bodyPart' to 'body_part'
   };
 
-  // Ensure exerciseData contains the required fields
   const requiredFields = ['workout_exercise_id', 'name', 'body_part'];
   for (let field of requiredFields) {
     if (!updatedExerciseData[field]) {
@@ -501,7 +527,7 @@ export const addExerciseToLibrary = async (libraryId, exerciseData, token) => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}libraries/${libraryId}/exercises/add/`, {
+    const response = await fetch(`${API_BASE_URL}workout-libraries/${libraryId}/exercises/add/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -512,7 +538,6 @@ export const addExerciseToLibrary = async (libraryId, exerciseData, token) => {
 
     const text = await response.text();  // Get raw response as text
 
-    // Check if response is JSON before parsing
     let data;
     try {
       data = JSON.parse(text);  // Attempt to parse the response as JSON
@@ -520,7 +545,7 @@ export const addExerciseToLibrary = async (libraryId, exerciseData, token) => {
       console.error("Invalid JSON response:", text);  // Log invalid response
       throw new Error('Failed to parse response as JSON');
     }
-    
+
     console.log('Add Exercise Response:', data);
 
     if (!response.ok) {
@@ -533,19 +558,18 @@ export const addExerciseToLibrary = async (libraryId, exerciseData, token) => {
   }
 };
 
-
-
-
-export const getLibraryExercises = async (libraryId, token) => {
+// **Get Library Exercises**
+export const getLibraryExercises = async (libraryId) => {
+  const token = await AsyncStorage.getItem('access_token');
+  
   try {
-    const response = await fetch(`${API_BASE_URL}libraries/${libraryId}/exercises/`, {
+    const response = await fetch(`${API_BASE_URL}workout-libraries/${libraryId}/exercises/`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
     if (!response.ok) {
-      // Log and throw an error if the response is not OK
       const errorMessage = await response.text(); // Get error message as text if it's not JSON
       console.error('Error response:', errorMessage);
       throw new Error(`Failed to fetch exercises: ${response.statusText}`);
@@ -560,10 +584,12 @@ export const getLibraryExercises = async (libraryId, token) => {
   }
 };
 
+// **Delete Exercise from Library**
+export const deleteLibraryExercise = async (libraryId, exerciseId) => {
+  const token = await AsyncStorage.getItem('access_token');
 
-export const deleteLibraryExercise = async (libraryId, exerciseId, token) => {
   try {
-    const response = await fetch(`${API_BASE_URL}libraries/${libraryId}/exercises/${exerciseId}/delete/`, {
+    const response = await fetch(`${API_BASE_URL}workout-libraries/${libraryId}/exercises/${exerciseId}/delete/`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -581,6 +607,7 @@ export const deleteLibraryExercise = async (libraryId, exerciseId, token) => {
     throw error;
   }
 };
+
 
 import { fetchData, exerciseOptions } from '../utils/ExerciseFetcher';
 

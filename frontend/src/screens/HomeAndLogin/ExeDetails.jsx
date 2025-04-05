@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,10 @@ import {
   Dimensions,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
+  Modal,
+  ToastAndroid,
+  Platform,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { capitalizeWords } from '../../utils/StringUtils';
@@ -14,8 +18,13 @@ import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
-import { startExercise, getAuthToken, getExerciseDetailsByName } from '../../api/fithubApi';
-import { Alert } from 'react-native';
+import {
+  getExerciseDetailsByName,
+  toggleFavoriteStatus,
+  checkFavoriteStatus,
+  startExercise,
+  getAuthToken,
+} from '../../api/fithubApi';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -25,36 +34,122 @@ const ExeDetails = ({ route }) => {
   const [exerciseDetails, setExerciseDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
 
-  // Define the calculateEstimatedTime function
-  const calculateEstimatedTime = (secondaryMusclesCount) => {
-    if (secondaryMusclesCount <= 1) return 5; // 5 minutes for one muscle
-    return 5 + (secondaryMusclesCount - 1) * 2; // Increase by 2 minutes for each additional muscle
-  };
+  const fetchExerciseDetails = useCallback(async () => {
+    try {
+      const authToken = await getAuthToken();
+      if (!authToken) throw new Error('User is not authenticated');
 
-  useEffect(() => {
-    const fetchExerciseDetails = async () => {
-      try {
-        const authToken = await getAuthToken();
-        if (!authToken) throw new Error('User is not authenticated');
+      const data = await getExerciseDetailsByName(exerciseName, authToken);
+      setExerciseDetails(data);
 
-        const data = await getExerciseDetailsByName(exerciseName, authToken);
-        setExerciseDetails(data);
-      } catch (error) {
-        console.error('Error fetching exercise details:', error);
-        setError(error.message || 'Failed to fetch exercise details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (exerciseName) {
-      fetchExerciseDetails();
-    } else {
-      setError('Exercise name is missing');
+      // Explicitly check favorite status
+      const favoriteStatus = await checkFavoriteStatus(exerciseName, authToken);
+      console.log("Initial favorite status:", favoriteStatus);
+      setIsFavorite(favoriteStatus);
+    } catch (error) {
+      console.error('Error fetching exercise details:', error);
+      setError(error.message || 'Failed to fetch exercise details');
+    } finally {
       setLoading(false);
     }
   }, [exerciseName]);
+
+  useEffect(() => {
+    fetchExerciseDetails();
+  }, [fetchExerciseDetails]);
+
+  const calculateEstimatedTime = (secondaryMusclesCount) => {
+    if (secondaryMusclesCount <= 1) return 5;
+    return 5 + (secondaryMusclesCount - 1) * 2;
+  };
+
+  // Function to show toast on Android or alert on iOS
+  const showNotification = (message) => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(message, ToastAndroid.SHORT);
+    } else {
+      // For iOS fallback, use the modal
+      setModalMessage(message);
+      setIsModalVisible(true);
+      setTimeout(() => {
+        setIsModalVisible(false);
+      }, 2000);
+    }
+  };
+
+  const handleToggleFavorite = useCallback(async () => {
+    try {
+      const token = await getAuthToken();
+      if (!token) {
+        Alert.alert('Error', 'User is not authenticated');
+        return;
+      }
+
+      console.log("Current favorite status before toggle:", isFavorite);
+      
+      // Optimistically update UI first for better responsiveness
+      const newStatus = !isFavorite;
+      setIsFavorite(newStatus);
+      
+      // Show feedback immediately
+      showNotification(newStatus ? 'Added to favorites' : 'Removed from favorites');
+      
+      // Then make the API call
+      const response = await toggleFavoriteStatus(exerciseName, token);
+      
+      // Log response for debugging
+      console.log("Toggle favorite response:", response?.data);
+      
+      // If API response doesn't match our optimistic update, revert
+      if (response?.data?.is_favorite !== undefined && response.data.is_favorite !== newStatus) {
+        console.log("API response differs from expected, reverting to:", response.data.is_favorite);
+        setIsFavorite(response.data.is_favorite);
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      // Revert optimistic update on error
+      setIsFavorite(!isFavorite);
+      Alert.alert('Error', error.message || 'An error occurred while toggling favorite status.');
+    }
+  }, [exerciseName, isFavorite]);
+
+  const handleStartPress = async () => {
+    if (!exerciseDetails?.id || !bodyPart) {
+      Alert.alert('Missing Information', 'Cannot start without exercise data.');
+      return;
+    }
+
+    const startTime = Date.now();
+
+    const exerciseData = {
+      workout_exercise_id: exerciseDetails.id,
+      body_part: bodyPart,
+      start_time: startTime,
+      exercise_name: exerciseDetails.name,
+    };
+
+    try {
+      const authToken = await getAuthToken();
+      if (!authToken) throw new Error('User is not authenticated');
+
+      const result = await startExercise(exerciseData, authToken);
+
+      navigation.navigate('RepsAndSets', {
+        workout_exercise_id: exerciseDetails.id,
+        startTime,
+        bodyPart,
+        exercise_id: result.workout_exercise_id,
+        exercise_name: exerciseDetails.name,
+      });
+    } catch (error) {
+      console.error('Error starting exercise:', error);
+      Alert.alert('Error', error.message || 'An error occurred while starting the exercise session.');
+    }
+  };
 
   if (loading) {
     return (
@@ -80,48 +175,9 @@ const ExeDetails = ({ route }) => {
     );
   }
 
-  const handleStartPress = async () => {
-    if (!exerciseDetails.id || !bodyPart) {
-      Alert.alert('Missing Information', 'Cannot start without exercise data.');
-      return;
-    }
-
-    const startTime = Date.now(); // Record the start time
-
-    const exerciseData = {
-      workout_exercise_id: exerciseDetails.id, // Exercise ID
-      body_part: bodyPart,       // Body part being targeted
-      start_time: startTime,     // Start time of the exercise session
-      exercise_name: exerciseDetails.name,
-    };
-
-    console.log('Exercise Data:', exerciseData); // Debugging log
-
-    try {
-      const authToken = await getAuthToken();
-      if (!authToken) throw new Error('User is not authenticated');
-
-      // Call the API function to start the exercise
-      const result = await startExercise(exerciseData, authToken);
-      console.log('Exercise started with ID:', result.workout_exercise_id);
-
-      // Navigate to the next screen
-      navigation.navigate('RepsAndSets', {
-        workout_exercise_id: exerciseDetails.id,
-        startTime,
-        bodyPart,
-        exercise_id: result.workout_exercise_id,
-        exercise_name: exerciseDetails.name,
-      });
-    } catch (error) {
-      console.error('Error starting exercise:', error);
-      Alert.alert('Error', error.message || 'An error occurred while starting the exercise session.');
-    }
-  };
-
-  const handleAddToFavourites = () => {
-    Alert.alert('Add to Favourites', 'Exercise added to your favourites.');
-  };
+  // Determine heart icon based on favorite status
+  const heartIconName = isFavorite ? "heart" : "heart";
+  const heartIconColor = isFavorite ? '#E2F163' : '#896CFE';
 
   return (
     <View style={styles.outerContainer}>
@@ -129,8 +185,15 @@ const ExeDetails = ({ route }) => {
       <ScrollView contentContainerStyle={styles.scrollViewContainer}>
         <View style={styles.titleContainer}>
           <Text style={styles.title}>{capitalizeWords(exerciseDetails.name)}</Text>
-          <TouchableOpacity onPress={handleAddToFavourites} style={styles.heartIconContainer}>
-            <Icon name="heart" size={25} color="#896cfe" />
+          <TouchableOpacity 
+            onPress={handleToggleFavorite}
+            style={styles.heartButton}
+          >
+            <Icon
+              name={heartIconName}
+              size={26}
+              color={heartIconColor}
+            />
           </TouchableOpacity>
         </View>
 
@@ -155,9 +218,7 @@ const ExeDetails = ({ route }) => {
         <Text style={styles.secondaryMusclesTitle}>Secondary Muscles:</Text>
         <Text style={styles.secondaryMusclesText}>
           {exerciseDetails.secondaryMuscles?.length > 0
-            ? exerciseDetails.secondaryMuscles
-                .map(muscle => capitalizeWords(muscle))
-                .join(', ')
+            ? exerciseDetails.secondaryMuscles.map(muscle => capitalizeWords(muscle)).join(', ')
             : 'No secondary muscles specified.'}
         </Text>
 
@@ -175,20 +236,37 @@ const ExeDetails = ({ route }) => {
           </View>
         )}
 
-        {/* Start button with clock icon */}
         <TouchableOpacity style={styles.startButton} onPress={handleStartPress}>
           <Text style={styles.startButtonText}>Start</Text>
           <View style={styles.separatorContainer}>
             <Text style={styles.separator}>|</Text>
             <View style={styles.timeContainer}>
               <Icon name="clock-o" size={20} color="#000000" />
-              <Text
-                style={styles.estimatedTimeText}>{`${calculateEstimatedTime(exerciseDetails.secondaryMuscles?.length || 0)} min`}</Text>
+              <Text style={styles.estimatedTimeText}>
+                {`${calculateEstimatedTime(exerciseDetails.secondaryMuscles?.length || 0)} min`}
+              </Text>
             </View>
           </View>
         </TouchableOpacity>
       </ScrollView>
+
       <Footer />
+
+      {/* Complete replacement of the Modal component */}
+      {Platform.OS === 'ios' && (
+        <Modal
+          visible={isModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setIsModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalText}>{modalMessage}</Text>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -205,18 +283,18 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 10,
+    alignItems: 'center',
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
     color: '#E2F163',
-    maxWidth: 300,
+    maxWidth: '85%',
   },
-  heartIconContainer: {
-    paddingLeft: 10,
+  heartButton: {
+    padding: 10,  // Increase touch target area
   },
   details: {
     fontSize: 16,
@@ -236,12 +314,6 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     marginBottom: 5,
   },
-  noDataText: {
-    fontSize: 14,
-    color: '#888888',
-    marginLeft: 10,
-    marginBottom: 10,
-  },
   secondaryMusclesTitle: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -260,7 +332,6 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     alignSelf: 'center',
     marginVertical: 20,
-    marginBottom: 30,
   },
   gifImage: {
     width: '100%',
@@ -292,8 +363,8 @@ const styles = StyleSheet.create({
   },
   separator: {
     fontSize: 20,
-    color: '#000000',
     marginHorizontal: 5,
+    color: '#000000',
   },
   timeContainer: {
     flexDirection: 'row',
@@ -301,28 +372,52 @@ const styles = StyleSheet.create({
   },
   estimatedTimeText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#000000',
     marginLeft: 5,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    minWidth: 200,
+    maxWidth: '80%',
+    elevation: 10, // Android
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+  },
+  modalText: {
+    fontSize: 18,
+    color: '#000',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
-    padding: 20,
   },
   errorText: {
     fontSize: 16,
     color: 'red',
-    marginBottom: 20,
-    textAlign: 'center',
+  },
+  noDataText: {
+    fontSize: 14,
+    color: '#FFFFFF',
   },
 });
 

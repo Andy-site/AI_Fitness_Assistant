@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.conf import settings
-from .serializers import UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer, UserProfileSerializer, ExerciseSerializer, FavoriteExerciseSerializer
+from .serializers import UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer, UserProfileSerializer, ExerciseSerializer, FavoriteExerciseSerializer, ToggleFavoriteExerciseSerializer
 from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise
 import logging
 from django.contrib.auth import authenticate
@@ -16,6 +16,9 @@ from datetime import timedelta
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
+from django.db.models import Index
+from django.core.paginator import Paginator
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +32,10 @@ class RegisterView(APIView):
     def post(self, request):
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save(is_active=False)  # Save as inactive
-            otp_instance = OTP.objects.create(user=user)  # Create OTP instance
-            otp = otp_instance.generate_otp()  # Generate OTP
+            user = serializer.save(is_active=False)
+            otp_instance = OTP.objects.create(user=user)
+            otp = otp_instance.generate_otp()
             
-            # Send OTP via email
             try:
                 send_mail(
                     'Your OTP Code',
@@ -41,15 +43,13 @@ class RegisterView(APIView):
                     settings.EMAIL_HOST_USER,
                     [user.email],
                 )
-                # Include the email in the response so the frontend can access it
                 return Response({
                     'message': 'User registered. OTP sent to email.',
-                    'email': user.email  # Add email here
+                    'email': user.email
                 }, status=status.HTTP_201_CREATED)
             except Exception as e:
                 return Response({'error': f'Failed to send OTP: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
 
 class SendOtpView(APIView):
     permission_classes = [AllowAny]
@@ -389,11 +389,131 @@ class LogExercisePerformanceView(APIView):
 
         return Response({'message': 'Exercise performance logged successfully.'}, status=status.HTTP_201_CREATED)
 
+class FavoriteExerciseView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """
+        Get all favorite exercises for the authenticated user
+        """
+        try:
+            # Get user's favorite exercises with related exercise data
+            favorite_exercises = FavoriteExercise.objects.filter(
+                user=request.user
+            ).select_related('exercise')
+            
+            # Format the response data
+            result = []
+            for fav in favorite_exercises:
+                exercise = fav.exercise
+                result.append({
+                    'favorite_id': fav.id,
+                    'exercise_id': exercise.id,
+                    'name': exercise.name,
+                    'body_part': exercise.category,
+                    'created_at': fav.created_at,
+                    # Add any other exercise fields you need
+                })
+                
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def post(self, request):
+        """
+        Add an exercise to favorites
+        """
+        exercise_id = request.data.get('exercise_id')
+        if not exercise_id:
+            return Response(
+                {'error': 'Exercise ID is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            exercise = Exercise.objects.get(id=exercise_id)
+            # Create favorite if it doesn't exist
+            favorite, created = FavoriteExercise.objects.get_or_create(
+                user=request.user,
+                exercise=exercise
+            )
+            
+            if created:
+                return Response(
+                    {'message': 'Exercise added to favorites'},
+                    status=status.HTTP_201_CREATED
+                )
+            else:
+                return Response(
+                    {'message': 'Exercise already in favorites'},
+                    status=status.HTTP_200_OK
+                )
+        except Exercise.DoesNotExist:
+            return Response(
+                {'error': 'Exercise not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def delete(self, request, favorite_id=None):
+        """
+        Remove an exercise from favorites
+        """
+        if not favorite_id:
+            # Check if it's in the request data instead
+            favorite_id = request.data.get('favorite_id')
+            if not favorite_id:
+                return Response(
+                    {'error': 'Favorite ID is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        try:
+            # Make sure the favorite belongs to the current user
+            favorite = FavoriteExercise.objects.get(
+                id=favorite_id,
+                user=request.user
+            )
+            favorite.delete()
+            return Response(
+                {'message': 'Exercise removed from favorites'},
+                status=status.HTTP_200_OK
+            )
+        except FavoriteExercise.DoesNotExist:
+            return Response(
+                {'error': 'Favorite not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 # -------------------------------------------------------------------
 # Exercise database Views
 # -------------------------------------------------------------------
 
+
+#  Add Indexing to Speed Up Queries (Only Needs to Be Done Once)
+class Meta:
+    indexes = [
+        Index(fields=['category']),
+        Index(fields=['equipment']),
+        Index(fields=['name']),  # Sorting Index
+    ]
+
+class ExerciseListPagination(PageNumberPagination):
+    page_size = 20  # Default limit to 20 exercises per request
+    page_size_query_param = 'limit'
+    max_page_size = 100  # Prevent excessive data retrieval
 
 class ExerciseListView(ListAPIView):
     """
@@ -401,25 +521,27 @@ class ExerciseListView(ListAPIView):
     """
     serializer_class = ExerciseSerializer
     permission_classes = [AllowAny]
+    pagination_class = ExerciseListPagination  # Enable pagination
 
     def get_queryset(self):
         queryset = Exercise.objects.all()
+
         category = self.request.query_params.get('category', None)
         equipment = self.request.query_params.get('equipment', None)
+        search_query = self.request.query_params.get('search', None)
 
-        # Apply category filter if provided
+        # Apply indexed filters
         if category:
-            queryset = queryset.filter(category=category)
-        
-        # Apply equipment filter if provided
+            queryset = queryset.filter(category=category)  # Uses idx_category
         if equipment:
-            queryset = queryset.filter(equipment=equipment)
+            queryset = queryset.filter(equipment=equipment)  # Uses idx_equipment
+        if search_query:
+            queryset = queryset.filter(name__icontains=search_query)  # Uses idx_name
 
-        # Return the filtered queryset, sorted by name
-        return queryset.order_by('name')
+        return queryset.order_by('name')  # Uses idx_name for optimized sorting
 
 
-
+#  Optimized Query for Equipment-Based Exercise List
 class ExercisesByEquipmentList(ListAPIView):
     """
     API endpoint to list exercises by equipment
@@ -428,10 +550,12 @@ class ExercisesByEquipmentList(ListAPIView):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        equipment = self.kwargs['equipment']
-        return Exercise.objects.filter(equipment=equipment).order_by('name')
+        return Exercise.objects.filter(
+            equipment=self.kwargs['equipment']
+        ).only("id", "name", "category", "equipment").order_by('name')[:20]
 
 
+#  Optimized Query for Category-Based Exercise List
 class ExercisesByCategoryList(ListAPIView):
     """
     API endpoint to list exercises by category
@@ -440,43 +564,29 @@ class ExercisesByCategoryList(ListAPIView):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        category = self.kwargs['category']
-        return Exercise.objects.filter(category=category).order_by('name')
+        return Exercise.objects.filter(
+            category=self.kwargs['category']
+        ).only("id", "name", "category", "equipment").order_by('name')[:20]
 
 
+#  Optimized Category List API
 class ExerciseCategoriesView(APIView):
     """
     API endpoint to list all unique exercise categories
     """
     def get(self, request):
         categories = Exercise.objects.values_list('category', flat=True).distinct()
-        return Response([{"category": cat} for cat in categories])
+        return Response(list(categories))  # Return plain list instead of loop
 
+
+#  Optimized Equipment List API
 class ExerciseEquipmentView(APIView):
     """
     API endpoint to list all unique exercise equipment
     """
     def get(self, request):
         equipment = Exercise.objects.values_list('equipment', flat=True).distinct()
-        return Response([{"equipment": eq} for eq in equipment])
-
-
-class CheckFavoriteStatus(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, exercise_name):
-        """Check if an exercise is in the user's favorites."""
-        user = request.user
-        
-        # Try to find the exercise by name (case insensitive)
-        try:
-            exercise = Exercise.objects.get(name__iexact=exercise_name)
-        except Exercise.DoesNotExist:
-            return Response({"error": "Exercise not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Check if the exercise is in the user's favorite list
-        is_favorite = FavoriteExercise.objects.filter(user=user, exercise=exercise).exists()
-        return Response({"is_favorite": is_favorite})
+        return Response(list(equipment))  # Return plain list instead of loop
 
 
 class ToggleFavoriteExercise(APIView):
@@ -485,10 +595,13 @@ class ToggleFavoriteExercise(APIView):
     def post(self, request):
         """Add or remove exercise from favorites."""
         user = request.user
-        exercise_name = request.data.get("exercise_name")
+        serializer = ToggleFavoriteExerciseSerializer(data=request.data)
 
-        if not exercise_name:
-            return Response({"error": "Exercise name is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        exercise_name = serializer.validated_data['exercise_name']
+        action = request.query_params.get('action', 'toggle')  # Default to 'toggle'
 
         # Try to find the exercise by name (case insensitive)
         try:
@@ -496,15 +609,29 @@ class ToggleFavoriteExercise(APIView):
         except Exercise.DoesNotExist:
             return Response({"error": "Exercise not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Check if the exercise is already in the user's favorite list
-        favorite, created = FavoriteExercise.objects.get_or_create(user=user, exercise=exercise)
+        if action == 'check':
+            # Check if the exercise is already in the user's favorite list
+            is_favorite = FavoriteExercise.objects.filter(user=user, exercise=exercise).exists()
+            return Response({"is_favorite": is_favorite}, status=status.HTTP_200_OK)
+        elif action == 'toggle':
+            # Check if the exercise is already in the user's favorite list
+            favorite, created = FavoriteExercise.objects.get_or_create(user=user, exercise=exercise)
 
-        if created:
-            return Response({"message": f"{exercise_name} added to favorites"}, status=status.HTTP_201_CREATED)
+            if created:
+                # If the exercise was not in the favorites, add it
+                favorite_serializer = FavoriteExerciseSerializer(favorite)
+                return Response({
+                    "message": f"{exercise_name} added to favorites",
+                    "favorite": favorite_serializer.data,
+                }, status=status.HTTP_201_CREATED)
+            else:
+                # If the exercise is already in favorites, remove it
+                favorite.delete()
+                return Response({
+                    "message": f"{exercise_name} removed from favorites",
+                }, status=status.HTTP_200_OK)
         else:
-            # If the exercise is already in favorites, remove it
-            favorite.delete()
-            return Response({"message": f"{exercise_name} removed from favorites"}, status=status.HTTP_200_OK)
+            return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
 
 # -------------------------------------------------------------------
 # WorkoutLibrary Views

@@ -10,7 +10,7 @@ export const exerciseOptions = {
   export const fetchData = async (url, options) => {
     try {
       const response = await fetch(url, options);
-      console.log('Response:', response); // Log the response to check
+      // console.log('Response:', response); // Log the response to check
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
