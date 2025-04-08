@@ -3,25 +3,45 @@ from .models import CustomUser, Workout, WorkoutExercise, ExercisePerformance, W
 
 from rest_framework import serializers
 from .models import CustomUser
+from rest_framework import serializers
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+from django.contrib.auth.password_validation import validate_password
+from .models import OTP
+
+
+User = get_user_model()
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
+    confirm_password = serializers.CharField(write_only=True, required=True)
+    
     class Meta:
-        model = CustomUser
-        fields = ['email', 'password', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'username', 'goal_weight']
-        extra_kwargs = {'password': {'write_only': True}, 'username': {'required': False}}  # Make username not required
+        model = User
+        fields = ['email', 'password', 'confirm_password', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'username', 'goal_weight', 'goal_duration']
+        extra_kwargs = {
+            'password': {'write_only': True}, 
+            'username': {'required': False},
+            'goal_duration': {'required': False}
+        }
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs.pop('confirm_password'):
+            raise serializers.ValidationError({"password": "Password fields didn't match."})
+            
+        return attrs
 
     def validate_username(self, value):
         # If no username is provided, set it to the email
         if not value:
             value = self.initial_data.get('email')
         # Ensure username (email) is unique
-        if CustomUser.objects.filter(username=value).exists():
+        if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("Username already exists")
         return value
 
     def validate_goal_weight(self, value):
         # Retrieve the current user weight (assuming it is passed as part of the registration data)
-        current_weight = self.initial_data.get('weight')
+        current_weight = float(self.initial_data.get('weight'))
         goal = self.initial_data.get('goal')
 
         if goal == 'Weight Loss' and value >= current_weight:
@@ -31,21 +51,34 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         
         return value
 
-    def create(self, validated_data):
-        # Set the username to the email if not provided
-        if 'username' not in validated_data:
-            validated_data['username'] = validated_data['email']
+    # Note: The create method will not be used during pre-verification
+
+
+class OTPVerificationSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    otp = serializers.CharField(required=True, max_length=6)
+    session_id = serializers.CharField(required=True)
+
+    def validate(self, attrs):
+        email = attrs.get('email')
         
-        # Create the user with the validated data
-        user = CustomUser.objects.create_user(**validated_data)
-        return user
+        # Check if user exists with this email (they shouldn't yet, since we're pre-registration)
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError({"email": "User with this email already exists."})
+        
+        return attrs
+
+
+class ResendOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    session_id = serializers.CharField(required=True)
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
     profile_photo = serializers.ImageField(required=False)  # If you want the user to be able to upload an image
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = ['email', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'goal_weight', 'profile_photo']
         read_only_fields = ['email']  # Make sure the email is not editable
 
@@ -75,6 +108,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return value
 
 
+class OTPSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OTP
+        fields = ['user', 'otp', 'created_at', 'expires_at']
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    new_password = serializers.CharField(write_only=True)
 
 class ExerciseSerializer(serializers.ModelSerializer):
     class Meta:

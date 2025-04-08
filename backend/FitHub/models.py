@@ -73,30 +73,38 @@ class CustomUser(AbstractUser):
         self.save()
 
     
-
 class OTP(models.Model):
     user = models.OneToOneField('CustomUser', on_delete=models.CASCADE)
     otp = models.CharField(max_length=6)
     created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(blank = True, default=False)
-    email_sent = models.BooleanField(default=False)  # Add this field
+    expires_at = models.DateTimeField()  # No default, set in generate_otp
+    email_sent = models.BooleanField(default=False)  # Tracks whether OTP email has been sent
     
     def save(self, *args, **kwargs):
+        # Ensure expires_at is set when the OTP is created
         if not self.expires_at:
-            # Set expiry to 10 minutes from now by default
             self.expires_at = timezone.now() + timezone.timedelta(minutes=10)
         super().save(*args, **kwargs)
     
     def generate_otp(self):
-        # Generate a 6-digit OTP
+        """Generate a 6-digit OTP and set expiration time"""
         otp = ''.join([str(random.randint(0, 9)) for _ in range(6)])
         self.otp = otp
         self.expires_at = timezone.now() + timezone.timedelta(minutes=10)
-        # Don't save here - let the calling code decide when to save
         return otp
     
     def is_otp_valid(self, otp):
+        """Check if the provided OTP is valid"""
         return self.otp == otp and timezone.now() <= self.expires_at
+
+    def send_otp_email(self):
+        """Simulate sending OTP email, update email_sent to True"""
+        # In practice, send the OTP email here, e.g., using Django's send_mail
+        if not self.email_sent:
+            # Assuming you send the OTP email here
+            print(f"Sending OTP {self.otp} to user: {self.user.email}")
+            self.email_sent = True
+            self.save()
 
 
     

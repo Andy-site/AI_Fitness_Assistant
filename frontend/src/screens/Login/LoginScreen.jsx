@@ -4,87 +4,117 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import InputField from '../../components/InputField';
 import PasswordInput from '../../components/PasswordInput';
 import NextButton from '../../components/NextButton';
-
+import { ActivityIndicator, Modal } from 'react-native';
 import { loginUser } from '../../api/fithubApi'; // Import API functions
+import Toast from 'react-native-toast-message';
 
 function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Validation Error', 'Please enter both email and password.');
       return;
     }
-
+  
+    setLoading(true); // Show loading modal
+  
     try {
-  console.log('Attempting login with:', { email, password });
+      const response = await loginUser(email, password);
+  
+      if (!response || !response.access) {
+        throw new Error('No access token received');
+      }
+      
 
-  // Call the login function
-  const response = await loginUser(email, password);
+// Inside your handleSubmit:
+Toast.show({
+  type: 'success',
+  text1: 'Login Successful',
+  text2: 'Welcome back 👋',
+});
+      setTimeout(() => {
+        navigation.navigate('Home');
+      }, 1000);
+    } catch (err) {
+      let message = 'Something went wrong during login.';
+      const detail = err?.response?.data?.detail;
+  
+      if (detail === 'User not registered') {
+        message = 'No account exists with this email. Please sign up.';
+      } else if (detail === 'Incorrect password') {
+        message = 'The password you entered is incorrect.';
+      } else if (detail === 'Email and password are required') {
+        message = 'Email and password fields cannot be empty.';
+      }
+  
+      setError(message);
+      Alert.alert('Login Failed', message);
+    } finally {
+      setLoading(false); // Hide loading modal
+    }
 
-  if (!response || !response.access) {
-    throw new Error('No access token received');
-  }
 
-  // Store tokens in AsyncStorage
-  await AsyncStorage.setItem('access_token', response.access);
-  await AsyncStorage.setItem('refresh_token', response.refresh);
-
-  console.log('Tokens saved successfully!');
-
-  // Navigate to the Home screen after successful login
-  navigation.navigate('Home');
-} catch (err) {
-  console.error('Login error:', err);
-  setError('Invalid email or password');
-  Alert.alert('Error', err.message || 'An error occurred during login.');
-}
-  }
-
+  };
+  
+  
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Log In</Text>
-
-      {error && <Text style={styles.errorMessage}>{error}</Text>}
-
-      <View style={styles.purpleBackground}>
-        <Text style={styles.label}>Email</Text>
-        <InputField
-          placeholder="Enter your email"
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-        />
-        <View style={styles.separator} />
-        
-        <Text style={styles.label}>Password</Text>
-        <PasswordInput
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Enter your password"
-        />
-
-        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword1')}>
-          <Text style={styles.forgotPassword}>Forgot Password?</Text>
-        </TouchableOpacity>
-      </View>
-
-      <NextButton title="Log In" onPress={handleSubmit} />
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          Don’t have an account?{' '}
-          <TouchableOpacity onPress={() => navigation.navigate('Email')}>
-            <Text style={styles.link}>Sign Up</Text>
+    <>
+      <View style={styles.container}>
+        <Text style={styles.title}>Log In</Text>
+  
+        <View style={styles.purpleBackground}>
+          <Text style={styles.label}>Email</Text>
+          <InputField
+            placeholder="Enter your email"
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+          />
+          <View style={styles.separator} />
+  
+          <Text style={styles.label}>Password</Text>
+          <PasswordInput
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Enter your password"
+          />
+  
+          {error && <Text style={styles.errorMessage}>{error}</Text>}
+  
+          <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword1')}>
+            <Text style={styles.forgotPassword}>Forgot Password?</Text>
           </TouchableOpacity>
-        </Text>
+        </View>
+  
+        <NextButton title="Log In" onPress={handleSubmit} />
+  
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            Don't have an account?{' '}
+            <TouchableOpacity onPress={() => navigation.navigate('Email')}>
+              <Text style={styles.link}>Sign Up</Text>
+            </TouchableOpacity>
+          </Text>
+        </View>
       </View>
-    </View>
+  
+      {/* Loading Modal */}
+      <Modal transparent={true} animationType="fade" visible={loading}>
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color="#B3A0FF" />
+            <Text style={styles.loadingText}>Logging in...</Text>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
-}
+};
 
 // Styles remain the same
 const styles = StyleSheet.create({
@@ -151,6 +181,25 @@ const styles = StyleSheet.create({
     color: '#E2F163',
     textDecorationLine: 'underline',
   },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingBox: {
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  
 });
 
 export default LoginScreen;

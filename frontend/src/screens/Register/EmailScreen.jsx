@@ -1,12 +1,15 @@
-// EmailScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import NextButton from '../../components/NextButton'; // Import custom button
+import { sendOtp } from '../../api/fithubApi';
+
+
 
 const EmailScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isValid, setIsValid] = useState(true);
+  const [session_id, setsession_id] = useState(null);
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -24,21 +27,46 @@ const EmailScreen = ({ navigation }) => {
     }
   }, [email]);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!email) {
       setErrorMessage('Email is required');
       setIsValid(false);
       return;
     }
-
+  
     if (!validateEmail(email)) {
       setErrorMessage('Please enter a valid email address');
       setIsValid(false);
       return;
     }
-
-    navigation.navigate('PasswordScreen', { email });
+  
+    try {
+      const response = await sendOtp(email);
+  
+      // Log the response to see what's returned
+      console.log("Response from sendOtp:", response);
+  
+      // Check the response for success and session_id
+      if (response.success && response.session_id) {
+        const session_id = response.session_id;
+        console.log("Session ID:", session_id);
+        navigation.navigate("RegisterScreen", {
+          email,
+          session_id,
+        });
+      } else {
+        setErrorMessage(response.message || 'OTP sending failed');
+        setIsValid(false);
+      }
+    } catch (error) {
+      console.log("OTP Error", error);
+      setErrorMessage("Failed to send OTP");
+    }
   };
+  
+  
+  
+  
 
   return (
     <View style={styles.container}>
@@ -63,12 +91,11 @@ const EmailScreen = ({ navigation }) => {
       </View>
 
       <NextButton 
-  title="Next" 
-  onPress={handleNext} 
-  disabled={!isValid || !email} // Disable if email is invalid or empty
-  style={{ marginLeft: 0 }} // Apply inline marginLeft of -30
-/>
-
+        title="Next" 
+        onPress={handleNext} 
+        disabled={!isValid || !email} // Disable if email is invalid or empty
+        style={{ marginLeft: 0 }} // Apply inline marginLeft of -30
+      />
 
       <Text style={styles.helperText}>We'll send you email verification</Text>
     </View>
@@ -81,13 +108,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000000',
-    // paddingHorizontal: 20,
   },
   purpleBackground: {
     backgroundColor: '#B3A0FF',
     width: '100%',
     padding: 20,
-    // borderRadius: 15,
     marginBottom: 20,
   },
   title: {

@@ -45,6 +45,13 @@ FRONTEND_URL = 'http://192.168.0.228:3000'
 
 ALLOWED_HOSTS = ['*']
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',  # or your actual backend
+        'LOCATION': '',
+    }
+}
+
 
 
 # Application definition

@@ -16,18 +16,108 @@ apiClient.interceptors.request.use((request) => {
   return request;
 });
 
-// API call for registering the user
 export const registerUser = async (userData) => {
   try {
-    const response = await apiClient.post('register/', userData);
-    return response.data;
+    const response = await axios.post(`${API_BASE_URL}register/`, userData);
+    return {
+      success: true,
+      data: response.data,
+      message: response.data.message
+    };
   } catch (error) {
-    console.error('Register error:', error.response?.data || error.message);
-    throw error.response?.data || { message: 'An error occurred during registration.' };
+    return {
+      success: false,
+      message: error.response?.data?.error || 'Registration failed',
+      errors: error.response?.data || {}
+    };
+  }
+};
+// Verify OTP and complete registration
+export const verifyOTP = async (sessionId, enteredOtp) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}verify-otp/`, {
+      sessionId,  // Match the backend's expected key
+      otp: enteredOtp,  // Ensure enteredOtp is passed correctly
+    });
+    console.log('OTP verification response:', response.data);
+    return {
+      success: true,
+      data: response.data,
+      message: response.data.message,
+    };
+  } catch (error) {
+    console.error("Error during OTP verification:", error);
+    return {
+      success: false,
+      message: error.response?.data?.error || 'OTP verification failed',
+      errors: error.response?.data || {},
+    };
   }
 };
 
-// **Login Function**
+
+
+
+// Updated resend OTP function with error handling
+export const resendOTP = async (email) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}resend-otp/`, {
+       email: email, 
+       session_id: session_id });
+
+    if (response.status === 200) {
+      return {
+        success: true,
+        message: response.data.message || 'OTP resent successfully!',
+        data: response.data,
+      };
+    } else {
+      return {
+        success: false,
+        message: response.data.error || 'Failed to resend OTP',
+        errors: response.data,
+      };
+    }
+  } catch (error) {
+    console.error(error.response?.data);
+    return {
+      success: false,
+      message: error.response?.data?.error || 'An error occurred while resending OTP.',
+      errors: error.response?.data || {},
+    };
+  }
+};
+
+
+export const sendOtp = async (email) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}send-otp/`, { email });
+
+    console.log("Backend Response:", response.data);
+
+    if (response.status === 200 && response.data.session_id) {
+      return {
+        success: true,
+        message: response.data.message || 'OTP sent successfully',
+        session_id: response.data.session_id,
+        email: response.data.email,
+      };
+    } else {
+      return {
+        success: false,
+        message: response.data?.error || 'Failed to send OTP',
+      };
+    }
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    return {
+      success: false,
+      message: error.response?.data?.error || 'Something went wrong while sending OTP',
+    };
+  }
+};
+
+
 // **Login Function**
 export const loginUser = async (email, password) => {
   try {
@@ -160,27 +250,6 @@ export const updateUserProfile = async (userData, profileImage) => {
   }
 };
 
-// **Send OTP to Email**
-export const sendOtp = async (email) => {
-  try {
-    const response = await apiClient.post('send-otp/', { email });
-    return response.data;
-  } catch (error) {
-    console.error('Send OTP error:', error.response?.data || error.message);
-    throw error.response?.data || { message: 'Error sending OTP.' };
-  }
-};
-
-// **Verify OTP**
-export const verifyOtp = async (email, otp) => {
-  try {
-    const response = await apiClient.post('verify-otp/', { email, otp });
-    return response.data;
-  } catch (error) {
-    console.error('Verify OTP error:', error.response?.data || error.message);
-    throw error.response?.data || { message: 'Invalid OTP or an error occurred.' };
-  }
-};
 
 // **Fetch User Details**
 export const fetchUserDetails = async () => {
@@ -230,16 +299,6 @@ export const verifyPasswordResetOTP = async (email, otp) => {
   }
 };
 
-// API call for resending OTP
-export const resendOTP = async (email) => {
-  try {
-    const response = await apiClient.post('resend-otp/', { email });
-    return response.data;
-  } catch (error) {
-    console.error('[ResendOTP] Error:', error.response?.data || error.message);
-    throw error.response?.data || { message: 'Failed to resend OTP' };
-  }
-};
 
 // API call for resetting password after OTP verification
 export const changePassword = async (email, otp, newPassword) => {
