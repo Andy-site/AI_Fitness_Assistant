@@ -24,9 +24,16 @@ const Footer = () => {
     return null; // Hide footer when keyboard is open
   }
 
+  const handleNavigateHome = () => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Home' }],
+    });
+  };
+
   return (
     <View style={styles.footer}>
-      <TouchableOpacity style={styles.footerIconButton} onPress={() => navigation.navigate('Home')}>
+      <TouchableOpacity style={styles.footerIconButton} onPress={handleNavigateHome}>
         <Image source={require('../assets/Images/Home.png')} style={styles.footerIconImage} resizeMode="contain" />
       </TouchableOpacity>
       <TouchableOpacity style={styles.footerIconButton} onPress={() => navigation.navigate('LandPose')}>

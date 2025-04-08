@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, Alert, TouchableWithoutFeedback, Keyboard, TextInput } from 'react-native';
 import NextButton from '../../components/NextButton';
-import { verifyOtp } from '../../api/fithubApi';
+import { verifyOtp, reg } from '../../api/fithubApi';
 
 const RegisterScreen = ({ navigation, route }) => {
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -24,6 +24,8 @@ const RegisterScreen = ({ navigation, route }) => {
         } catch (error) {
             setError('Invalid OTP. Please try again.');
         }
+        const response = await registerUser(userData);
+                    console.log('Registration response:', response);
     };
 
     const handleOtpChange = (text, index) => {

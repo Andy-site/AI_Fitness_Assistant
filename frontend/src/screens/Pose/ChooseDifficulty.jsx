@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import Footer from '../../components/Footer';
 import Header from '../../components/Header';
 
@@ -8,15 +7,12 @@ const { width } = Dimensions.get('window');
 
 const ChooseDifficulty = ({ navigation }) => {
   const modes = [
-    { name: 'Beginner', color: '#4A90E2' },
-    { name: 'Pro', color: '#FF6B6B' }
+    { name: 'Beginner', color: '#E2F163' },
+    { name: 'Pro', color: '#E2F163' }
   ];
 
   return (
-    <LinearGradient 
-      colors={['#1A1A2E', '#16213E']} 
-      style={styles.outerContainer}
-    >
+    <View style={styles.outerContainer}>
       <Header title="Select Difficulty" />
       
       <View style={styles.container}>
@@ -36,13 +32,14 @@ const ChooseDifficulty = ({ navigation }) => {
       </View>
       
       <Footer />
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
+    backgroundColor: '#16213E', // You can keep the background color here if desired
   },
   container: {
     flex: 1,
@@ -75,7 +72,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: '#000',
     fontSize: 18,
     fontWeight: '600',
   },

@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import Footer from '../../components/Footer';
 import Header from '../../components/Header';
 
@@ -9,27 +8,25 @@ const { width } = Dimensions.get('window');
 const ChoosePose = ({ navigation, route }) => {
   const { mode } = route.params;
 
+  // Removed the Lunge exercise
   const exercises = [
-    { name: 'Squat', color: '#2ECC71' },
-    { name: 'Deadlift', color: '#9B59B6' },
-    { name: 'Lunge', color: '#F39C12' }
+    { name: 'Squat' },
+    { name: 'Deadlift' },
   ];
 
   return (
-    <LinearGradient 
-      colors={['#1A1A2E', '#16213E']} 
-      style={styles.outerContainer}
-    >
-      <Header title={`${mode} Mode: Select Exercise`} />
-      
+    <View style={styles.outerContainer}>
+      {/* Header title */}
+      <Header title="Choose Exercise" />
+
       <View style={styles.container}>
-        <Text style={styles.sectionTitle}>Choose Your Exercise</Text>
-        
+        <Text style={styles.sectionTitle}>{mode} Mode: Select Exercise</Text>
+
         <View style={styles.buttonRow}>
           {exercises.map((exercise) => (
             <TouchableOpacity
               key={exercise.name}
-              style={[styles.selectButton, { backgroundColor: exercise.color }]}
+              style={styles.selectButton}
               onPress={() => navigation.navigate('PoseScreen', { 
                 mode: mode, 
                 exercise: exercise.name 
@@ -40,15 +37,16 @@ const ChoosePose = ({ navigation, route }) => {
           ))}
         </View>
       </View>
-      
+
       <Footer />
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
+    backgroundColor: '#16213E', // Dark background color
   },
   container: {
     flex: 1,
@@ -64,26 +62,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   buttonRow: {
-    flexDirection: 'column',
-    justifyContent: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     width: '100%',
     alignItems: 'center',
   },
   selectButton: {
-    width: width * 0.65,
+    width: width * 0.4,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 20,
     borderRadius: 15,
     elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    backgroundColor:'#e2f163',
     marginBottom: 20,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: '#000',
     fontSize: 18,
     fontWeight: '600',
   },

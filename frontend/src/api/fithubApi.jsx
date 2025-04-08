@@ -2,11 +2,18 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = 'http://192.168.0.117:8000/api/'; // Replace with your actual server IP and port
-// const API_BASE_URL = 'http://10.0.1.89:8000/api/'; // Replace with your actual server IP and port
+// const API_BASE_URL = 'http://localhost:8000/api/';
+
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
+});
+
+
+apiClient.interceptors.request.use((request) => {
+  console.log('Outgoing request:', request);
+  return request;
 });
 
 // API call for registering the user
@@ -24,6 +31,10 @@ export const registerUser = async (userData) => {
 // **Login Function**
 export const loginUser = async (email, password) => {
   try {
+    const loginUrl = `${API_BASE_URL}login/`;
+    console.log('Sending login request to:', loginUrl);
+    console.log('Request body:', { email, password });
+
     const response = await apiClient.post('login/', { email, password });
 
     console.log('Login Response:', response.data); // Debugging
@@ -39,7 +50,6 @@ export const loginUser = async (email, password) => {
         console.log('User details fetched and stored after login:', userDetails);
       } catch (detailsError) {
         console.error('Failed to fetch user details after login:', detailsError);
-        // Continue with login success even if fetching details fails
       }
       
       return response.data;
@@ -79,12 +89,22 @@ export const getRefreshToken = async () => {
 // **Logout Function**
 export const logout = async () => {
   try {
-    const refreshToken = await getRefreshToken(); // Use the refresh token
+    const refreshToken = await getRefreshToken(); // Get the refresh token
+    const accessToken = await getAccessToken(); // Get the access token
 
-    if (refreshToken) {
-      const response = await apiClient.post('logout/', { refresh: refreshToken });
+    if (refreshToken && accessToken) {
+      // Sending both refresh token in body and access token in headers
+      const response = await apiClient.post('logout/', 
+        { refresh: refreshToken }, 
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`, // Sending access token for authentication
+          },
+        }
+      );
 
       if (response.status === 200 || response.status === 204) {
+        // Successfully logged out, remove tokens from storage
         await AsyncStorage.removeItem('access_token');
         await AsyncStorage.removeItem('refresh_token');
         console.log('Logged out successfully');
@@ -95,7 +115,7 @@ export const logout = async () => {
       console.log('No refresh token found. You are already logged out.');
     }
   } catch (error) {
-    console.error('Error during logout:', error.message);
+    console.error('Error during logout:', error.message || error);
   }
 };
 
@@ -186,43 +206,60 @@ export const fetchUserDetails = async () => {
   }
 };
 
-
 // API call for sending a password reset token
 export const forgotPasswordRequest = async (email) => {
+  console.log('[ForgotPassword] Sending OTP request for:', email);
+
   try {
     const response = await apiClient.post('forgot-password/otp/', { email });
     return response.data;
   } catch (error) {
-    console.error('Forgot password error:', error.response?.data || error.message);
+    console.error('[ForgotPassword] Error:', error.response?.data || error.message);
     throw error.response?.data || { message: 'Failed to send OTP for password reset.' };
-  }
-};
-
-// API call for resetting password after OTP verification
-export const changePassword = async (email, otp, newPassword) => {
-  try {
-    const response = await apiClient.post('reset-password/', {
-      token: email,
-      password: newPassword,
-      otp: otp,
-    });
-    return response.data;
-  } catch (error) {
-    console.error('API Error:', error.response?.data || error.message);
-    throw {
-      message: error.response?.data?.error || 'Error changing password.',
-      response: error.response?.data,
-    };
   }
 };
 
 // API call for verifying OTP before password reset
 export const verifyPasswordResetOTP = async (email, otp) => {
   try {
-    const response = await apiClient.post('forgot-password/verify/', { email, otp });
+    const response = await apiClient.post('verify-password-reset-otp/', { email, otp });
     return response.data;
   } catch (error) {
+    console.error('[VerifyOTP] Verification failed:', error.response?.data || error.message);
     throw error.response?.data || { message: 'Failed to verify OTP' };
+  }
+};
+
+// API call for resending OTP
+export const resendOTP = async (email) => {
+  try {
+    const response = await apiClient.post('resend-otp/', { email });
+    return response.data;
+  } catch (error) {
+    console.error('[ResendOTP] Error:', error.response?.data || error.message);
+    throw error.response?.data || { message: 'Failed to resend OTP' };
+  }
+};
+
+// API call for resetting password after OTP verification
+export const changePassword = async (email, otp, newPassword) => {
+  
+  try {
+    const response = await apiClient.post('reset-password/', {
+      token: email,
+      password: newPassword,
+      otp: otp,
+    });
+
+    
+    return response.data;
+  } catch (error) {
+    console.error('[ResetPassword] Error:', error.response?.data || error.message);
+
+    throw {
+      message: error.response?.data?.error || 'Error changing password.',
+      response: error.response?.data,
+    };
   }
 };
 

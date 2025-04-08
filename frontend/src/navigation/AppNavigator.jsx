@@ -35,7 +35,7 @@ import MealSugg from '../screens/Nutrition/MealSugg';
 import Nutrichoices from '../screens/Nutrition/Nutrichoices';
 import MealDetails from '../screens/Nutrition/MealDetails';
 import CreateNutri from '../screens/Nutrition/CreateNutri';
-
+import FoodSearch from '../screens/Nutrition/FoodSearch';
 
 
 
@@ -65,7 +65,7 @@ const AppNavigator = () => {
     <NavigationContainer>
 
 
-        <Stack.Navigator initialRouteName="Landing">
+        <Stack.Navigator initialRouteName="LoginScreen">
         <Stack.Screen name="Landing" component={Landing}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading1" component={Loading1}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading2" component={Loading2}  options={{ headerShown: false }}/>
@@ -100,6 +100,7 @@ const AppNavigator = () => {
         <Stack.Screen name="Nutrichoices" component={Nutrichoices} options={{ headerShown: false }}/>
         <Stack.Screen name="MealDetails" component={MealDetails} options={{ headerShown: false }}/>
         <Stack.Screen name="CreateNutri" component={CreateNutri} options={{ headerShown: false }}/>
+        <Stack.Screen name ="FoodSearch" component={FoodSearch} options={{headerShown: false}}/>
 
         <Stack.Screen name="Notification" component={Notification} options={{ headerShown: false}}/>
         <Stack.Screen name="EditProfile" component = {EditProfile} options={{headerShown: false}}/>

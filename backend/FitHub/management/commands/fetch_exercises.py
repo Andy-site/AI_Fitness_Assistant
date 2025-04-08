@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from FitHub.utils import fetch_and_save_exercises
+from FitHub.utils.exerciseFetcher import fetch_and_save_exercises
 
 
 class Command(BaseCommand):

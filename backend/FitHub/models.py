@@ -24,7 +24,7 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, first_name, last_name, password, **extra_fields)
 
 
-# models.py
+
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=100)
@@ -33,6 +33,26 @@ class CustomUser(AbstractUser):
     height = models.FloatField()
     weight = models.FloatField()
     goal = models.CharField(max_length=255)
+    goal_weight = models.FloatField(null=True, blank=True)  # Add goal weight
+    goal_duration = models.CharField(
+        max_length=20, 
+        choices=[
+            ('1 month', '1 month'),
+            ('2 months', '2 months'),
+            ('3 months', '3 months'),
+            ('4 months', '4 months'),
+            ('5 months', '5 months'),
+            ('6 months', '6 months'),
+            ('7 months', '7 months'),
+            ('8 months', '8 months'),
+            ('9 months', '9 months'),
+            ('10 months', '10 months'),
+            ('11 months', '11 months'),
+            ('12 months', '12 months'),
+        ],
+        null=True,
+        blank=True,
+    )  # Dropdown for goal duration as a string
     reset_otp = models.CharField(max_length=6, null=True, blank=True)
     otp_created_at = models.DateTimeField(null=True, blank=True)
     otp_verified = models.BooleanField(default=False)
@@ -54,38 +74,30 @@ class CustomUser(AbstractUser):
 
     
 
-
 class OTP(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    user = models.OneToOneField('CustomUser', on_delete=models.CASCADE)
     otp = models.CharField(max_length=6)
-    created_at = models.DateTimeField(default=timezone.now)
-
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(blank = True, default=False)
+    email_sent = models.BooleanField(default=False)  # Add this field
+    
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            # Set expiry to 10 minutes from now by default
+            self.expires_at = timezone.now() + timezone.timedelta(minutes=10)
+        super().save(*args, **kwargs)
+    
     def generate_otp(self):
-        """Generate a new OTP and save it to the OTP model"""
-        otp = random.randint(100000, 999999)
-        self.otp = str(otp)
-        self.created_at = timezone.now()
-        self.save()
-        return self.otp
-
+        # Generate a 6-digit OTP
+        otp = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+        self.otp = otp
+        self.expires_at = timezone.now() + timezone.timedelta(minutes=10)
+        # Don't save here - let the calling code decide when to save
+        return otp
+    
     def is_otp_valid(self, otp):
-        """Check if the given OTP is valid and not expired (2 minutes validity)"""
-        if not self.otp or not self.created_at:
-            return False
-        
-        # Check if OTP matches and is not expired (2 minutes validity)
-        is_match = self.otp == otp
-        is_expired = self.created_at + timedelta(minutes=2) < timezone.now()
+        return self.otp == otp and timezone.now() <= self.expires_at
 
-        return is_match and not is_expired
-
-    def verify_otp(self, otp):
-        """Verify the OTP and activate the user if valid"""
-        if self.is_otp_valid(otp):
-            self.user.otp_verified = True
-            self.user.activate_user()  # Activate user after OTP verification
-            return True
-        return False
 
     
 class WorkoutLibrary(models.Model):
@@ -146,6 +158,7 @@ class Exercise(models.Model):
     equipment = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     image_url = models.URLField(blank=True, null=True)
+    secondary = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return self.name

@@ -1,10 +1,13 @@
 from rest_framework import serializers
 from .models import CustomUser, Workout, WorkoutExercise, ExercisePerformance, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise
 
+from rest_framework import serializers
+from .models import CustomUser
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['email', 'password', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'username']
+        fields = ['email', 'password', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'username', 'goal_weight']
         extra_kwargs = {'password': {'write_only': True}, 'username': {'required': False}}  # Make username not required
 
     def validate_username(self, value):
@@ -16,6 +19,18 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Username already exists")
         return value
 
+    def validate_goal_weight(self, value):
+        # Retrieve the current user weight (assuming it is passed as part of the registration data)
+        current_weight = self.initial_data.get('weight')
+        goal = self.initial_data.get('goal')
+
+        if goal == 'Weight Loss' and value >= current_weight:
+            raise serializers.ValidationError("Goal weight must be less than your current weight for weight loss.")
+        if goal == 'Weight Gain' and value <= current_weight:
+            raise serializers.ValidationError("Goal weight must be greater than your current weight for weight gain.")
+        
+        return value
+
     def create(self, validated_data):
         # Set the username to the email if not provided
         if 'username' not in validated_data:
@@ -25,14 +40,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = CustomUser.objects.create_user(**validated_data)
         return user
 
+
 class UserProfileSerializer(serializers.ModelSerializer):
     profile_photo = serializers.ImageField(required=False)  # If you want the user to be able to upload an image
 
     class Meta:
         model = CustomUser
-        fields = ['email', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal','profile_photo']
+        fields = ['email', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'goal_weight', 'profile_photo']
         read_only_fields = ['email']  # Make sure the email is not editable
-    
+
     def update(self, instance, validated_data):
         # Check if profile photo is provided and update
         profile_photo = validated_data.pop('profile_photo', None)
@@ -45,6 +61,19 @@ class UserProfileSerializer(serializers.ModelSerializer):
         
         instance.save()
         return instance
+
+    def validate_goal_weight(self, value):
+        # Retrieve the current user weight (assuming it is part of the update data)
+        current_weight = self.initial_data.get('weight')
+        goal = self.initial_data.get('goal')
+
+        if goal == 'Weight Loss' and value >= current_weight:
+            raise serializers.ValidationError("Goal weight must be less than your current weight for weight loss.")
+        if goal == 'Weight Gain' and value <= current_weight:
+            raise serializers.ValidationError("Goal weight must be greater than your current weight for weight gain.")
+        
+        return value
+
 
 
 class ExerciseSerializer(serializers.ModelSerializer):
