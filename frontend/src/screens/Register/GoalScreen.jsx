@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import NextButton from '../../components/NextButton';
-import { resendOTP, registerUser } from '../../api/fithubApi'; // Changed from sendOtp to resendOTP
+import { registerUser, sendOtp } from '../../api/fithubApi';
 import DropDownPicker from 'react-native-dropdown-picker';
 
 const GoalScreen = ({ navigation, route }) => {
- 
     const [goal, setGoal] = useState(route.params?.goal || '');
-    const [goalWeight, setGoalWeight] = useState(route.params?.goalWeight || '');
-    const [goalDuration, setGoalDuration] = useState(route.params?.goalDuration || '');
+    const [goalWeight, setGoalWeight] = useState(route.params?.goalWeight || ''); // For goal weight input
+    const [goalDuration, setGoalDuration] = useState(route.params?.goalDuration || ''); // For goal duration
     const [error, setError] = useState('');
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(false); // For controlling the dropdown visibility
     const [items, setItems] = useState(
         Array.from({ length: 12 }, (_, i) => ({
             label: `${i + 1} Month${i > 0 ? 's' : ''}`,
@@ -18,92 +17,68 @@ const GoalScreen = ({ navigation, route }) => {
         }))
     );
     
-    
+
     const goals = [
         { label: 'Weight Loss', value: 'Weight Loss' },
         { label: 'Weight Gain', value: 'Weight Gain' },
     ];
 
-    const userWeight = route.params?.weight || 0;
-    
+    const userWeight = route.params?.weight || 0; // Assuming user weight is passed as a param
     const handleSelect = (selectedGoal) => {
         setGoal(selectedGoal);
-        setError('');
+        setError(''); // Reset error message when a goal is selected
     };
-    
     const handleNext = async () => {
-        if (!route.params?.sessionId) {
-            setError('Session expired. Please restart the registration process.');
-            return;
-        }
+        // Validate if all fields are filled
         if (!goal || !goalWeight || !goalDuration) {
             setError('Please fill in all fields');
             return;
         }
     
+        // Validate weight based on goal
         if (goal === 'Weight Loss' && parseFloat(goalWeight) >= parseFloat(userWeight)) {
             setError(`Goal weight must be less than your current weight for weight loss. Your weight is ${userWeight}`);
             return;
         }
-    
+        
         if (goal === 'Weight Gain' && parseFloat(goalWeight) <= parseFloat(userWeight)) {
             setError(`Goal weight must be greater than your current weight for weight gain. Your weight is ${userWeight}`);
             return;
         }
+        
     
+        // Prepare user data to be sent for OTP
         const userData = {
             ...route.params,
             goal,
-            goal_weight: goalWeight,
-            goal_duration: goalDuration,
+            goal_weight: goalWeight, // Sending goal weight
+            goal_duration: goalDuration, // Sending goal duration
             first_name: route.params.firstName,
             last_name: route.params.lastName,
-            email: route.params.email,
+            email: route.params.email, // Make sure to include the email
         };
     
         try {
+
+            const registrationResponse = await registerUser(userData);
+            console.log('Registration response:', registrationResponse);
+
+            console.log('Sending OTP to email:', userData.email);
             
+            // Send OTP before registering the user
+            await sendOtp(userData.email);  // Send OTP before proceeding with registration
     
-            if (!route.params?.sessionId) {
-                // Call the registration API if sessionId is missing
-                console.log('Session ID is missing. Registering user...');
-                const registerResponse = await registerUser(email); // Replace with your registration API call
-    
-                if (registerResponse.success) {
-                    console.log('Registration successful. OTP sent.');
-                    navigation.navigate('RegisterScreen', {
-                        email: userData.email,
-                        userData: userData,
-                        sessionId: registerResponse.sessionId, // Pass the new sessionId
-                    });
-                } else {
-                    console.error('Registration failed:', registerResponse);
-                    setError(registerResponse.message || 'Failed to register. Please try again.');
-                }
-                return;
-            }
-    
-            console.log('About to call resendOTP API');
-            const response = await resendOTP({
-                email: userData.email,
-                sessionId: route.params?.sessionId,
-            });
-    
-            if (response.success) {
-                console.log('OTP sent successfully');
-                navigation.navigate('RegisterScreen', {
-                    email: userData.email,
-                    userData: userData,
-                });
-            } else {
-                console.error('OTP sending failed with response:', response);
-                setError(response.message || 'Failed to send verification code');
-            }
+            console.log('OTP sent successfully');
+            
+            // Proceed to the OTP verification screen
+            navigation.navigate('RegisterScreen', { email: userData.email });
+            
         } catch (error) {
             console.error('Error during OTP sending:', error);
-            setError('Error sending verification code. Please check console for details.');
+            setError('Error during OTP sending.');
         }
     };
+    
 
     return (
         <View style={styles.container}>
@@ -142,6 +117,7 @@ const GoalScreen = ({ navigation, route }) => {
                 )}
             </View>
 
+            {/* Goal Weight Input */}
             <TextInput
                 style={[styles.inputField, error && styles.errorBorder]}
                 placeholder="Enter your goal weight"
@@ -150,6 +126,7 @@ const GoalScreen = ({ navigation, route }) => {
                 onChangeText={setGoalWeight}
             />
 
+            {/* Goal Duration Dropdown */}
             <DropDownPicker
                 open={open}
                 value={goalDuration}
@@ -164,9 +141,9 @@ const GoalScreen = ({ navigation, route }) => {
             />
 
             <NextButton
-                title="Continue"
+                title="Finish Registration"
                 onPress={handleNext}
-                disabled={!goal || !goalWeight || !goalDuration}
+                disabled={!goal || !goalWeight || !goalDuration} // Disable if any field is empty
             />
         </View>
     );

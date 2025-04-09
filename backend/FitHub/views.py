@@ -1,10 +1,11 @@
 from time import timezone
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
 from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.conf import settings
-from .serializers import UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer, UserProfileSerializer, ExerciseSerializer, FavoriteExerciseSerializer, ToggleFavoriteExerciseSerializer, OTPVerificationSerializer, ResendOTPSerializer
+from .serializers import UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer, UserProfileSerializer, ExerciseSerializer, FavoriteExerciseSerializer, ToggleFavoriteExerciseSerializer
 from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise
 import logging
 from django.contrib.auth import authenticate
@@ -16,205 +17,115 @@ from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Index
-from django.utils import timezone
-import json
-import random
-from django.contrib.auth import get_user_model
-from django.core.cache import cache
-import uuid 
-
-
+from django.core.paginator import Paginator
+from django.db import transaction
 
 logger = logging.getLogger(__name__)
 
-
-User = get_user_model()
-
-import uuid  # Import for generating unique session IDs
-
 class RegisterView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
-        session_id = request.data.get("session_id")
-        if not session_id:
-            return Response({"error": "Session ID is required."}, status=400)
+        # Get the email from the request data
+        email = request.data.get('email')
 
-        cache_key = f"{session_id}"
-        cached_data = cache.get(cache_key)
-        if not cached_data:
-            return Response({"error": "Session expired or invalid."}, status=400)
+        # Check if the email already exists
+        if CustomUser.objects.filter(email=email).exists():
+            return Response({'error': 'Email already registered.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        cached_data = json.loads(cached_data)
-        email = cached_data["email"]
-
-        serializer = UserRegistrationSerializer(data={**request.data, "email": email})
+        # Proceed with user registration if the email doesn't exist
+        serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
-            user.set_password(serializer.validated_data["password"])
-            user.otp_verified = True
-            user.save()
+            # Create inactive user
+            user = serializer.save(is_active=False)
 
-            cache.delete(cache_key)
+            # Create or reset OTP
+            otp_instance, _ = OTP.objects.get_or_create(user=user)
+            otp = otp_instance.generate_otp()
+            otp_instance.save()
 
-            return Response({"message": "User registered successfully.", "email": user.email}, status=201)
-
-        return Response(serializer.errors, status=400)
-
-
-class ResendOTPView(APIView):
-    def post(self, request):
-        serializer = ResendOTPSerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
-
-            # Check if there is existing registration data in cache
-            cache_key = f"registration_{email}"
-            stored_data_json = cache.get(cache_key)
-
-            # Debugging log
-            print(f"Cache retrieval for {email}: {stored_data_json}")
-
-            if not stored_data_json:
-                return Response({
-                    'error': 'Registration session expired or not found. Please register again.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            stored_data = json.loads(stored_data_json)
-            user_data = stored_data.get('user_data')
-
-            # Generate new OTP
-            otp = ''.join([str(random.randint(0, 9)) for _ in range(6)])
-
-            # Update registration data with new OTP
-            new_registration_data = {
-                'user_data': user_data,
-                'otp': otp,
-                'created_at': timezone.now().isoformat()
-            }
-
-            # Debugging log for cache set
-            print(f"Setting new OTP in cache for {email}: {new_registration_data}")
-            cache.set(cache_key, json.dumps(new_registration_data), timeout=600)
-
-            # Send new OTP via email
-            send_mail(
-                'Verify your email address',
-                f'Your new verification code is: {otp}. This code will expire in 10 minutes.',
-                settings.DEFAULT_FROM_EMAIL,
-                [email],
-                fail_silently=False,
-            )
-
+            # You can remove or modify this part if you don't want to send the OTP email
+            # For now, just return a success message without sending email
             return Response({
-                'message': 'New verification code sent to your email.',
-                'email': email
+                'message': 'Registration successful. OTP generated.',
+                'email': user.email,
+                'otp': otp  # You can return the OTP here for testing, or remove it if needed
             }, status=status.HTTP_200_OK)
-        cache_key = f"registration_{serializer.validated_data['session_id']}"
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class SendOTPView(APIView):
+        return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+class SendOtpView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
-        email = request.data.get("email")
-        if not email:
-            return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+        email = request.data.get('email')
+        user = get_object_or_404(CustomUser, email=email)
 
-        # Check if user already exists
-        if User.objects.filter(email=email).exists():
-            return Response({"error": "Email is already registered."}, status=status.HTTP_400_BAD_REQUEST)
+        # Get or create the OTP instance
+        otp_instance, _ = OTP.objects.get_or_create(user=user)
 
-        otp = ''.join([str(random.randint(0, 9)) for _ in range(6)])
-        session_id = str(uuid.uuid4())
-        cache_key = f"{session_id}"  # Ensure consistent cache key
-        print(f"Session ID during OTP sending: {session_id}")
-        print(f"Storing OTP in cache for session_id={session_id}: {otp}")
-
-        cache.set(cache_key, json.dumps({
-            'email': email,
-            'otp': otp,
-            'created_at': timezone.now().isoformat()
-        }), timeout=600)
-        print(f"Stored OTP in cache for session_id={session_id}: {otp}")
+        # Always generate a new OTP for password reset
+        otp = otp_instance.generate_otp()
+        otp_instance.save()
 
         try:
             send_mail(
-                "Your OTP Code",
-                f"Your verification code is: {otp}. This code expires in 10 minutes.",
-                settings.DEFAULT_FROM_EMAIL,
+                'Your OTP Code',
+                f'Your OTP code from send otp is {otp}',
+                settings.EMAIL_HOST_USER,
                 [email],
-                fail_silently=False
             )
+            return Response({'message': 'OTP sent successfully'}, status=status.HTTP_200_OK)
         except Exception as e:
-            print("Email error:", e)
-            return Response({"error": "Failed to send OTP."}, status=500)
+            logger.error("Failed to send OTP email: %s", str(e))
+            return Response({'error': 'Failed to send OTP. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        return Response({
-            "message": "OTP sent successfully.",
-            "session_id": session_id,
-            "email": email
-        })
 
-class VerifyOTPView(APIView):
+class VerifyOtpView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
-        session_id = request.data.get("sessionId")
-        otp = request.data.get("otp")
+        email = request.data.get('email')
+        otp = request.data.get('otp')
 
-        if not session_id or not otp:
-            return Response({"error": "session_id and otp are required."}, status=400)
+        user = get_object_or_404(CustomUser, email=email)
+        otp_instance = get_object_or_404(OTP, user=user)
 
-        # Log the session_id and OTP received
-        print(f"Verifying OTP: session_id={session_id}, otp={otp}")
+        if otp_instance.is_otp_valid(otp):
+            user.is_active = True  # Activate account here
+            user.save()
+            return Response({'message': 'OTP verified. Registration complete.'}, status=status.HTTP_200_OK)
 
-        cache_key = f"{session_id}"  # Make the cache key consistent
-        data = cache.get(cache_key)
-        print(f"Retrieving session data from cache: {cache_key}")
-        
-        if not data:
-            print(f"No data found for session_id={session_id}")
-            return Response({"error": "Session expired or not found."}, status=400)
-
-        # Deserialize data from cache
-        data = json.loads(data)
-
-        # Log the session data
-        print(f"Session data found: {data}")
-
-        if timezone.now() > timezone.datetime.fromisoformat(data['created_at']) + timedelta(minutes=10):
-            cache.delete(cache_key)  # Clean up expired session
-            return Response({"error": "OTP has expired."}, status=400)
-
-        if data['otp'] != otp:
-            return Response({"error": "Invalid OTP."}, status=400)
-
-        return Response({"message": "OTP verified successfully.", "session_id": session_id}, status=200)
+        return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
-
+    
     def post(self, request):
+
         email = request.data.get('email')
         password = request.data.get('password')
 
         if not email or not password:
             return Response({"detail": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            user_obj = CustomUser.objects.get(email=email)
-        except CustomUser.DoesNotExist:
-            logger.error(f"Login attempt with unregistered email: {email}")
-            return Response({"detail": "User not registered"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Now try to authenticate
+        # Authenticate the user
         user = authenticate(request, email=email, password=password)
         if user is not None:
+            # Create JWT token
             refresh = RefreshToken.for_user(user)
-            logger.info(f"Login successful for user: {user.email}")
+            logger.info(f"Login successful for user: {user.email}")  # Log successful login
             return Response({
                 'access': str(refresh.access_token),
                 'refresh': str(refresh),
             }, status=status.HTTP_200_OK)
         else:
-            logger.error(f"Incorrect password attempt for email: {email}")
-            return Response({"detail": "Incorrect password"}, status=status.HTTP_401_UNAUTHORIZED)
+            logger.error(f"Invalid credentials for email: {email}")  # Log invalid credentials
+            return Response(
+                {"detail": "Invalid credentials"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
 
 class LogoutView(APIView):

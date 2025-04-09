@@ -4,11 +4,10 @@ import { View, Text, StyleSheet, TextInput, Pressable } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import NextButton from '../../components/NextButton';  // Import your NextButton component
 import PasswordInput from '../../components/PasswordInput';  // Import your NextButton component
-import { registerUser } from '../../api/fithubApi';
 
 
 const PasswordScreen = ({ navigation, route }) => {
-  const { email} = route.params;
+  const { email } = route.params;
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -22,7 +21,6 @@ const PasswordScreen = ({ navigation, route }) => {
     special: true,
     match: true,
   });
-
 
   useEffect(() => {
     if (!isFocused) {
@@ -69,55 +67,23 @@ const PasswordScreen = ({ navigation, route }) => {
     return true;
   };
 
-      
+  const handleNext = async () => {
+    try {
+      if (!validatePassword()) {
+        return;
+      }
+      navigation.navigate('NameScreen', { 
+        email, 
+        password: password 
+      });
+    } catch (error) {
+      setErrorMessage('An error occurred. Please try again.');
+    }
+  };
 
   const ValidationRule = ({ satisfied, text }) => (
     <Text style={[styles.rule, { color: satisfied ? '#4CAF50' : '#FF5252' }]}>{satisfied ? '✓' : '•'} {text}</Text>
   );
-
-  const handleNext = async () => {
-    if (validatePassword()) {
-        // Gather the necessary data for user registration
-        const userData = {
-            email: email,            // Include the email from previous screen or context
-            password: password,      // Include the password input
-            session_id: route.params.session_id, // Include the session ID from the previous screen
-          };
-
-        setIsLoading(true);
-        setError(''); // Clear any previous errors
-
-        try {
-            // Log registration attempt
-            console.log('Registering user with data:', userData);
-
-            // Call the registerUser function to register the user
-            const registerResponse = await registerUser(userData);
-
-            if (!registerResponse.success) {
-                setError(registerResponse.message || 'Registration failed. Please try again.');
-                setIsLoading(false);
-                return;
-            }
-
-            // Log registration success
-            console.log('Registration successful');
-
-            // Show success message and navigate to login
-            Alert.alert('Success', 'You have been registered successfully!');
-            navigation.navigate('LoginScreen');
-
-        } catch (error) {
-            // Detailed error logging for debugging
-            console.error('Error during registration:', error);
-            setError('Something went wrong. Please try again.');
-        } finally {
-            setIsLoading(false);
-        }
-    } else {
-        setErrorMessage('Please correct the errors above.');
-    }
-};
 
   return (
     <View style={styles.container}>
