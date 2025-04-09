@@ -90,7 +90,7 @@ export const getRefreshToken = async () => {
 export const logout = async () => {
   try {
     const refreshToken = await getRefreshToken(); // Get the refresh token
-    const accessToken = await getAccessToken(); // Get the access token
+    const accessToken = await getAuthToken(); // Get the access token
 
     if (refreshToken && accessToken) {
       // Sending both refresh token in body and access token in headers

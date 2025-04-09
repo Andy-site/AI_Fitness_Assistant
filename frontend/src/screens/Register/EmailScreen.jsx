@@ -1,12 +1,14 @@
-// EmailScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
-import NextButton from '../../components/NextButton'; // Import custom button
+import { View, Text, TextInput, StyleSheet, Animated, Dimensions } from 'react-native';
+import NextButton from '../../components/NextButton';
+
+const { width } = Dimensions.get('window');
 
 const EmailScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isValid, setIsValid] = useState(true);
+  const progressAnim = new Animated.Value(0); 
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -25,17 +27,18 @@ const EmailScreen = ({ navigation }) => {
   }, [email]);
 
   const handleNext = () => {
-    if (!email) {
-      setErrorMessage('Email is required');
-      setIsValid(false);
-      return;
-    }
-
-    if (!validateEmail(email)) {
+    if (!email || !validateEmail(email)) {
       setErrorMessage('Please enter a valid email address');
       setIsValid(false);
       return;
     }
+
+    // Animate progress bar to next step (33% for step 1)
+    Animated.timing(progressAnim, {
+      toValue: 0.33,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
 
     navigation.navigate('PasswordScreen', { email });
   };
@@ -45,32 +48,43 @@ const EmailScreen = ({ navigation }) => {
       <Text style={styles.title}>Welcome</Text>
       <Text style={styles.journeyText}>Let's start with your registration first</Text>
 
+      <View style={styles.PurpleContainer}>
       <View style={styles.inputContainer}>
-        <View style={styles.purpleBackground}>
-          <Text style={styles.label}>Username or email</Text>
-          <TextInput
-            style={[styles.input, !isValid && email.length > 0 && styles.inputError]}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="e.g., user@example.com"
-            placeholderTextColor="#232323"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
-        </View>
+        <Text style={styles.label}>Email Address</Text>
+        <TextInput
+          style={[styles.input, !isValid && email.length > 0 && styles.inputError]}
+          value={email}
+          onChangeText={setEmail}
+          placeholder="e.g., user@example.com"
+          placeholderTextColor="#232323"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
       </View>
+        </View>
 
-      <NextButton 
-  title="Next" 
-  onPress={handleNext} 
-  disabled={!isValid || !email} // Disable if email is invalid or empty
-  style={{ marginLeft: 0 }} // Apply inline marginLeft of -30
-/>
+      <NextButton
+        title="Next"
+        onPress={handleNext}
+        disabled={!isValid || !email}
+      />
 
-
-      <Text style={styles.helperText}>We'll send you email verification</Text>
+      {/* Progress Bar */}
+      <View style={styles.progressContainer}>
+        <Animated.View
+          style={[
+            styles.progressBar,
+            {
+              width: progressAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['0%', '100%'],
+              }),
+            },
+          ]}
+        />
+      </View>
     </View>
   );
 };
@@ -81,14 +95,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000000',
-    // paddingHorizontal: 20,
-  },
-  purpleBackground: {
-    backgroundColor: '#B3A0FF',
-    width: '100%',
-    padding: 20,
-    // borderRadius: 15,
-    marginBottom: 20,
   },
   title: {
     fontSize: 28,
@@ -104,9 +110,17 @@ const styles = StyleSheet.create({
     marginBottom: 50,
     textAlign: 'center',
   },
+  PurpleContainer: {
+    backgroundColor: '#B3A0FF',
+    width: '100%',
+    padding: 20,
+    // borderRadius: 20,
+    marginBottom: 20,
+  },
   inputContainer: {
     width: '100%',
     marginBottom: 30,
+  
   },
   label: {
     fontSize: 16,
@@ -115,10 +129,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   input: {
-    width: '100%',
     height: 45,
-    backgroundColor: '#FFFFFF',
+    width: '100%',
     borderRadius: 15,
+    backgroundColor: '#FFFFFF',
     paddingLeft: 10,
     fontSize: 16,
     color: '#232323',
@@ -135,11 +149,17 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontWeight: '500',
   },
-  helperText: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    marginTop: 15,
-    textAlign: 'center',
+  progressContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 5,
+    backgroundColor: '#ddd',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#3B80F7',
   },
 });
 

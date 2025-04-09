@@ -3,10 +3,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import React from 'react';
 import EmailScreen from '../screens/Register/EmailScreen';
 import PasswordScreen from '../screens/Register/PasswordScreen';
-import NameScreen from '../screens/Register/NameScreen';
-import AgeScreen from '../screens/Register/AgeScreen';
-import HeightScreen from '../screens/Register/HeightScreen';
-import WeightScreen from '../screens/Register/WeightScreen';
+import UserInput from '../screens/Register/UserInput';
+
 import GoalScreen from '../screens/Register/GoalScreen';
 import RegisterScreen from '../screens/Register/RegisterScreen';
 import Landing from '../screens/Loading/Landing';
@@ -57,7 +55,6 @@ import FavoriteExercises from '../screens/HomeAndLogin/FavoriteExercises';
 
 
 
-
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
@@ -73,10 +70,7 @@ const AppNavigator = () => {
         <Stack.Screen name="Loading4" component={Loading4} options={{ headerShown: false }}/>
         <Stack.Screen name="Email" component= { EmailScreen } options={{ headerShown: false }} />
         <Stack.Screen name="PasswordScreen" component={PasswordScreen} options={{ headerShown: false }}/>
-        <Stack.Screen name="NameScreen" component={NameScreen} options={{ headerShown: false }}/>
-        <Stack.Screen name="AgeScreen" component={AgeScreen} options={{ headerShown: false }}/>
-        <Stack.Screen name="HeightScreen" component={HeightScreen} options={{ headerShown: false }}/>
-        <Stack.Screen name="WeightScreen" component={WeightScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="UserInput" component={UserInput} options={{ headerShown: false }}/>
         <Stack.Screen name="GoalScreen" component={GoalScreen} options={{ headerShown: false }}/>
         <Stack.Screen name="RegisterScreen" component={RegisterScreen} options={{ headerShown: false }}/>
         <Stack.Screen name="LoginScreen" component={LoginScreen} options={{ headerShown: false }}/>

@@ -7,7 +7,7 @@ from .models import CustomUser
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['email', 'password', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'username', 'goal_weight']
+        fields = ['email', 'password', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'username', 'goal_weight','goal_duration']
         extra_kwargs = {'password': {'write_only': True}, 'username': {'required': False}}  # Make username not required
 
     def validate_username(self, value):
