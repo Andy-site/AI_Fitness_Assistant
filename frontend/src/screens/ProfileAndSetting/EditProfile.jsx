@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, Image, Modal, StyleSheet, TouchableOpacity, Text, KeyboardAvoidingView, Platform, ScrollView} from 'react-native';
+import { View, TextInput, Button, Image, Modal, StyleSheet, TouchableOpacity, Alert,Text, KeyboardAvoidingView, Platform, ScrollView} from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { fetchUserDetails, logout, updateUserProfile } from '../../api/fithubApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,6 +24,7 @@ const EditProfile = () => {
   const [activityLevel, setActivityLevel] = useState('moderate');
   const [profileImage, setProfileImage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false); // State to control modal visibility
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -68,9 +69,34 @@ const EditProfile = () => {
     }
   };
 
+  const handleImageResponse = (response) => {
+    if (response.didCancel) {
+      console.log('User cancelled image picker');
+    } else if (response.errorCode) {
+      console.error('ImagePicker Error: ', response.errorMessage);
+    } else if (response.assets && response.assets.length > 0) {
+      const selectedImage = response.assets[0];
+      setProfileImage({
+        uri: selectedImage.uri,
+        type: selectedImage.type,
+        name: selectedImage.fileName,
+      });
+      console.log('Image selected:', selectedImage);
+    }
+    setIsModalVisible(false); // Close the modal after selecting an image
+  };
+
+  const openCamera = () => {
+    launchCamera({ mediaType: 'photo' }, handleImageResponse);
+  };
+
+  const openGallery = () => {
+    launchImageLibrary({ mediaType: 'photo' }, handleImageResponse);
+  };
+
   const handleSubmit = async () => {
     if (!firstName || !lastName || !age || !height || !weight || !goal || !goalDuration || !activityLevel) {
-      alert('Please fill in all fields.');
+      Alert.alert('Please fill in all fields.');
       return;
     }
 
@@ -106,18 +132,17 @@ const EditProfile = () => {
 
         <ScrollView style={styles.scrollContainer}>
           <View style={styles.profileImageContainer}>
-            <TouchableOpacity
-              onPress={() => {
-                launchImageLibrary({ mediaType: 'photo' }, handleImageResponse);
-              }}
-              style={styles.profileImageButton}>
+          <TouchableOpacity
+              onPress={() => setIsModalVisible(true)} // Open the modal
+              style={styles.profileImageButton}
+            >
               {profileImage ? (
                 <Image source={{ uri: profileImage.uri }} style={styles.profileImage} />
               ) : (
                 <Text style={styles.addPhotoText}>+ Add Photo</Text>
               )}
               <View style={styles.editIconOverlay}>
-                <MaterialIcons name="edit" size={20} color="#B3A0FF" />
+                <MaterialIcons name="photo-camera-back" size={20} color="#b3a0ff" />
               </View>
             </TouchableOpacity>
           </View>
@@ -193,6 +218,33 @@ const EditProfile = () => {
 
         </ScrollView>
         <Footer />
+
+        {/* Modal for Image Picker Options */}
+        <Modal
+          visible={isModalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setIsModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select Image</Text>
+              <TouchableOpacity style={styles.modalButton} onPress={openCamera}>
+                <Text style={styles.modalButtonText}>Take Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalButton} onPress={openGallery}>
+                <Text style={styles.modalButtonText}>Choose from Gallery</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setIsModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
       </View>
     </KeyboardAvoidingView>
   );
@@ -255,6 +307,41 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   editIcon: { marginLeft: 'auto' },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  modalButton: {
+    backgroundColor: '#e2f163',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginBottom: 10,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  cancelButton: {
+    backgroundColor: '#FF5252',
+  },
   submitButton: {
     backgroundColor: '#E2F163',
     paddingVertical: 10,

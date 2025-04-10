@@ -1,8 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'http://192.168.0.117:8000/api/'; // Replace with your actual server IP and port
-// const API_BASE_URL = 'http://localhost:8000/api/';
+// const API_BASE_URL = 'http://192.168.0.117:8000/api/'; // Replace with your actual server IP and port
+const API_BASE_URL = 'http://localhost:8000/api/';
 
 
 const apiClient = axios.create({
@@ -27,7 +27,6 @@ export const registerUser = async (userData) => {
   }
 };
 
-// **Login Function**
 // **Login Function**
 export const loginUser = async (email, password) => {
   try {
