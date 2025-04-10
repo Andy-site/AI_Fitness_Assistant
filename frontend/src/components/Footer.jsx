@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   footer: {
     width: '100%',
     height: 60,
-    backgroundColor: '#896CFE',
+    backgroundColor: '#B3A0FF',
     borderTopWidth: 1,
     borderTopColor: '#7C57FF',
     flexDirection: 'row',

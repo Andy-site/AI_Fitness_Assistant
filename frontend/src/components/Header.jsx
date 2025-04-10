@@ -33,7 +33,7 @@ const Header = ({ title, showBackButton = true }) => {
       {/* Notification Icon - Only show if not on Notification screen */}
       {!isNotificationScreen && (
         <TouchableOpacity onPress={handleNotificationPress} style={styles.notificationButton}>
-          <Icon name="bell" size={24} color="#896CFE" />
+          <Icon name="bell" size={24} color="#B3A0FF" />
         </TouchableOpacity>
       )}
     </View>
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#896CFE',
+    color: '#B3A0FF',
     textAlign: 'center',
   },
   notificationButton: {

@@ -306,14 +306,14 @@ const styles = StyleSheet.create({
       backgroundColor: 'rgba(0,0,0,0.5)',
     },
     modalContainer: {
-      backgroundColor: '#896cfe',
+      backgroundColor: '#B3A0FF',
       padding: 30,
       borderRadius: 10,
       width: '80%',
       alignItems: 'center',
     },
     addButton: {
-        backgroundColor: '#896cfe', // Background color for the button
+        backgroundColor: '#B3A0FF', // Background color for the button
         padding: 10,
         borderRadius: 5,
         flexDirection: 'row', // To align icon and text in a row

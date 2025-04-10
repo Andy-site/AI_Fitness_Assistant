@@ -323,7 +323,7 @@ const PoseScreen = ({ route }) => {
 const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
   },
   
   container: {

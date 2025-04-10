@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import CustomUser, Workout, WorkoutExercise, ExercisePerformance, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise
-
+import re
 from rest_framework import serializers
 from .models import CustomUser
 
@@ -46,12 +46,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['email', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'goal_weight', 'profile_photo']
+        fields = ['email', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'goal_weight', 'profile_photo', 'goal_duration']
         read_only_fields = ['email']  # Make sure the email is not editable
 
     def update(self, instance, validated_data):
         # Check if profile photo is provided and update
         profile_photo = validated_data.pop('profile_photo', None)
+        
+        # Update all other fields provided in validated_data
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 

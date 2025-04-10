@@ -164,7 +164,7 @@ const Loading4 = ({ navigation }) => {
        borderRadius: 12,
      },
      activeProgress: {
-       backgroundColor: '#896CFE',
+       backgroundColor: '#B3A0FF',
      },
      inactiveProgress: {
        backgroundColor: '#FFFFFF',

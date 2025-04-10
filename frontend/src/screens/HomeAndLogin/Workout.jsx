@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
   },
   exerciseItem: {
     padding: 15,
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
     marginBottom: 12,
     borderRadius: 10,
     borderWidth: 1,
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   applyFilterButton: {
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     borderWidth: 1,
-    borderColor: '#896cfe',
+    borderColor: '#B3A0FF',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   clearButtonText: {
-    color: '#896cfe',
+    color: '#B3A0FF',
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
     marginVertical: 15,
   },
   clearFiltersText: {
-    color: '#896cfe',
+    color: '#B3A0FF',
     fontWeight: 'bold',
     fontSize: 16,
     padding: 10,

@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     top: '40%',
     width: '100%',
     alignItems: 'center',
-    // backgroundColor: '#896CFE',
+    // backgroundColor: '#B3A0FF',
     paddingVertical: 20,
     backgroundColor: '#B3A0FF',
        backdropFilter: 'blur(7px)', 

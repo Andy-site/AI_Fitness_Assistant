@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   selectionBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
     padding: 10,
     borderRadius: 5,
     flex: 1,
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
 
   categoryContainer: {
     margin: 15,
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
     padding: 10,
     marginVertical: 2,
     borderRadius: 8,

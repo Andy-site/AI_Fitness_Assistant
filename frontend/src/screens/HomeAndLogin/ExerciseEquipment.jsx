@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   dropdownButton: { marginLeft: 10 },
   dropdownText: { fontSize: 24, color: '#E2F163', fontWeight: 'bold' },
   loader: { marginTop: 20 },
-  exerciseItem: { backgroundColor: '#896cfe', padding: 10, marginBottom: 10, borderRadius: 8 },
+  exerciseItem: { backgroundColor: '#B3A0FF', padding: 10, marginBottom: 10, borderRadius: 8 },
   exerciseText: { fontSize: 16, color: '#000', fontWeight: 'bold' },
   equipmentText: { fontSize: 14, color: '#e2f163' },
   noResultsText: { color: '#FFF', textAlign: 'center', marginTop: 20 },

@@ -1,24 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  TextInput,
-  Button,
-  Image,
-  Modal,
-  StyleSheet,
-  TouchableOpacity,
-  Text,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from 'react-native';
+import { View, TextInput, Button, Image, Modal, StyleSheet, TouchableOpacity, Text, KeyboardAvoidingView, Platform, ScrollView} from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { fetchUserDetails, updateUserProfile } from '../../api/fithubApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { useNavigation } from '@react-navigation/native'; // Import useNavigation
+import { useNavigation } from '@react-navigation/native';
+import { Picker } from '@react-native-picker/picker';
+
 
 const API_BASE_URL = 'http://192.168.0.117:8000/';
 
@@ -28,7 +18,9 @@ const EditProfile = () => {
   const [age, setAge] = useState('');
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
-  const [goal, setGoal] = useState('');
+  const [goal, setGoal] = useState('Maintain');
+  const [goalWeight, setGoalWeight] = useState('');
+  const [goalDuration, setGoalDuration] = useState('1 month');
   const [profileImage, setProfileImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [imagePickerVisible, setImagePickerVisible] = useState(false);
@@ -46,7 +38,8 @@ const EditProfile = () => {
         setAge(userData.age ? userData.age.toString() : '');
         setHeight(userData.height ? userData.height.toString() : '');
         setWeight(userData.weight ? userData.weight.toString() : '');
-        setGoal(userData.goal || '');
+        setGoal(userData.goal || 'Maintain');
+        setGoalDuration(userData.goal_duration || '1 month');
 
         if (userData.profile_photo) {
           setProfileImage({
@@ -85,7 +78,7 @@ const EditProfile = () => {
   };
 
   const handleSubmit = async () => {
-    if (!firstName || !lastName || !age || !height || !weight || !goal) {
+    if (!firstName || !lastName || !age || !height || !weight || !goal || !goalDuration) {
       alert('Please fill in all fields.');
       return;
     }
@@ -97,6 +90,8 @@ const EditProfile = () => {
       height: parseFloat(height),
       weight: parseFloat(weight),
       goal: goal,
+      goal_duration: goalDuration,
+      goal_weight: parseFloat(goalWeight) || null, // Ensure it's null if no goal weight is set
     };
 
     try {
@@ -134,36 +129,48 @@ const EditProfile = () => {
                 <Text style={styles.addPhotoText}>+ Add Photo</Text>
               )}
               <View style={styles.editIconOverlay}>
-                <MaterialIcons name="edit" size={20} color="#896cfe" />
+                <MaterialIcons name="edit" size={20} color="#B3A0FF" />
               </View>
             </TouchableOpacity>
           </View>
 
           <View style={styles.formContainer}>
-            {[
+            {[ 
               { label: 'First Name', value: firstName, setValue: setFirstName, field: 'firstName' },
               { label: 'Last Name', value: lastName, setValue: setLastName, field: 'lastName' },
               { label: 'Age', value: age, setValue: setAge, field: 'age', keyboardType: 'numeric' },
               { label: 'Height', value: height, setValue: setHeight, field: 'height', keyboardType: 'numeric' },
               { label: 'Weight', value: weight, setValue: setWeight, field: 'weight', keyboardType: 'numeric' },
-              { label: 'Goal', value: goal, setValue: setGoal, field: 'goal' },
+              { label: 'Goal', value: goal, setValue: setGoal, field: 'goal', dropdown: true, options: ['Weight Loss', 'Weight Gain'] },
+              { label: 'Goal Duration', value: goalDuration, setValue: setGoalDuration, field: 'goalDuration', dropdown: true, options: ['1 month', '2 months', '3 months', '4 months', '5 months', '6 months', '7 months', '8 months', '9 months', '10 months', '11 months', '12 months'] },
             ].map((item, index) => (
               <View style={styles.inputGroup} key={index}>
                 <Text style={styles.inputLabel}>{item.label}:</Text>
                 <View style={styles.inputWrapper}>
-                  <TextInput
-                    placeholder={item.label}
-                    value={item.value}
-                    onChangeText={item.setValue}
-                    keyboardType={item.keyboardType || 'default'}
-                    onFocus={() => handleFocus(item.field)}
-                    onBlur={handleBlur}
-                    style={styles.input}
-                  />
+                  {item.dropdown ? (
+                    <Picker
+                      selectedValue={item.value}
+                      onValueChange={item.setValue}
+                      style={styles.picker}>
+                      {item.options.map((option, idx) => (
+                        <Picker.Item key={idx} label={option} value={option} />
+                      ))}
+                    </Picker>
+                  ) : (
+                    <TextInput
+                      placeholder={item.label}
+                      value={item.value}
+                      onChangeText={item.setValue}
+                      keyboardType={item.keyboardType || 'default'}
+                      onFocus={() => handleFocus(item.field)}
+                      onBlur={handleBlur}
+                      style={styles.input}
+                    />
+                  )}
                   <MaterialIcons
                     name="edit"
                     size={20}
-                    color={focusedField === item.field ? '#E2F163' : '#896cfe'}
+                    color={focusedField === item.field ? '#E2F163' : '#B3A0FF'}
                     style={styles.editIcon}
                   />
                 </View>
@@ -191,7 +198,7 @@ const styles = StyleSheet.create({
   addPhotoText: { fontSize: 18, color: '#fff', fontWeight: 'bold' },
   profileImageContainer: { alignItems: 'center', marginVertical: 20 },
   profileImageButton: {
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
     borderRadius: 75,
     width: 130,
     height: 130,
@@ -208,7 +215,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     padding: 5,
   },
-  formContainer: { paddingHorizontal: 20, backgroundColor: '#896cfe' },
+  formContainer: { paddingHorizontal: 20, backgroundColor: '#B3A0FF' },
   inputGroup: { flexDirection: 'row', alignItems: 'center', marginVertical: 8, justifyContent: 'space-between' },
   inputLabel: { color: '#fff', fontSize: 16, fontWeight: 'bold', width: '25%' },
   inputWrapper: {
@@ -221,6 +228,15 @@ const styles = StyleSheet.create({
     width: '75%',
   },
   input: { flex: 1, padding: 10, fontSize: 16, color: '#000' },
+  picker: { 
+    flex: 1, 
+    padding: 1, 
+    fontSize: 20, 
+    color: '#000', 
+    borderColor: '#ddd',  // Adding border color
+    borderWidth: 1,       // Adding border width
+    borderRadius: 5,      // Optional: to match other input fields' rounded corners
+  },
   editIcon: { marginLeft: 'auto' },
   submitButton: {
     backgroundColor: '#E2F163',
@@ -238,5 +254,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
 
 export default EditProfile;

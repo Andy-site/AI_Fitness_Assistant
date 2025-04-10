@@ -38,12 +38,15 @@ const ExerciseCard = ({ image, title, description, onPress }) => (
 const Home = ({ navigation }) => {
   const [firstName, setFirstName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  
   const [profileImage, setProfileImage] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [bmi, setBmi] = useState(null);
   const [weight, setWeight] = useState(null);
   const [height, setHeight] = useState(null);
+const [error, setError] = useState(null);
+
+
 
   useEffect(() => {
     const getUserDetails = async () => {
@@ -94,7 +97,7 @@ const Home = ({ navigation }) => {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#896CFE" />
+        <ActivityIndicator size="large" color="#B3A0FF" />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
@@ -107,6 +110,8 @@ const Home = ({ navigation }) => {
       </View>
     );
   }
+
+  
 
   return (
     <View style={styles.outcontainer}>
@@ -187,15 +192,25 @@ const Home = ({ navigation }) => {
           ))}
         </View>
 
-        <View style={styles.favoritesContainer}>
-          <TouchableOpacity 
-            style={styles.favoriteButton}
-            onPress={() => navigation.navigate('FavoriteExercises')}
-          >
-            <Text style={styles.favoriteButtonText}>My Favorites</Text>
-            <MaterialIcons name="favorite" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        <View style={styles.favoritesAndLibraryContainer}>
+  {/* My Favorites Button */}
+  <TouchableOpacity 
+    style={styles.favoriteButton}
+    onPress={() => navigation.navigate('FavoriteExercises')}
+  >
+    <Text style={styles.favoriteButtonText}>My Favorites</Text>
+    <MaterialIcons name="favorite" size={24} color="#e2f163" />
+  </TouchableOpacity>
+
+  {/* Browse Library Button */}
+  <TouchableOpacity
+    style={styles.browseLibraryButton}
+    onPress={() => navigation.navigate('CreateLibrary')} // Navigate to CreateLibrary screen
+  >
+    <Text style={styles.browseLibraryButtonText}>Browse Library</Text>
+  </TouchableOpacity>
+</View>
+
 
         <View style={styles.recommendationsContainer}>
           <Text style={styles.sectionTitle}>Recommended Exercises</Text>
@@ -212,24 +227,6 @@ const Home = ({ navigation }) => {
                 onPress={() => navigation.navigate('ExerciseDetail', { exercise })}
               />
             ))}
-          </View>
-        </View>
-
-        <View style={styles.libraryContainer}>
-          <Text style={styles.sectionTitle}>Exercise Library</Text>
-          <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity 
-              style={styles.libraryButton}
-              onPress={() => navigation.navigate('LandPose')}
-            >
-              <Text style={styles.libraryButtonText}>Pose Library</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.libraryButton}
-              onPress={() => navigation.navigate('ExerciseLibrary')}
-            >
-              <Text style={styles.libraryButtonText}>All Exercises</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -276,7 +273,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#212020',
   },
   loadingText: {
-    color: '#896CFE',
+    color: '#B3A0FF',
     marginTop: 10,
   },
   errorContainer: {
@@ -297,6 +294,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    marginBottom: 70,
   },
   headerWithProfile: {
     flexDirection: 'row',
@@ -304,16 +302,51 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
   },
+
+    favoritesAndLibraryContainer: {
+      flexDirection: 'row', // Aligns the buttons horizontally
+      justifyContent: 'space-between', // Space between the buttons
+      alignItems: 'center', // Center the buttons vertically
+      marginVertical: 15, // Adjust the vertical spacing
+    },
+    favoriteButton: {
+      backgroundColor: '#b3a0ff', // Pink color for Favorites button
+      paddingVertical: 10,
+      paddingHorizontal: 15,
+      borderRadius: 5,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    favoriteButtonText: {
+      color: '#000',
+      fontSize: 16,
+      marginRight: 5,
+    },
+    browseLibraryButton: {
+      backgroundColor: '#e2f163', // Green color for Browse Library button
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 5,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+    },
+    browseLibraryButtonText: {
+      color: '#000',
+      fontSize: 16,
+    },
+
+  
   greeting: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#896CFE',
+    color: '#B3A0FF',
   },
   greeting2: {
     marginTop: 10,
     fontSize: 16,
     fontWeight: '500',
-    color: '#896CFE',
+    color: '#B3A0FF',
   },
   profileImageContainer: {
     marginTop: 10,
@@ -382,7 +415,7 @@ const styles = StyleSheet.create({
   },
   bmiCategory: {
     fontSize: 16,
-    color: '#896CFE',
+    color: '#B3A0FF',
     textAlign: 'center',
     marginBottom: 15,
   },
@@ -442,28 +475,10 @@ const styles = StyleSheet.create({
   separator: {
     width: 1,
     height: 50,
-    backgroundColor: '#896CFE',
+    backgroundColor: '#B3A0FF',
   },
-  favoritesContainer: {
-    marginTop: 25,
-    alignItems: 'center',
-  },
-  favoriteButton: {
-    flexDirection: 'row',
-    backgroundColor: '#896CFE',
-    borderRadius: 15,
-    paddingVertical: 15,
-    paddingHorizontal: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  favoriteButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginRight: 10,
-  },
+
+  
   recommendationsContainer: {
     marginTop: 25,
   },

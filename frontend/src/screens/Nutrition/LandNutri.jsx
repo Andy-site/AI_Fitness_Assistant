@@ -178,7 +178,7 @@ const LandNutri = () => {
           <Text style={styles.buttonText}>Get Nutrition Advice</Text>
         </TouchableOpacity>
 
-        {loading && <ActivityIndicator size="large" color="#896cfe" />}
+        {loading && <ActivityIndicator size="large" color="#B3A0FF" />}
 
         {/* Display Nutrition Advice */}
         {!loading && nutritionAdvice && nutritionAdvice.result && (
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: 20,
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
     padding: 10,
     borderRadius: 10,
     marginBottom: 15,

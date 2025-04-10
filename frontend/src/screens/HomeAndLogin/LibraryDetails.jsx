@@ -141,7 +141,7 @@ const LibraryDetails = ({ route }) => {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#896cfe" />
+          <ActivityIndicator size="large" color="#B3A0FF" />
         </View>
       </SafeAreaView>
     );
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 5,
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
     borderRadius: 8,
     marginBottom: 10,
     justifyContent: 'space-between',
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   addButton: {
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 25,

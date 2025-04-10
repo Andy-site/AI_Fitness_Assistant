@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
   },
   macronutrientCard: {
     padding: 10,
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
     marginBottom: 20,
   },
   sectionTitle1: {
@@ -320,12 +320,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
   },
   mealContainer: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
   },
   mealTitle: {
     fontSize: 20,

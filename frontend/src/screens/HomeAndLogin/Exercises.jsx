@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   exerciseItem: {
-    backgroundColor: '#896CFE',
+    backgroundColor: '#B3A0FF',
     borderRadius: 8,
     marginBottom: 20,
     width: '45%',

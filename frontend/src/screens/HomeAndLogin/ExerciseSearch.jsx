@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   },
   exerciseItem: {
     padding: 15,
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
     marginBottom: 12,
     borderRadius: 10,
     borderWidth: 1,

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,6 @@ import { capitalizeWords } from '../../utils/StringUtils';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
-
 const FavoriteExercises = ({ navigation }) => {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,25 +24,11 @@ const FavoriteExercises = ({ navigation }) => {
   const [modalMessage, setModalMessage] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // Focus effect to reload data when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      loadFavorites();
-      
-      // Cleanup if needed when screen goes out of focus
-      return () => {
-        setFavorites([]);
-        setError(null);
-        setLoading(false);
-      };
-    }, [])
-  );
-
-  const loadFavorites = async () => {
+  const loadFavorites = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getFavoriteExercises();
-      setFavorites(data);
+      setFavorites(data || []); // Ensure data is an array
       setError(null);
     } catch (err) {
       console.error('Error loading favorites:', err);
@@ -51,7 +36,15 @@ const FavoriteExercises = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadFavorites();
+      // No cleanup needed that modifies state
+      return () => {};
+    }, [loadFavorites])
+  );
 
   const handleRemoveFavorite = async (favoriteId) => {
     try {
@@ -60,6 +53,7 @@ const FavoriteExercises = ({ navigation }) => {
       showNotification('Removed from favorites');
     } catch (err) {
       console.error('Error removing favorite:', err);
+      showNotification('Failed to remove favorite');
     }
   };
 
@@ -69,9 +63,7 @@ const FavoriteExercises = ({ navigation }) => {
     } else {
       setModalMessage(message);
       setIsModalVisible(true);
-      setTimeout(() => {
-        setIsModalVisible(false);
-      }, 2000);
+      setTimeout(() => setIsModalVisible(false), 2000);
     }
   };
 
@@ -94,7 +86,7 @@ const FavoriteExercises = ({ navigation }) => {
     return (
       <View style={styles.container}>
         <Header />
-        <ActivityIndicator size="large" color="#896CFE" />
+        <ActivityIndicator size="large" color="#B3A0FF" />
         <Footer />
       </View>
     );
@@ -116,25 +108,24 @@ const FavoriteExercises = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Header title="Favourites" />
-      <View style = {styles.innercontainer}>
-      <Text style={styles.title}>Your Favorite Exercises</Text>
+      <View style={styles.innercontainer}>
+        <Text style={styles.title}>Your Favorite Exercises</Text>
 
-      {favorites.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Icon name="heart-outline" size={64} color="#896CFE" />
-          <Text style={styles.emptyText}>You don't have any favorite exercises yet</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={favorites}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.favorite_id.toString()}
-          contentContainerStyle={styles.list}
-        />
-      )}
+        {favorites.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Icon name="heart-outline" size={90} color="#B3A0FF" />
+            <Text style={styles.emptyText}>No favorite exercises yet</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={favorites}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.favorite_id?.toString() || Math.random().toString()}
+            contentContainerStyle={styles.list}
+            removeClippedSubviews={false} // Prevent premature clipping
+          />
+        )}
 
-      {/* Modal for iOS notification */}
-      {isModalVisible && (
         <Modal
           transparent={true}
           animationType="fade"
@@ -147,7 +138,6 @@ const FavoriteExercises = ({ navigation }) => {
             </View>
           </View>
         </Modal>
-      )}
       </View>
       <Footer />
     </View>
@@ -158,30 +148,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#212020',
-    
   },
-  innercontainer:{
-    padding:20,
-    marginTop:70,
-
+  innercontainer: {
+    padding: 20,
+    marginTop: 70,
+    flex: 1, // Ensure it takes available space
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
     color: '#E2F163',
     marginBottom: 20,
-    textAlign:'center'
-    
+    textAlign: 'center',
   },
   favoriteItem: {
     flexDirection: 'row',
-    backgroundColor: '#2A2929',
+    backgroundColor: '#b3a0ff',
     borderRadius: 12,
     padding: 15,
     marginBottom: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#896CFE',
+    borderColor: '#B3A0FF',
   },
   favoriteContent: {
     flex: 1,
@@ -192,7 +180,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   bodyPart: {
-    color: '#AAAAAA',
+    color: '#fff',
     fontSize: 14,
     marginTop: 4,
   },
@@ -214,13 +202,13 @@ const styles = StyleSheet.create({
     color: '#FF6B6B',
     fontSize: 16,
     textAlign: 'center',
+    flex: 1,
   },
   retryButton: {
-    backgroundColor: '#896CFE',
+    backgroundColor: '#B3A0FF',
     padding: 12,
     borderRadius: 8,
-    marginTop: 20,
-    alignSelf: 'center',
+    marginBottom: 20,
   },
   retryText: {
     color: '#FFFFFF',

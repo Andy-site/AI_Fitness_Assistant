@@ -154,7 +154,7 @@ const ExeDetails = ({ route }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#896cfe" />
+        <ActivityIndicator size="large" color="#B3A0FF" />
       </View>
     );
   }
@@ -177,7 +177,7 @@ const ExeDetails = ({ route }) => {
 
   // Determine heart icon based on favorite status
   const heartIconName = isFavorite ? "heart" : "heart";
-  const heartIconColor = isFavorite ? '#E2F163' : '#896CFE';
+  const heartIconColor = isFavorite ? '#E2F163' : '#B3A0FF';
 
   return (
     <View style={styles.outerContainer}>

@@ -129,7 +129,7 @@ const GoalScreen = ({ navigation, route }) => {
       </View>
 
       <Text style={styles.currentWeight}>Your current weight: {userWeight} kg</Text>
-
+        <View style = {styles.inputcontainer}>
       <TextInput
         style={[styles.inputField, error && styles.errorBorder]}
         placeholder="Enter your goal weight (kg)"
@@ -170,6 +170,7 @@ const GoalScreen = ({ navigation, route }) => {
         style={styles.dropdownStyle}
         dropDownStyle={styles.dropdownList}
       />
+      </View>
 
       <NextButton
         title="Finish Registration"
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
     justifyContent: 'center',
-    padding: 20,
+    // padding: 20,
   },
   title: {
     fontSize: 28,
@@ -205,28 +206,35 @@ const styles = StyleSheet.create({
   },
   selectorContainer: {
     marginBottom: 24,
+    backgroundColor: '#B3A0FF',
+    padding: 20,
   },
   optionButton: {
-    backgroundColor: '#B3A0FF',
+    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#ddd',
+
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
     alignItems: 'center',
   },
+  inputcontainer: {
+    backgroundColor: '#b3a0ff',
+    padding: 20,
+
+  },
   selectedButton: {
     backgroundColor: '#e8f0fe',
-    borderColor: '#007AFF',
     borderWidth: 2,
+    borderColor: '#e2f163',
   },
   optionText: {
     fontSize: 16,
-    color: '#333',
+    color: '#000',
     fontWeight: '500',
   },
   selectedText: {
-    color: '#007AFF',
+    color: '#b3a0ff',
     fontWeight: 'bold',
   },
   goalDescription: {
@@ -245,10 +253,10 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   helperText: {
-    color: '#666',
+    color: '#fff',
     fontSize: 14,
     marginTop: 8,
-    marginLeft: 4,
+    textAlign: 'center',
   },
   inputField: {
     backgroundColor: '#FFF',
@@ -264,12 +272,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 4,
     marginBottom: 10,
+    
   },
   currentWeight: {
     fontSize: 15,
-    color: '#ccc',
+    color: '#fff',
     marginBottom: 8,
     marginLeft: 4,
+    textAlign: 'center',
   },
   dropdownContainer: {
     marginBottom: 12,

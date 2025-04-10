@@ -27,7 +27,7 @@ const Notification = ({ navigation }) => {
   const getNotificationIcon = (type) => {
     // Since we only have reminder notifications for now
     if (type === 'reminder' || !type) {
-      return <Icon name="alarm-outline" size={24} color="#896CFE" />;
+      return <Icon name="alarm-outline" size={24} color="#B3A0FF" />;
     }
     
     // Keep this structure for future expansion if needed
@@ -39,7 +39,7 @@ const Notification = ({ navigation }) => {
       case 'alert':
         return <Icon name="alert-circle-outline" size={24} color="#F44336" />;
       default:
-        return <Icon name="notifications-outline" size={24} color="#896CFE" />;
+        return <Icon name="notifications-outline" size={24} color="#B3A0FF" />;
     }
   };
 
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   clearAllText: {
-    color: '#896CFE',
+    color: '#B3A0FF',
     fontSize: 14,
     fontWeight: '600'
   },
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   },
   unreadNotification: {
     borderLeftWidth: 4,
-    borderLeftColor: '#896CFE',
+    borderLeftColor: '#B3A0FF',
   },
   iconContainer: {
     width: 45,
