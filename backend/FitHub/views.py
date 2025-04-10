@@ -70,8 +70,21 @@ class SendOtpView(APIView):
 
         try:
             send_mail(
-                'Your OTP Code',
-                f'Your OTP code from send otp is {otp}',
+                'Your OTP Code - Welcome to FitHub!',
+                f"""
+                Hi there!
+
+                Welcome to FitHub, your ultimate fitness companion. We're thrilled to have you on board!
+
+                Your OTP code is: {otp}
+
+                Remember, this code is valid for only 10 minutes, so act fast!
+
+                Let's achieve your fitness goals together!
+
+                Best regards,
+                The FitHub Team
+                """,
                 settings.EMAIL_HOST_USER,
                 [email],
             )
@@ -246,35 +259,39 @@ class UserDetailsView(APIView):
 
         return Response(serializer.data)
 
-
 class UserProfileUpdateView(APIView):
     permission_classes = [IsAuthenticated]
-    
+
     def put(self, request):
         """Update the profile of the authenticated user."""
         return self._update_profile(request)
-        
+
     def patch(self, request):
         """Partially update the profile of the authenticated user."""
         return self._update_profile(request)
-        
+
     def _update_profile(self, request):
         user = request.user  # Get the current authenticated user
-        
+
+        # Debug: Log the incoming request data
+        print("Request Data:", request.data)
+
         # Fetch the user instance to be updated
         try:
             user_instance = CustomUser.objects.get(id=user.id)
         except CustomUser.DoesNotExist:
             return Response({"detail": "User not found."}, status=404)
-        
+
         # Use the serializer to validate and update user profile data
         serializer = UserProfileSerializer(user_instance, data=request.data, partial=True)  # partial=True allows for partial updates
         if serializer.is_valid():
             # Save the updated user data
             serializer.save()
             return Response(serializer.data, status=200)
-        return Response(serializer.errors, status=400)
 
+        # Debug: Log serializer errors
+        print("Serializer Errors:", serializer.errors)
+        return Response(serializer.errors, status=400)
 
 class HomeView(APIView):
     permission_classes = [AllowAny]

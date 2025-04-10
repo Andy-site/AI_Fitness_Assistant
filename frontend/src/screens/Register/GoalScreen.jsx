@@ -1,24 +1,24 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import NextButton from '../../components/NextButton';
-import {sendOtp, registerUser} from '../../api/fithubApi';
-import DropDownPicker from 'react-native-dropdown-picker';
+import { sendOtp, registerUser } from '../../api/fithubApi';
+
+const activityLevels = [
+  { label: 'Sedentary (little or no exercise)', value: 'sedentary' },
+  { label: 'Light (light exercise 1-3 days/week)', value: 'light' },
+  { label: 'Moderate (moderate exercise 3-5 days/week)', value: 'moderate' },
+  { label: 'Active (hard exercise 6-7 days/week)', value: 'active' },
+  { label: 'Very Active (very hard exercise/physical job)', value: 'very active' },
+];
 
 const GoalScreen = ({ navigation, route }) => {
-
-  const { email } = route.params; 
+  const { email } = route.params;
   const [goal, setGoal] = useState(route.params?.goal || '');
   const [goalWeight, setGoalWeight] = useState(route.params?.goalWeight || '');
   const [goalDuration, setGoalDuration] = useState(route.params?.goalDuration || '');
+  const [activityLevel, setActivityLevel] = useState(route.params?.activityLevel || '');
   const [error, setError] = useState('');
-  const [open, setOpen] = useState(false);
-  const [items, setItems] = useState(
-    Array.from({ length: 12 }, (_, i) => ({
-      label: `${i + 1} Month${i > 0 ? 's' : ''}`,
-      value: `${i + 1}`,
-    }))
-  );
-
 
   const goals = [
     { label: 'Weight Loss', value: 'Weight Loss' },
@@ -27,62 +27,47 @@ const GoalScreen = ({ navigation, route }) => {
 
   const userWeight = route.params?.weight || 0;
 
-  const handleSelect = (selectedGoal) => {
-    setGoal(selectedGoal);
-    setError('');
-  };
-
-
   const handleNext = async () => {
-          // Validate if all fields are filled
-          if (!goal || !goalWeight || !goalDuration) {
-              setError('Please fill in all fields');
-              return;
-          }
-      
-          // Validate weight based on goal
-          if (goal === 'Weight Loss' && parseFloat(goalWeight) >= parseFloat(userWeight)) {
-              setError(`Goal weight must be less than your current weight for weight loss. Your weight is ${userWeight}`);
-              return;
-          }
-          
-          if (goal === 'Weight Gain' && parseFloat(goalWeight) <= parseFloat(userWeight)) {
-              setError(`Goal weight must be greater than your current weight for weight gain. Your weight is ${userWeight}`);
-              return;
-          }
-          
-      
-          // Prepare user data to be sent for OTP
-          const userData = {
-              ...route.params,
-              goal,
-              goal_weight: goalWeight, // Sending goal weight
-              goal_duration: `${goalDuration} ${parseInt(goalDuration) === 1 ? 'month' : 'months'}`, // Sending goal duration
-              first_name: route.params.firstName,
-              last_name: route.params.lastName,
-              email: route.params.email, // Make sure to include the email
-          };
-      
-          try {
-  
-              const registrationResponse = await registerUser(userData);
-              console.log('Registration response:', registrationResponse);
-  
-              console.log('Sending OTP to email:', userData.email);
-              
-              // Send OTP before registering the user
-              await sendOtp(userData.email);  // Send OTP before proceeding with registration
-      
-              console.log('OTP sent successfully');
-              
-              // Proceed to the OTP verification screen
-              navigation.navigate('RegisterScreen', { email: userData.email });
-              
-          } catch (error) {
-              console.error('Error during OTP sending:', error);
-              setError('Error during OTP sending.');
-          }
-      };
+    if (!goal || !goalWeight || !goalDuration || !activityLevel) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    if (goal === 'Weight Loss' && parseFloat(goalWeight) >= parseFloat(userWeight)) {
+      setError(`Goal weight must be less than your current weight for weight loss. Your weight is ${userWeight}`);
+      return;
+    }
+
+    if (goal === 'Weight Gain' && parseFloat(goalWeight) <= parseFloat(userWeight)) {
+      setError(`Goal weight must be greater than your current weight for weight gain. Your weight is ${userWeight}`);
+      return;
+    }
+
+    const userData = {
+      ...route.params,
+      goal,
+      goal_weight: goalWeight,
+      goal_duration: `${goalDuration} ${parseInt(goalDuration) === 1 ? 'month' : 'months'}`,
+      activity_level: activityLevel,
+      first_name: route.params.firstName,
+      last_name: route.params.lastName,
+      email: route.params.email,
+    };
+
+    try {
+      const registrationResponse = await registerUser(userData);
+      console.log('Registration response:', registrationResponse);
+
+      console.log('Sending OTP to email:', userData.email);
+      await sendOtp(userData.email);
+
+      console.log('OTP sent successfully');
+      navigation.navigate('RegisterScreen', { email: userData.email });
+    } catch (error) {
+      console.error('Error during OTP sending:', error);
+      setError('Error during OTP sending.');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -98,7 +83,7 @@ const GoalScreen = ({ navigation, route }) => {
               goal === item.value && styles.selectedButton,
               error && styles.errorBorder,
             ]}
-            onPress={() => handleSelect(item.value)}
+            onPress={() => setGoal(item.value)}
             activeOpacity={0.7}
           >
             <Text
@@ -129,54 +114,48 @@ const GoalScreen = ({ navigation, route }) => {
       </View>
 
       <Text style={styles.currentWeight}>Your current weight: {userWeight} kg</Text>
-        <View style = {styles.inputcontainer}>
-      <TextInput
-        style={[styles.inputField, error && styles.errorBorder]}
-        placeholder="Enter your goal weight (kg)"
-        keyboardType="numeric"
-        value={goalWeight}
-        onChangeText={setGoalWeight}
-      />
-      <Text style={styles.unitText}>Weight in kilograms (kg)</Text>
+      <View style={styles.inputcontainer}>
+        <TextInput
+          style={[styles.inputField, error && styles.errorBorder]}
+          placeholder="Enter your goal weight (kg)"
+          keyboardType="numeric"
+          value={goalWeight}
+          onChangeText={setGoalWeight}
+        />
+        <Text style={styles.unitText}>Weight in kilograms (kg)</Text>
 
-      {(goalWeight && goal) && (
-        <Text style={{
-          color:
-            (goal === 'Weight Loss' && goalWeight >= userWeight) ||
-            (goal === 'Weight Gain' && goalWeight <= userWeight)
-              ? '#FF5252'
-              : '#B3A0FF',
-          fontSize: 13,
-          marginLeft: 4,
-          marginBottom: 8,
-        }}>
-          {
-            goal === 'Weight Loss'
-              ? 'Goal weight must be less than current weight'
-              : 'Goal weight must be greater than current weight'
-          }
-        </Text>
-      )}
+        <Text style={styles.label}>Select Your Goal Duration</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={goalDuration}
+            onValueChange={(itemValue) => setGoalDuration(itemValue)}
+            style={styles.picker}
+          >
+            {Array.from({ length: 12 }, (_, i) => (
+              <Picker.Item key={i} label={`${i + 1} Month${i > 0 ? 's' : ''}`} value={`${i + 1}`} />
+            ))}
+          </Picker>
+        </View>
 
-      <DropDownPicker
-        open={open}
-        value={goalDuration}
-        items={items}
-        setOpen={setOpen}
-        setValue={setGoalDuration}
-        setItems={setItems}
-        placeholder="Select Goal Duration (e.g., 3 months)"
-        containerStyle={styles.dropdownContainer}
-        style={styles.dropdownStyle}
-        dropDownStyle={styles.dropdownList}
-      />
+        <Text style={styles.label}>Select Your Activity Level</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={activityLevel}
+            onValueChange={(itemValue) => setActivityLevel(itemValue)}
+            style={styles.picker}
+          >
+            {activityLevels.map((item, index) => (
+              <Picker.Item key={index} label={item.label} value={item.value} />
+            ))}
+          </Picker>
+        </View>
       </View>
 
       <NextButton
         title="Finish Registration"
         onPress={handleNext}
-        disabled={!goal || !goalWeight || !goalDuration}
-        style={!goal || !goalWeight || !goalDuration ? { opacity: 0.5 } : {}}
+        disabled={!goal || !goalWeight || !goalDuration || !activityLevel}
+        style={!goal || !goalWeight || !goalDuration || !activityLevel ? { opacity: 0.5 } : {}}
       />
 
       <Text style={styles.debugText}>Debug Info: Weight = {userWeight} kg</Text>
@@ -189,7 +168,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
     justifyContent: 'center',
-    // padding: 20,
   },
   title: {
     fontSize: 28,
@@ -212,7 +190,6 @@ const styles = StyleSheet.create({
   optionButton: {
     backgroundColor: '#fff',
     borderWidth: 1,
-
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
@@ -221,7 +198,6 @@ const styles = StyleSheet.create({
   inputcontainer: {
     backgroundColor: '#b3a0ff',
     padding: 20,
-
   },
   selectedButton: {
     backgroundColor: '#e8f0fe',
@@ -272,7 +248,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 4,
     marginBottom: 10,
-    
   },
   currentWeight: {
     fontSize: 15,
@@ -281,23 +256,16 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     textAlign: 'center',
   },
-  dropdownContainer: {
+  pickerContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
     marginBottom: 12,
-    zIndex: 10,
   },
-  dropdownStyle: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-  },
-  dropdownList: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    marginTop: 5,
+  picker: {
+    height: 50,
+    width: '100%',
   },
   debugText: {
     marginTop: 12,

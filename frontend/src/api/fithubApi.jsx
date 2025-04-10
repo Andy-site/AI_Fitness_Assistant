@@ -136,6 +136,9 @@ export const updateUserProfile = async (userData, profileImage) => {
     formData.append('height', userData.height.toString());
     formData.append('weight', userData.weight.toString());
     formData.append('goal', userData.goal);
+    formData.append('goal_weight', userData.goal_weight.toString());
+    formData.append('goal_duration', userData.goal_duration); // Ensure this is a string
+    formData.append('activity_level', userData.activity_level);
 
     if (profileImage) {
       formData.append('profile_photo', {

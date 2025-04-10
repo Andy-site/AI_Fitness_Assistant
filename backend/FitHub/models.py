@@ -53,9 +53,19 @@ class CustomUser(AbstractUser):
         null=True,
         blank=True,
     )  # Dropdown for goal duration as a string
-    reset_otp = models.CharField(max_length=6, null=True, blank=True)
-    otp_created_at = models.DateTimeField(null=True, blank=True)
-    otp_verified = models.BooleanField(default=False)
+    ACTIVITY_LEVEL_CHOICES = [
+        ('sedentary', 'Sedentary (little or no exercise)'),
+        ('light', 'Light (light exercise/sports 1-3 days/week)'),
+        ('moderate', 'Moderate (moderate exercise/sports 3-5 days/week)'),
+        ('active', 'Active (hard exercise/sports 6-7 days/week)'),
+        ('very active', 'Very Active (very hard exercise/physical job)'),
+    ]
+    activity_level = models.CharField(
+        max_length=20,
+        choices=ACTIVITY_LEVEL_CHOICES,
+        default='moderate',
+    )
+    
     profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
 
     USERNAME_FIELD = 'email'
@@ -63,14 +73,66 @@ class CustomUser(AbstractUser):
 
     objects = CustomUserManager()
 
-    def activate_user(self):
-        self.is_active = True
-        self.save()
 
-    def reset_password(self, new_password):
-        """Reset the user's password."""
-        self.set_password(new_password)
-        self.save()
+    def calculate_calories(self, activity_level='moderate'):
+        """
+        Calculate daily calorie needs for maintenance, weight loss, and weight gain.
+        Incorporates goal duration to adjust calorie deficit or surplus.
+        :param activity_level: Activity level ('sedentary', 'light', 'moderate', 'active', 'very active')
+        :return: A dictionary with calories for maintenance, weight loss, and weight gain
+        """
+        # Calculate BMR using the Mifflin-St Jeor Equation
+        if hasattr(self, 'gender') and self.gender == 'male':
+            bmr = 10 * self.weight + 6.25 * self.height - 5 * self.age + 5
+        else:  # Default to female if gender is not specified
+            bmr = 10 * self.weight + 6.25 * self.height - 5 * self.age - 161
+
+        # Activity level multipliers
+        activity_multipliers = {
+            'sedentary': 1.2,
+            'light': 1.375,
+            'moderate': 1.55,
+            'active': 1.725,
+            'very active': 1.9,
+        }
+
+        # Adjust BMR based on activity level
+        tdee = bmr * activity_multipliers.get(activity_level, 1.55)  # Default to 'moderate'
+
+        # Calculate total weight change required (in kg)
+        if self.goal_weight:
+            weight_change = abs(self.goal_weight - self.weight)  # Weight to lose or gain
+        else:
+            weight_change = 0
+
+        # Convert goal duration to days
+        if self.goal_duration:
+            duration_in_months = int(self.goal_duration.split()[0])  # Extract the number of months
+            duration_in_days = duration_in_months * 30  # Approximate each month as 30 days
+        else:
+            duration_in_days = 90  # Default to 3 months if no duration is provided
+
+        # Calculate daily calorie adjustment based on weight change and duration
+        # 1 kg of body weight = ~7700 calories
+        daily_calorie_adjustment = (weight_change * 7700) / duration_in_days
+
+        # Adjust TDEE for weight loss or weight gain
+        if self.goal == 'Weight Loss':
+            weight_loss_calories = tdee - daily_calorie_adjustment
+        elif self.goal == 'Weight Gain':
+            weight_gain_calories = tdee + daily_calorie_adjustment
+        else:
+            weight_loss_calories = tdee  # No adjustment for maintenance
+            weight_gain_calories = tdee  # No adjustment for maintenance
+
+        # Return calculated calories
+        calories = {
+            
+            'weight_loss': round(weight_loss_calories) if self.goal == 'Weight Loss' else None,
+            'weight_gain': round(weight_gain_calories) if self.goal == 'Weight Gain' else None,
+        }
+
+        return calories
 
     
 
@@ -110,7 +172,7 @@ class WorkoutLibrary(models.Model):
     
     
 class Workout(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="workouts")
     workout_date = models.DateField(default=now)  # Date when the workout was done
     total_time = models.DurationField(null=True, blank=True)  # Total time spent on workout
     total_calories = models.FloatField(null=True, blank=True)  # Calories burned

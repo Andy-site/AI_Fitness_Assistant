@@ -7,7 +7,7 @@ from .models import CustomUser
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['email', 'password', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'username', 'goal_weight','goal_duration']
+        fields = ['email', 'password', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'username', 'goal_weight','goal_duration','activity_level']
         extra_kwargs = {'password': {'write_only': True}, 'username': {'required': False}}  # Make username not required
 
     def validate_username(self, value):
@@ -39,20 +39,26 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         # Create the user with the validated data
         user = CustomUser.objects.create_user(**validated_data)
         return user
+    
+    def get_calories(self, obj):
+        return obj.calculate_calories(activity_level='moderate')
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    profile_photo = serializers.ImageField(required=False)  # If you want the user to be able to upload an image
+    profile_photo = serializers.ImageField(required=False)  # Allow optional profile photo upload
 
     class Meta:
         model = CustomUser
-        fields = ['email', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'goal_weight', 'profile_photo', 'goal_duration']
-        read_only_fields = ['email']  # Make sure the email is not editable
+        fields = [
+            'email', 'first_name', 'last_name', 'age', 'height', 'weight', 
+            'goal', 'goal_weight', 'profile_photo', 'goal_duration', 'activity_level'
+        ]
+        read_only_fields = ['email']  # Make email read-only
 
     def update(self, instance, validated_data):
         # Check if profile photo is provided and update
         profile_photo = validated_data.pop('profile_photo', None)
-        
+
         # Update all other fields provided in validated_data
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -60,20 +66,34 @@ class UserProfileSerializer(serializers.ModelSerializer):
         # If a new profile photo is uploaded, update it
         if profile_photo:
             instance.profile_photo = profile_photo
-        
+
+        # Explicitly handle goal_weight, goal_duration, and activity_level
+        if 'goal_weight' in validated_data:
+            instance.goal_weight = validated_data['goal_weight']
+        if 'goal_duration' in validated_data:
+            instance.goal_duration = validated_data['goal_duration']
+        if 'activity_level' in validated_data:
+            instance.activity_level = validated_data['activity_level']
+
         instance.save()
         return instance
 
     def validate_goal_weight(self, value):
-        # Retrieve the current user weight (assuming it is part of the update data)
+        # Retrieve the current user weight (assuming it is passed as part of the update data)
         current_weight = self.initial_data.get('weight')
         goal = self.initial_data.get('goal')
+
+        # Convert current_weight to float for comparison
+        try:
+            current_weight = float(current_weight)
+        except (TypeError, ValueError):
+            raise serializers.ValidationError("Invalid weight value provided.")
 
         if goal == 'Weight Loss' and value >= current_weight:
             raise serializers.ValidationError("Goal weight must be less than your current weight for weight loss.")
         if goal == 'Weight Gain' and value <= current_weight:
             raise serializers.ValidationError("Goal weight must be greater than your current weight for weight gain.")
-        
+
         return value
 
 
