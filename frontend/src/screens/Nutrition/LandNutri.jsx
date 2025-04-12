@@ -8,20 +8,21 @@ import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import { capitalizeWords } from '../../utils/StringUtils';
 
-const activityLevels = ['Sedentary', 'Light', 'Moderate', 'Active', 'Very Active'];
+
 const dietaryRestrictions = ['None', 'Vegetarian', 'Vegan', 'Gluten-Free', 'Keto', 'Paleo'];
 
 const LandNutri = () => {
   const navigation = useNavigation();
-  const [loading, setLoading] = useState(false);
-  const [nutritionAdvice, setNutritionAdvice] = useState(null);
+  
 
   // User details state
   const [firstName, setFirstName] = useState('');
   const [currentWeight, setCurrentWeight] = useState('');
   const [goal, setGoal] = useState('');
+  const [loading, setLoading] = useState(false);
+
 
   // User inputs
   const [dietaryRestriction, setDietaryRestriction] = useState('None');
@@ -38,6 +39,8 @@ const LandNutri = () => {
           setFirstName(user.first_name || 'User');
           setCurrentWeight(user.weight ? String(user.weight) : '');
           setGoal(user.goal || '');
+          setActivityLevel(capitalizeWords(user.activity_level));
+          setTargetWeight(user.goal_weight ? String(user.goal_weight) : '');
         }
       } catch (error) {
         console.error('Error retrieving user details:', error);
@@ -47,68 +50,45 @@ const LandNutri = () => {
     getUserDetails();
   }, []);
 
-  // Validate Target Weight
-  const validateTargetWeight = () => {
-    const current = parseFloat(currentWeight);
-    const target = parseFloat(targetWeight);
-
-    if (!targetWeight) {
-      Alert.alert("Missing Target Weight", "Please enter your target weight.");
-      return false;
-    }
-
-    if (goal === 'Gain weight' && target <= current) {
-      Alert.alert("Invalid Target Weight", "For weight gain, target weight must be higher than current weight.");
-      return false;
-    }
-    
-    if (goal === 'Lose weight' && target >= current) {
-      Alert.alert("Invalid Target Weight", "For weight loss, target weight must be lower than current weight.");
-      return false;
-    }
-
-    return true;
-  };
-
-  // Fetch nutrition advice
   const getNutritionAdvice = async () => {
-    if (!validateTargetWeight()) return;
-  
     setLoading(true);
-    
+  
+    const options = {
+      method: 'POST',
+      url: 'https://ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com/nutritionAdvice',
+      params: { noqueue: '1' },
+      headers: {
+        'x-rapidapi-key': '823eb87dafmsh4f6cc51c44be9d0p1b6da0jsn4dc884f6b5f8',
+        'x-rapidapi-host': 'ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com',
+        'Content-Type': 'application/json',
+      },
+      data: {
+        goal,
+        dietary_restrictions: [dietaryRestriction],
+        current_weight: parseFloat(currentWeight),
+        target_weight: parseFloat(targetWeight),
+        daily_activity_level: activityLevel,
+        lang: 'en',
+      },
+    };
+  
     try {
-      const response = await axios.post(
-        'https://ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com/nutritionAdvice?noqueue=1',
-        {
-          goal,
-          dietary_restrictions: [dietaryRestriction],
-          current_weight: parseFloat(currentWeight),
-          target_weight: parseFloat(targetWeight),
-          daily_activity_level: activityLevel,
-          lang: 'en',
-        },
-        {
-          headers: {
-            'x-rapidapi-key': '3ad4a2f8admsh440268a18f36360p163235jsne9d005b72609',
-            'x-rapidapi-host': 'ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com',
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      
-      setNutritionAdvice(response.data);
+      const response = await axios.request(options);
+      console.log('API Response:', response.data);
+  
+      // Navigate directly to MealDetails with the API response
+      navigation.navigate('MealDetails', {
+        macronutrients: response.data.result?.macronutrients || {},
+        mealPlan: response.data.result?.meal_suggestions || [],
+      });
     } catch (error) {
-      if (error.response?.status === 429) {
-        console.error("Too many requests, please wait before trying again.");
-        Alert.alert("Rate Limit Exceeded", "You've made too many requests. Try again later.");
-      } else {
-        console.error('Error fetching nutrition advice:', error);
-        Alert.alert("Error", "Failed to fetch nutrition advice. Please try again later.");
-      }
+      console.error('Error fetching nutrition advice:', error);
+      Alert.alert('Error', 'Failed to fetch nutrition advice. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <KeyboardAvoidingView 
@@ -122,29 +102,14 @@ const LandNutri = () => {
           <Text style={styles.title}>Welcome, {firstName}!</Text>
           <Text>Current Weight: {currentWeight} kg</Text>
           <Text>Goal: {goal}</Text>
+          <Text>Target Weight: {targetWeight} kg</Text>
+          <Text>Activity Level: {activityLevel}</Text>
         </View>
 
-        <TouchableOpacity style={styles.button1} onPress={()=>
-          navigation.navigate('CreateNutri', { 
-            firstName, 
-            currentWeight, 
-            goal, 
-          })
-        }>
-          <Icon name = "plus" size={20} color= "#000000" />
-          <Text style={styles.buttonText}>Create Meal Plan</Text>
-        </TouchableOpacity>
         
         {/* Input Fields */}
         <View style={styles.inputContainer}>
-          <Text style={styles.sectionTitle}>Enter Target Weight:</Text>
-          <TextInput
-            style={styles.input}
-            keyboardType="numeric"
-            placeholder="Enter target weight (kg)"
-            value={targetWeight}
-            onChangeText={setTargetWeight}
-          />
+         
 
           <Text style={styles.sectionTitle}>Select Dietary Restriction:</Text>
           <View style={styles.pickerContainer}>
@@ -158,45 +123,23 @@ const LandNutri = () => {
               ))}
             </Picker>
           </View>
-
-          <Text style={styles.sectionTitle}>Select Daily Activity Level:</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={activityLevel}
-              onValueChange={(itemValue) => setActivityLevel(itemValue)}
-              style={styles.picker}
-            >
-              {activityLevels.map((level, index) => (
-                <Picker.Item key={index} label={level} value={level} />
-              ))}
-            </Picker>
-          </View>
         </View>
 
         {/* Fetch Nutrition Advice */}
-        <TouchableOpacity style={styles.button} onPress={getNutritionAdvice}>
-          <Text style={styles.buttonText}>Get Nutrition Advice</Text>
-        </TouchableOpacity>
+        <TouchableOpacity 
+  style={[styles.button, loading && { opacity: 0.6 }]} 
+  onPress={getNutritionAdvice} 
+  disabled={loading}
+>
+  {loading ? (
+    <ActivityIndicator size="small" color="#000" />
+  ) : (
+    <Text style={styles.buttonText}>Plan Details</Text>
+  )}
+</TouchableOpacity>
 
-        {loading && <ActivityIndicator size="large" color="#B3A0FF" />}
 
-        {/* Display Nutrition Advice */}
-        {!loading && nutritionAdvice && nutritionAdvice.result && (
-          <View style={styles.resultContainer}>
-            <Text style={styles.resultTitle}>Nutrition Advice Result</Text>
-            <Text>Goal: {nutritionAdvice.result?.goal}</Text>
-            <Text>Daily Calories: {nutritionAdvice.result?.calories_per_day} kcal</Text>
-
-            <View style={{ alignItems: 'center', marginTop: 15 }}>
-              <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('MealDetails', {
-                  macronutrients: nutritionAdvice.result?.macronutrients,
-                  mealPlan: nutritionAdvice.result?.meal_suggestions
-                })}>
-                <Text style={styles.buttonText}>View Meal Plan</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+       
       </ScrollView>
       <Footer/>
     </KeyboardAvoidingView>
