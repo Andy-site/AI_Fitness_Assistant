@@ -4,6 +4,7 @@ from django.db import models
 from django.utils.timezone import now, timedelta
 from datetime import timedelta
 from django.utils import timezone
+from django.db.models import Sum
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, first_name, last_name, password=None, **extra_fields):
@@ -24,7 +25,6 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, first_name, last_name, password, **extra_fields)
 
 
-
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=100)
@@ -32,10 +32,11 @@ class CustomUser(AbstractUser):
     age = models.IntegerField()
     height = models.FloatField()
     weight = models.FloatField()
-    goal = models.CharField(max_length=255)
-    goal_weight = models.FloatField(null=True, blank=True)  # Add goal weight
+    goal = models.CharField(max_length=255)  # e.g., Weight Loss, Weight Gain
+    goal_weight = models.FloatField(null=True, blank=True)  # Target weight
+    profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
     goal_duration = models.CharField(
-        max_length=20, 
+        max_length=20,
         choices=[
             ('1 month', '1 month'),
             ('2 months', '2 months'),
@@ -52,7 +53,7 @@ class CustomUser(AbstractUser):
         ],
         null=True,
         blank=True,
-    )  # Dropdown for goal duration as a string
+    )
     ACTIVITY_LEVEL_CHOICES = [
         ('sedentary', 'Sedentary (little or no exercise)'),
         ('light', 'Light (light exercise/sports 1-3 days/week)'),
@@ -65,26 +66,15 @@ class CustomUser(AbstractUser):
         choices=ACTIVITY_LEVEL_CHOICES,
         default='moderate',
     )
-    
-    profile_photo = models.ImageField(upload_to='profile_photos/', null=True, blank=True)
-
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name']
-
-    objects = CustomUserManager()
-
 
     def calculate_calories(self, activity_level='moderate'):
         """
-        Calculate daily calorie needs for maintenance, weight loss, and weight gain.
-        Incorporates goal duration to adjust calorie deficit or surplus.
-        :param activity_level: Activity level ('sedentary', 'light', 'moderate', 'active', 'very active')
-        :return: A dictionary with calories for maintenance, weight loss, and weight gain
+        Calculate daily calorie needs for weight loss or weight gain.
         """
         # Calculate BMR using the Mifflin-St Jeor Equation
         if hasattr(self, 'gender') and self.gender == 'male':
             bmr = 10 * self.weight + 6.25 * self.height - 5 * self.age + 5
-        else:  # Default to female if gender is not specified
+        else:
             bmr = 10 * self.weight + 6.25 * self.height - 5 * self.age - 161
 
         # Activity level multipliers
@@ -97,42 +87,27 @@ class CustomUser(AbstractUser):
         }
 
         # Adjust BMR based on activity level
-        tdee = bmr * activity_multipliers.get(activity_level, 1.55)  # Default to 'moderate'
+        tdee = bmr * activity_multipliers.get(activity_level, 1.55)
 
         # Calculate total weight change required (in kg)
-        if self.goal_weight:
-            weight_change = abs(self.goal_weight - self.weight)  # Weight to lose or gain
-        else:
-            weight_change = 0
+        weight_change = abs(self.goal_weight - self.weight) if self.goal_weight else 0
 
         # Convert goal duration to days
-        if self.goal_duration:
-            duration_in_months = int(self.goal_duration.split()[0])  # Extract the number of months
-            duration_in_days = duration_in_months * 30  # Approximate each month as 30 days
-        else:
-            duration_in_days = 90  # Default to 3 months if no duration is provided
+        duration_in_days = int(self.goal_duration.split()[0]) * 30 if self.goal_duration else 90
 
-        # Calculate daily calorie adjustment based on weight change and duration
-        # 1 kg of body weight = ~7700 calories
+        # Calculate daily calorie adjustment
         daily_calorie_adjustment = (weight_change * 7700) / duration_in_days
 
         # Adjust TDEE for weight loss or weight gain
         if self.goal == 'Weight Loss':
             weight_loss_calories = tdee - daily_calorie_adjustment
+            return {'weight_loss': round(weight_loss_calories)}
         elif self.goal == 'Weight Gain':
             weight_gain_calories = tdee + daily_calorie_adjustment
+            return {'weight_gain': round(weight_gain_calories)}
         else:
-            weight_loss_calories = tdee  # No adjustment for maintenance
-            weight_gain_calories = tdee  # No adjustment for maintenance
+            return {}
 
-        # Return calculated calories
-        calories = {
-            
-            'weight_loss': round(weight_loss_calories) if self.goal == 'Weight Loss' else None,
-            'weight_gain': round(weight_gain_calories) if self.goal == 'Weight Gain' else None,
-        }
-
-        return calories
 
     
 
@@ -178,20 +153,44 @@ class Workout(models.Model):
     total_calories = models.FloatField(null=True, blank=True)  # Calories burned
     workout_library = models.ForeignKey(WorkoutLibrary, on_delete=models.SET_NULL, null=True, blank=True)  # Optional
 
+    def calculate_total_calories(self):
+        """
+        Calculate total calories burned for this workout.
+        """
+        total_calories = 0
+        for exercise in self.exercises.all():
+            total_calories += exercise.calculate_calories()
+        self.total_calories = total_calories
+        self.save()
+        return total_calories
+
     def __str__(self):
         return f"Workout for {self.user.email} on {self.workout_date}"
 
 class WorkoutExercise(models.Model):
-    workout = models.ForeignKey(Workout, on_delete=models.CASCADE, related_name="exercises", null = True)
-    workout_exercise_id = models.IntegerField(default = 1)  # Store API exercise ID
+    workout = models.ForeignKey(Workout, on_delete=models.CASCADE, related_name="exercises", null=True)
+    workout_exercise_id = models.IntegerField(default=1)  # Store API exercise ID
     name = models.CharField(max_length=200)  # Store exercise name for quick reference
     body_part = models.CharField(max_length=100, null=True)  # Store body part info
     start_date = models.DateField(default=now)  # When the exercise started
     total_time = models.DurationField(null=True, blank=True)  # Time taken for this exercise
     total_calories = models.FloatField(null=True, blank=True, default=0.0)  # Calories burned for this exercise
 
+    def calculate_calories(self):
+        """
+        Calculate calories burned for this exercise based on performance data.
+        """
+        total_calories = 0
+        for performance in self.performance.all():
+            # Example formula: calories burned = reps * weight * 0.1
+            total_calories += performance.reps * performance.weight * 0.1
+        self.total_calories = total_calories
+        self.save()
+        return total_calories
+
     def __str__(self):
         return f"{self.name} ({self.body_part})"
+    
 
 class ExercisePerformance(models.Model):
     workout_exercise = models.ForeignKey(WorkoutExercise, on_delete=models.CASCADE, related_name="performance")
@@ -199,9 +198,15 @@ class ExercisePerformance(models.Model):
     reps = models.IntegerField()
     weight = models.FloatField()
 
+    def calculate_calories(self):
+        """
+        Calculate calories burned for this performance.
+        Example formula: calories burned = reps * weight * 0.1
+        """
+        return self.reps * self.weight * 0.1
+
     def __str__(self):
         return f"{self.workout_exercise.name} - Set {self.set_number}: {self.reps} reps at {self.weight}kg"
-    
 
 
 class WorkoutLibraryExercise(models.Model):
@@ -234,3 +239,52 @@ class FavoriteExercise(models.Model):
 
     class Meta:
         unique_together = ('user', 'exercise') 
+
+
+class MealPlan(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="meal_plans")
+    meal = models.CharField(max_length=100)  # e.g., Breakfast, Lunch, etc.
+    name = models.CharField(max_length=255)  # e.g., Oatmeal with Fruits
+    ingredients = models.JSONField()  # Store ingredients as a JSON array
+    calories = models.IntegerField()  # Calories for the meal
+    dietary_restriction = models.CharField(max_length=50, blank= True, null = True)  # e.g., Vegetarian, Vegan
+    is_consumed = models.BooleanField(default=False)  # Flag to track consumption
+    created_at = models.DateTimeField(auto_now_add=True)  # Timestamp for creation
+
+    def __str__(self):
+        return f"{self.user.username} - {self.meal} - {self.name}"
+    
+
+class DailyCalorieSummary(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="daily_summaries")
+    date = models.DateField(default=now)
+    calories_consumed = models.FloatField(default=0.0)  # Total calories consumed from meals
+    calories_burned = models.FloatField(default=0.0)  # Total calories burned from workouts
+    net_calories = models.FloatField(default=0.0)  # Net calorie balance (consumed - burned - required)
+
+    def calculate_net_calories(self):
+        """
+        Calculate the net calorie balance for the day.
+        """
+        # Calculate calories burned from workouts
+        self.calories_burned = Workout.objects.filter(user=self.user, workout_date=self.date).aggregate(
+            total=Sum('total_calories')
+        )['total'] or 0
+
+        # Calculate calories consumed from meals
+        self.calories_consumed = MealPlan.objects.filter(user=self.user, created_at__date=self.date).aggregate(
+            total=Sum('calories')
+        )['total'] or 0
+
+        # Get daily required calories
+        calorie_data = self.user.calculate_calories(activity_level=self.user.activity_level)
+        daily_required_calories = (
+            calorie_data.get('weight_loss') or calorie_data.get('weight_gain')
+        )
+
+        # Calculate net calories
+        self.net_calories = self.calories_consumed - self.calories_burned - daily_required_calories
+        self.save()
+
+    def __str__(self):
+        return f"Calorie Summary for {self.user.email} on {self.date}"

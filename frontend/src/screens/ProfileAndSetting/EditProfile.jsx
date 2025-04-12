@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, Image, Modal, StyleSheet, TouchableOpacity, Alert,Text, KeyboardAvoidingView, Platform, ScrollView} from 'react-native';
+import React, { useState, useEffect , useRef} from 'react';
+import { View, TextInput, Button, Image, Modal, StyleSheet, TouchableOpacity, Alert,Text, KeyboardAvoidingView, Platform, ScrollView, alert} from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { fetchUserDetails, logout, updateUserProfile } from '../../api/fithubApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,7 +8,7 @@ import Footer from '../../components/Footer';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
-import DropDownPicker from 'react-native-dropdown-picker';
+
 
 const API_BASE_URL = 'http://192.168.0.117:8000/';
 
@@ -19,7 +19,8 @@ const EditProfile = () => {
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [goal, setGoal] = useState('Maintain');
-  const [goalWeight, setGoalWeight] = useState(''); // Added state for Goal Weight
+  const [goalWeight, setGoalWeight] = useState('');
+  const goalWeightRef = useRef(null);
   const [goalDuration, setGoalDuration] = useState('1'); // Default to 1 month
   const [activityLevel, setActivityLevel] = useState('moderate');
   const [profileImage, setProfileImage] = useState(null);
@@ -59,14 +60,7 @@ const EditProfile = () => {
   }, []);
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      alert('You have been logged out successfully.');
-      navigation.replace('LoginScreen');
-    } catch (error) {
-      console.error('Error during logout:', error.message || error);
-      alert('Failed to log out. Please try again.');
-    }
+   navigation.navigate('LogoutScreen'); // Navigate to the login screen
   };
 
   const handleImageResponse = (response) => {
@@ -94,35 +88,87 @@ const EditProfile = () => {
     launchImageLibrary({ mediaType: 'photo' }, handleImageResponse);
   };
 
+  // Update the handleSubmit function with better error handling:
   const handleSubmit = async () => {
-    if (!firstName || !lastName || !age || !height || !weight || !goal || !goalDuration || !activityLevel) {
-      Alert.alert('Please fill in all fields.');
+    if (!firstName || !lastName || !age || !height || !weight || !goal) {
+      Alert.alert('Error', 'Please fill in all required fields.');
       return;
     }
-
-    const updatedUserData = {
-      first_name: firstName,
-      last_name: lastName,
-      age: parseInt(age, 10),
-      height: parseFloat(height),
-      weight: parseFloat(weight),
-      goal: goal,
-      goal_weight: parseFloat(goalWeight), // Include Goal Weight
-      goal_duration: `${goalDuration} ${parseInt(goalDuration) === 1 ? 'month' : 'months'}`,
-      activity_level: activityLevel,
-    };
-
+  
     try {
       setLoading(true);
-      const updatedData = await updateUserProfile(updatedUserData, profileImage);
-      await AsyncStorage.setItem('user_details', JSON.stringify(updatedData));
-      alert('Profile updated successfully');
-    } catch (error) {
-      console.error('Error updating profile:', error.message);
-      alert('Failed to update profile. Please try again later.');
-    } finally {
-      setLoading(false);
+      
+      // Validate goal weight based on goal type before making API call
+      if (goal === 'Weight Loss' && parseFloat(goalWeight) >= parseFloat(weight)) {
+        Alert.alert(
+          'Invalid Goal Weight',
+          'For weight loss, goal weight must be less than your current weight.'
+        );
+        return;
+      }
+  
+      if (goal === 'Weight Gain' && parseFloat(goalWeight) <= parseFloat(weight)) {
+        Alert.alert(
+          'Invalid Goal Weight',
+          'For weight gain, goal weight must be greater than your current weight.'
+        );
+        return;
+      }
+  
+      const formattedGoalDuration = `${goalDuration} ${parseInt(goalDuration) === 1 ? 'month' : 'months'}`;
+    
+    const formData = new FormData();
+    formData.append('first_name', firstName.trim());
+    formData.append('last_name', lastName.trim());
+    formData.append('age', age.toString());
+    formData.append('height', height.toString());
+    formData.append('weight', weight.toString());
+    formData.append('goal', goal);
+    formData.append('goal_duration', formattedGoalDuration); // Send formatted duration
+    formData.append('activity_level', activityLevel);
+
+    if (goalWeight) {
+      formData.append('goal_weight', goalWeight.toString());
     }
+
+    if (profileImage?.uri) {
+      formData.append('profile_photo', {
+        uri: Platform.OS === 'android' ? profileImage.uri : profileImage.uri.replace('file://', ''),
+        type: 'image/jpeg',
+        name: 'profile_photo.jpg'
+      });
+    }
+
+    // Debug log to check what's being sent
+    console.log('Sending form data:', Object.fromEntries(formData._parts));
+
+    const response = await updateUserProfile(formData);
+    
+    if (response) {
+      Alert.alert('Success', 'Profile updated successfully');
+      navigation.goBack();
+    }
+
+  } catch (error) {
+    console.error('Profile Update Error:', error);
+    
+    // Handle specific validation errors
+    if (error.response?.data) {
+      const errorData = error.response.data;
+      if (errorData.goal_duration) {
+        Alert.alert('Error', `Goal Duration: ${errorData.goal_duration[0]}`);
+        return;
+      }
+    }
+    
+    // Handle generic errors
+    Alert.alert(
+      'Update Failed',
+      error.message || 'Failed to update profile. Please try again.'
+    );
+  } finally {
+    setLoading(false);
+  }
   };
 
   return (
@@ -153,21 +199,43 @@ const EditProfile = () => {
               { label: 'First Name', value: firstName, setValue: setFirstName },
               { label: 'Last Name', value: lastName, setValue: setLastName },
               { label: 'Age', value: age, setValue: setAge, keyboardType: 'numeric' },
-              { label: 'Height', value: height, setValue: setHeight, keyboardType: 'numeric' },
-              { label: 'Weight', value: weight, setValue: setWeight, keyboardType: 'numeric' },
-              { label: 'Goal Weight', value: goalWeight, setValue: setGoalWeight, keyboardType: 'numeric' }, // Added Goal Weight
-            ].map((item, index) => (
-              <View style={styles.inputGroup} key={index}>
-                <Text style={styles.inputLabel}>{item.label}:</Text>
-                <TextInput
-                  placeholder={item.label}
-                  value={item.value}
-                  onChangeText={item.setValue}
-                  keyboardType={item.keyboardType || 'default'}
-                  style={styles.input}
-                />
-              </View>
-            ))}
+              { label: 'Height(cm)', value: height, setValue: setHeight, keyboardType: 'numeric' },
+              { label: 'Weight(Kg)', value: weight, setValue: setWeight, keyboardType: 'numeric' },
+              
+                { 
+                  label: 'Goal Weight(Kg)', 
+                  value: goalWeight, 
+                  setValue: (text) => {
+                    // Only allow numeric input with up to 2 decimal places
+                    if (text === '' || /^\d*\.?\d{0,2}$/.test(text)) {
+                      setGoalWeight(text);
+                    }
+                  },
+                  keyboardType: 'numeric',
+                  ref: goalWeightRef,
+                  placeholder: 'Enter target weight in kg',
+                  editable: goal !== 'Maintain', // Disable if goal is Maintain
+                  style: [
+                    styles.input,
+                    goal === 'Maintain' && styles.disabledInput,
+                    parseFloat(goalWeight) >= parseFloat(weight) && goal === 'Weight Loss' && styles.errorInput,
+                    parseFloat(goalWeight) <= parseFloat(weight) && goal === 'Weight Gain' && styles.errorInput
+                  ]
+                }
+              ].map((item, index) => (
+                <View style={styles.inputGroup} key={index}>
+                  <Text style={styles.inputLabel}>{item.label}:</Text>
+                  <TextInput
+                    ref={item.ref}
+                    placeholder={item.placeholder || item.label}
+                    value={item.value}
+                    onChangeText={item.setValue}
+                    keyboardType={item.keyboardType || 'default'}
+                    style={[styles.input, item.style]}
+                    editable={item.editable !== false}
+                  />
+                </View>
+              ))}
 
             {/* Picker for Goal */}
             <View style={styles.inputGroup}>

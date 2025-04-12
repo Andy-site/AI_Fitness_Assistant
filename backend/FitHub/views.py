@@ -5,8 +5,8 @@ from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.conf import settings
-from .serializers import UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer, UserProfileSerializer, ExerciseSerializer, FavoriteExerciseSerializer, ToggleFavoriteExerciseSerializer
-from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise
+from .serializers import UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer, UserProfileSerializer, ExerciseSerializer, FavoriteExerciseSerializer, ToggleFavoriteExerciseSerializer, MealPlanSerializer
+from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise, MealPlan, DailyCalorieSummary
 import logging
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -18,7 +18,7 @@ from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Index
 from django.core.paginator import Paginator
-from django.db import transaction
+from django.db.models import Sum, Count
 
 logger = logging.getLogger(__name__)
 
@@ -777,3 +777,194 @@ class WorkoutLibraryExerciseDeleteView(APIView):
         
         exercise.delete()
         return Response({"message": "Exercise deleted successfully."}, status=status.HTTP_200_OK)
+    
+class MealPlanCreateView(APIView):
+    def post(self, request):
+        user = request.user
+        data = request.data
+
+        # Loop through the meal plan data and create entries
+        for meal in data.get('mealPlan', []):
+            # Check if the meal already exists for the user with the same ingredients and created_at date
+            existing_meal = MealPlan.objects.filter(
+                user=user,
+                meal=meal.get('meal'),
+                name=meal.get('name'),
+                ingredients=meal.get('ingredients'),
+                created_at__date=now().date()  # Check for the same date
+            ).first()
+
+            if existing_meal:
+                # Skip creating duplicate meal
+                continue
+
+            # Create the meal if it doesn't exist
+            MealPlan.objects.create(
+                user=user,
+                meal=meal.get('meal'),
+                name=meal.get('name'),
+                ingredients=meal.get('ingredients'),
+                dietary_restriction=meal.get('dietary_restriction'),
+                calories=meal.get('calories'),
+                is_consumed=False,  # Default to False
+            )
+
+        return Response({"message": "Meal plan created successfully."}, status=status.HTTP_201_CREATED)
+
+class BulkUpdateMealConsumedStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        """
+        Bulk update the is_consumed status of multiple meals.
+        """
+        user = request.user
+        updates = request.data.get('updates', [])
+
+        if not updates:
+            return Response({"error": "No updates provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        for update in updates:
+            meal_id = update.get('id')
+            is_consumed = update.get('is_consumed')
+
+            if meal_id is None or is_consumed is None:
+                continue
+
+            try:
+                meal = MealPlan.objects.get(id=meal_id, user=user)
+                meal.is_consumed = is_consumed
+                meal.save()
+            except MealPlan.DoesNotExist:
+                continue
+
+        return Response({"message": "Meal statuses updated successfully."}, status=status.HTTP_200_OK)
+    
+
+
+class MealPlanListView(APIView):
+    def get(self, request):
+        user = request.user
+        start_date = request.query_params.get('start_date')  # Get start_date from query params
+
+        # Filter meal plans by user and optionally by start_date
+        meal_plans = MealPlan.objects.filter(user=user)
+        if start_date:
+            meal_plans = meal_plans.filter(created_at__date__gte=start_date)
+
+        serializer = MealPlanSerializer(meal_plans, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class BackendMealsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        Fetch all meals for the authenticated user.
+        """
+        user = request.user
+
+        # Fetch meals for the user
+        meals = MealPlan.objects.filter(user=user).values('id', 'name', 'is_consumed')
+
+        # Format the response
+        formatted_meals = list(meals)
+
+        return Response(formatted_meals, status=status.HTTP_200_OK)
+
+class UpdateMealConsumedStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, meal_id):
+        """
+        Update the is_consumed status of a meal.
+        """
+        try:
+            meal = MealPlan.objects.get(id=meal_id, user=request.user)
+            is_consumed = request.data.get('is_consumed', None)
+
+            if is_consumed is None:
+                return Response({"error": "is_consumed field is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+            meal.is_consumed = is_consumed
+            meal.save()
+
+            return Response({"message": "Meal status updated successfully.", "is_consumed": meal.is_consumed}, status=status.HTTP_200_OK)
+        except MealPlan.DoesNotExist:
+            return Response({"error": "Meal not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+
+class MealPlanStatsView(APIView):
+    def get(self, request):
+        user = request.user
+
+        # Aggregate meals by dietary restriction
+        dietary_stats = (
+            MealPlan.objects.filter(user=user)
+            .values('dietary_restriction')
+            .annotate(total=Count('dietary_restriction'))
+            .order_by('-total')
+        )
+
+        # Aggregate meals by consumption status
+        consumption_stats = (
+            MealPlan.objects.filter(user=user)
+            .values('is_consumed')
+            .annotate(total=Count('is_consumed'))
+        )
+
+        return Response(
+            {
+                "dietary_stats": dietary_stats,
+                "consumption_stats": consumption_stats,
+            },
+            status=status.HTTP_200_OK,
+        )
+    
+
+class DailyCalorieSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        Get the daily calorie summary for the authenticated user.
+        """
+        user = request.user
+        today = now().date()
+
+        # Step 1: Calculate calories consumed from meals
+        calories_consumed = MealPlan.objects.filter(user=user, created_at__date=today).aggregate(
+            total=Sum('calories')
+        )['total'] or 0
+
+        # Step 2: Calculate calories burned from workouts
+        calories_burned = Workout.objects.filter(user=user, workout_date=today).aggregate(
+            total=Sum('total_calories')
+        )['total'] or 0
+
+        # Step 3: Get daily calorie requirements
+        calorie_data = user.calculate_calories(activity_level=user.activity_level)
+        daily_required_calories = (
+            calorie_data.get('weight_loss') or calorie_data.get('weight_gain')
+        )
+
+        # Step 4: Calculate net calories
+        net_calories = calories_consumed - calories_burned - daily_required_calories
+
+        # Step 5: Save or update the daily summary
+        summary, created = DailyCalorieSummary.objects.get_or_create(user=user, date=today)
+        summary.calories_consumed = calories_consumed
+        summary.calories_burned = calories_burned
+        summary.net_calories = net_calories
+        summary.save()
+
+        # Step 6: Return the summary
+        return Response({
+            "date": today,
+            "calories_consumed": calories_consumed,
+            "calories_burned": calories_burned,
+            "daily_required_calories": daily_required_calories,
+            "net_calories": net_calories,
+        }, status=200)
+    

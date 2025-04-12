@@ -1,35 +1,8 @@
-// src/pages/FoodSearch.js
-
 import React, { useState } from 'react';
-import { View, TextInput, Button, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, TextInput, Button, Text, FlatList, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import axios from 'axios';
 
-// Define the API key and base URL
-const apiKey = 'jgjeAKwtJHaooaVjBKh2DrgUAyDctF8GZ7rbXvAb';  // Replace with your API key
-
-async function searchFoods() {
-  const url = 'https://api.nal.usda.gov/fdc/v1/foods/search';
-
-  const params = {
-    query: 'cheddar cheese',  // Example search query
-    dataType: ['Foundation', 'SR Legacy'],  // Example data types
-    pageSize: 25,  // Number of results per page
-    pageNumber: 1,  // Page number to retrieve
-  };
-
-  const headers = {
-    'x-api-key': apiKey,  // Include the API key in the headers
-  };
-
-  try {
-    const response = await axios.get(url, { headers, params });
-    console.log('Fetched food data:', response.data);
-    return response.data.foods || [];
-  } catch (error) {
-    console.error('Error fetching food data:', error);
-    throw error;
-  }
-}
+const API_BASE_URL = 'https://www.themealdb.com/api/json/v1/1';
 
 const FoodSearch = () => {
   const [query, setQuery] = useState('');
@@ -47,34 +20,35 @@ const FoodSearch = () => {
     setError(null);
 
     try {
-      const foods = await searchFoods(query);
-      setFoodResults(foods);
+      const response = await axios.get(`${API_BASE_URL}/search.php?s=${query}`);
+      if (response.data.meals) {
+        setFoodResults(response.data.meals);
+      } else {
+        setFoodResults([]);
+        setError('No results found');
+      }
     } catch (err) {
-      setError('An error occurred while fetching food data');
+      console.error('Error fetching food data:', err);
+      if (err.response?.data?.error?.message) {
+        setError(err.response.data.error.message);
+      } else {
+        setError('An error occurred while fetching food data');
+      }
     }
     setLoading(false);
   };
 
   const renderFoodItem = ({ item }) => {
-    // Extract important details from the API response
-    const description = item.description || 'No description available';
-    const calories = item.foodNutrients.find(nutrient => nutrient.nutrientName === 'Energy')?.value || 'N/A';
-    const protein = item.foodNutrients.find(nutrient => nutrient.nutrientName === 'Protein')?.value || 'N/A';
-    const fat = item.foodNutrients.find(nutrient => nutrient.nutrientName === 'Total lipid (fat)')?.value || 'N/A';
-    const carbs = item.foodNutrients.find(nutrient => nutrient.nutrientName === 'Carbohydrate, by difference')?.value || 'N/A';
-
     return (
       <View style={styles.foodItem}>
-        <Text style={styles.foodTitle}>{description}</Text>
-        <Text>Calories: {calories} kcal</Text>
-        <Text>Protein: {protein} g</Text>
-        <Text>Fat: {fat} g</Text>
-        <Text>Carbs: {carbs} g</Text>
+        <Image source={{ uri: item.strMealThumb }} style={styles.foodImage} />
+        <Text style={styles.foodTitle}>{item.strMeal}</Text>
+        <Text>Category: {item.strCategory}</Text>
+        <Text>Area: {item.strArea}</Text>
         <Button
           title="More Details"
           onPress={() => {
-            // You can navigate to a new screen with more details if needed
-            console.log(`Navigating to details for ${description}`);
+            console.log(`Navigating to details for ${item.strMeal}`);
           }}
         />
       </View>
@@ -83,13 +57,13 @@ const FoodSearch = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Search for Food</Text>
+      <Text style={styles.header}>Search for Meals</Text>
 
       <TextInput
         style={styles.input}
         value={query}
         onChangeText={(text) => setQuery(text)}
-        placeholder="Search for food..."
+        placeholder="Search for meals..."
       />
 
       <Button
@@ -105,7 +79,7 @@ const FoodSearch = () => {
       ) : (
         <FlatList
           data={foodResults}
-          keyExtractor={(item) => item.fdcId.toString()}
+          keyExtractor={(item) => item.idMeal.toString()}
           renderItem={renderFoodItem}
         />
       )}
@@ -144,9 +118,16 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#f9f9f9',
   },
+  foodImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 5,
+    marginBottom: 10,
+  },
   foodTitle: {
     fontWeight: 'bold',
     fontSize: 16,
+    marginBottom: 5,
   },
 });
 

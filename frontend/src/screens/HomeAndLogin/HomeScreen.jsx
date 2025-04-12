@@ -7,75 +7,66 @@ import {
   Image,
   ActivityIndicator,
   ScrollView,
-  Platform,
-  PermissionsAndroid,
+  Dimensions
 } from 'react-native';
 import Footer from '../../components/Footer';
-import { fetchUserDetails } from '../../api/fithubApi';
+import { PieChart } from 'react-native-chart-kit';
+import { fetchUserDetails} from '../../api/fithubApi';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Modal } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import ExerciseCard from '../../components/ExerciseCard';
+
+
 
 const API_BASE_URL = 'http://192.168.0.117:8000/';
 
-const IconButton = ({ icon, label, onPress }) => (
-  <TouchableOpacity style={styles.iconButton} onPress={onPress}>
-    <Image source={icon} style={styles.iconImage} resizeMode="contain" />
-    <Text style={styles.iconText}>{label}</Text>
-  </TouchableOpacity>
-);
-
-const ExerciseCard = ({ image, title, description, onPress }) => (
-  <TouchableOpacity style={styles.exerciseCard} onPress={onPress}>
-    <Image source={image} style={styles.exerciseImage} />
-    <View style={styles.exerciseInfo}>
-      <Text style={styles.exerciseTitle}>{title}</Text>
-      <Text style={styles.exerciseDescription}>{description}</Text>
-    </View>
-  </TouchableOpacity>
-);
+const screenWidth = Dimensions.get('window').width;
 
 const Home = ({ navigation }) => {
-  const [firstName, setFirstName] = useState('');
+  // Combine loading states into one
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [error, setError] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [bmi, setBmi] = useState(null);
-  const [weight, setWeight] = useState(null);
-  const [height, setHeight] = useState(null);
-const [error, setError] = useState(null);
-
-
+  const [firstName, setFirstName] = useState('');
+  const [loading, setLoading] = useState(true); // Loading state for calorie data
 
   useEffect(() => {
-    const getUserDetails = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
-        const user = await fetchUserDetails();
-        setFirstName(user.first_name || 'User');
-        setWeight(user.weight); // Assuming weight is in kg
-        setHeight(user.height); // Assuming height is in cm
-        
-        if (user.profile_photo) {
-          setProfileImage({ uri: `${API_BASE_URL}${user.profile_photo}` });
+        const userResponse = await fetchUserDetails();
+  
+        setUserData(userResponse);
+        setFirstName(userResponse.first_name || 'User');
+  
+        if (userResponse.profile_photo) {
+          setProfileImage({
+            uri: userResponse.profile_photo.startsWith('http')
+              ? userResponse.profile_photo
+              : `${API_BASE_URL}${userResponse.profile_photo}`
+          });
         }
-        
-        // Calculate BMI if weight and height are available
-        if (user.weight && user.height) {
-          const heightInMeters = user.height / 100;
-          const calculatedBmi = user.weight / (heightInMeters * heightInMeters);
+  
+        if (userResponse.weight && userResponse.height) {
+          const heightInMeters = userResponse.height / 100;
+          const calculatedBmi = userResponse.weight / (heightInMeters * heightInMeters);
           setBmi(calculatedBmi.toFixed(1));
         }
+  
       } catch (err) {
-        console.error('Error retrieving user details:', err);
-        setError('Failed to load user details');
+        console.error('Error fetching data:', err);
+        setError(err.message);
       } finally {
         setIsLoading(false);
+        setLoading(false); // Set both loading states to false
       }
     };
-
-    getUserDetails();
+  
+    fetchData();
   }, []);
 
   const getBmiCategory = (bmiValue) => {
@@ -110,8 +101,6 @@ const [error, setError] = useState(null);
       </View>
     );
   }
-
-  
 
   return (
     <View style={styles.outcontainer}>
@@ -178,19 +167,6 @@ const [error, setError] = useState(null);
           </View>
         )}
 
-        <View style={styles.iconRow}>
-          {[
-            { icon: require('../../assets/Images/Vector.png'), label: 'People', onPress: () => {} },
-            { icon: require('../../assets/Images/Scan.png'), label: 'Pose Estimation', onPress: () => {} },
-            { icon: require('../../assets/Images/Dumbell.png'), label: 'Workout', onPress: () => navigation.navigate('Workout') },
-            { icon: require('../../assets/Images/icon3(1).png'), label: 'Nutrition', onPress: () => navigation.navigate('MealSugg') },
-          ].map((item, index) => (
-            <React.Fragment key={item.label}>
-              <IconButton icon={item.icon} label={item.label} onPress={item.onPress} />
-              {index < 3 && <View style={styles.separator} />}
-            </React.Fragment>
-          ))}
-        </View>
 
         <View style={styles.favoritesAndLibraryContainer}>
   {/* My Favorites Button */}
@@ -207,7 +183,8 @@ const [error, setError] = useState(null);
     style={styles.browseLibraryButton}
     onPress={() => navigation.navigate('CreateLibrary')} // Navigate to CreateLibrary screen
   >
-    <Text style={styles.browseLibraryButtonText}>Browse Library</Text>
+    <Text style={styles.favoriteButtonText}>Browse Library</Text>
+    <MaterialIcons name="pageview" size={27} color="#b3a0ff" />
   </TouchableOpacity>
 </View>
 
@@ -290,11 +267,12 @@ const styles = StyleSheet.create({
   outcontainer: {
     flex: 1,
     backgroundColor: '#212020',
+   
   },
   container: {
     flex: 1,
     padding: 20,
-    marginBottom: 70,
+    marginBottom: 50,
   },
   headerWithProfile: {
     flexDirection: 'row',
@@ -481,6 +459,7 @@ const styles = StyleSheet.create({
   
   recommendationsContainer: {
     marginTop: 25,
+    marginBottom: 35,
   },
   sectionTitle: {
     fontSize: 15,

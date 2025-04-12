@@ -52,7 +52,7 @@ import ChooseDifficulty from '../screens/Pose/ChooseDifficulty';
 import ExerciseSearch from '../screens/HomeAndLogin/ExerciseSearch';
 import ExerciseEquipment from '../screens/HomeAndLogin/ExerciseEquipment';
 import FavoriteExercises from '../screens/HomeAndLogin/FavoriteExercises';
-
+import Dashboard from '../screens/ProfileAndSetting/Dashboard';
 
 
 const Stack = createNativeStackNavigator();
@@ -108,6 +108,7 @@ const AppNavigator = () => {
         <Stack.Screen name="ExerciseSearch" component={ExerciseSearch} options={{ headerShown: false }}/>
         <Stack.Screen name="ExerciseEquipment" component={ExerciseEquipment} options={{ headerShown: false }}/>
 
+        <Stack.Screen name="Dashboard" component={Dashboard} options={{ headerShown: false }}/>
 
 
       </Stack.Navigator>

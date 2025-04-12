@@ -42,7 +42,7 @@ const Footer = () => {
       <TouchableOpacity style={styles.footerIconButton} onPress={() => navigation.navigate('MealSugg')}>
         <Image source={require('../assets/Images/Apple.png')} style={styles.footerIconImage} resizeMode="contain" />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.footerIconButton} onPress={() => navigation.navigate('EditProfile')}>
+      <TouchableOpacity style={styles.footerIconButton} onPress={() => navigation.navigate('Dashboard')}>
         <Image source={require('../assets/Images/Setting.png')} style={styles.footerIconImage} resizeMode="contain" />
       </TouchableOpacity>
     </View>

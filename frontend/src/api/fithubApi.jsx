@@ -1,8 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// const API_BASE_URL = 'http://192.168.0.117:8000/api/'; // Replace with your actual server IP and port
-const API_BASE_URL = 'http://localhost:8000/api/';
+const API_BASE_URL = 'http://192.168.0.117:8000/api/'; // Replace with your actual server IP and port
+// const API_BASE_URL = 'http://localhost:8000/api/';
 
 
 const apiClient = axios.create({
@@ -11,10 +11,6 @@ const apiClient = axios.create({
 });
 
 
-apiClient.interceptors.request.use((request) => {
-  console.log('Outgoing request:', request);
-  return request;
-});
 
 // API call for registering the user
 export const registerUser = async (userData) => {
@@ -31,12 +27,10 @@ export const registerUser = async (userData) => {
 export const loginUser = async (email, password) => {
   try {
     const loginUrl = `${API_BASE_URL}login/`;
-    console.log('Sending login request to:', loginUrl);
-    console.log('Request body:', { email, password });
+    
 
     const response = await apiClient.post('login/', { email, password });
 
-    console.log('Login Response:', response.data); // Debugging
 
     if (response.data.access && response.data.refresh) {
       await AsyncStorage.setItem('access_token', response.data.access);
@@ -66,6 +60,7 @@ export const getAuthToken = async () => {
   try {
     const token = await AsyncStorage.getItem('access_token');
     // console.log('Retrieved auth token:', token);
+    
     return token;
   } catch (error) {
     console.error('Error retrieving token:', error.message);
@@ -118,47 +113,61 @@ export const logout = async () => {
   }
 };
 
-
-// Function to handle updating the profile
-export const updateUserProfile = async (userData, profileImage) => {
+export const updateUserProfile = async (formData) => {
   try {
-    const token = await AsyncStorage.getItem('access_token');
-
-    if (!token) {
-      throw new Error('No valid token found. Please log in again.');
-    }
-
-    const formData = new FormData();
-    formData.append('first_name', userData.first_name);
-    formData.append('last_name', userData.last_name);
-    formData.append('age', userData.age.toString());
-    formData.append('height', userData.height.toString());
-    formData.append('weight', userData.weight.toString());
-    formData.append('goal', userData.goal);
-    formData.append('goal_weight', userData.goal_weight.toString());
-    formData.append('goal_duration', userData.goal_duration); // Ensure this is a string
-    formData.append('activity_level', userData.activity_level);
-
-    if (profileImage) {
-      formData.append('profile_photo', {
-        uri: profileImage.uri,
-        type: profileImage.type || 'image/jpeg',
-        name: profileImage.fileName || 'profile.jpg',
-      });
-    }
-
-    const response = await axios.patch(`${API_BASE_URL}user/profile/update/`, formData, {
+    const token = await getAuthToken();
+    
+    const response = await apiClient.put('user/profile/update/', formData, {
       headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data', // Required for FormData
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+        'Accept': 'application/json',
       },
     });
 
-    console.log('Profile updated successfully:', response.data);
-    return response.data;
+    if (response.data) {
+      return response.data;
+    }
+    throw new Error('No data received from server');
   } catch (error) {
     console.error('Update Profile error:', error.response?.data || error.message);
-    throw error.response?.data || { message: 'An error occurred while updating the profile.' };
+    
+    // Handle specific validation errors
+    if (error.response?.data) {
+      const errorData = error.response.data;
+      
+      // Handle goal weight validation errors
+      if (errorData.goal_weight) {
+        throw {
+          type: 'validation',
+          field: 'goal_weight',
+          message: errorData.goal_weight[0]
+        };
+      }
+      
+      // Handle other field-specific errors
+      if (errorData.height) {
+        throw {
+          type: 'validation',
+          field: 'height',
+          message: errorData.height[0]
+        };
+      }
+      
+      if (errorData.weight) {
+        throw {
+          type: 'validation',
+          field: 'weight',
+          message: errorData.weight[0]
+        };
+      }
+    }
+    
+    // Handle generic errors
+    throw {
+      type: 'error',
+      message: 'Failed to update profile. Please try again.'
+    };
   }
 };
 
@@ -184,10 +193,28 @@ export const verifyOtp = async (email, otp) => {
   }
 };
 
+
+export const fetchCalorieGoal = async () => {
+  try {
+    const token = await getAuthToken(); // Get the authentication token
+    const response = await apiClient.get('calorie-goal/', {
+      headers: {
+        Authorization: `Bearer ${token}`, // Include the token in the headers
+      },
+    });
+    console.log('Calorie goal fetched successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching calorie goals:', error);
+    throw new Error('Failed to fetch calorie goals');
+  }
+};
+
+
 // **Fetch User Details**
 export const fetchUserDetails = async () => {
   try {
-    const token = await AsyncStorage.getItem('access_token');
+    const token = await getAuthToken(); // Get the authentication token
     // console.log('Stored token:', token);
     
     if (!token) {
@@ -649,6 +676,7 @@ export const deleteLibraryExercise = async (libraryId, exerciseId) => {
 
 
 import { fetchData, exerciseOptions } from '../utils/ExerciseFetcher';
+import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
 export const getExerciseDetailsByName = async (exerciseName, authToken) => {
   const url = `https://exercisedb.p.rapidapi.com/exercises/name/${encodeURIComponent(exerciseName)}`;
@@ -665,4 +693,114 @@ export const getExerciseDetailsByName = async (exerciseName, authToken) => {
     return data[0]; // Assuming the API returns an array and we take the first result
   }
   throw new Error('Exercise details not found');
+};
+
+
+// *----------
+// Nutrition API Calls
+// -----------*
+
+export const saveMealPlanToBackend = async (mealPlan) => {
+  try {
+    const token = await getAuthToken(); // Get the authentication token
+
+    // Format the mealPlan to match the API's expected structure
+    const formattedMealPlan = mealPlan.map((meal) => ({
+      meal: meal.meal, // Meal type (e.g., Breakfast, Lunch)
+      name: meal.suggestions[0]?.name || 'Unknown Meal', // Extract the name from the first suggestion
+      ingredients: meal.suggestions[0]?.ingredients || [], // Extract ingredients from the first suggestion
+      calories: meal.suggestions[0]?.calories || 0, // Extract calories from the first suggestion
+      dietary_restriction: meal.dietary_restriction || 'None', // Default dietary restriction
+      is_consumed: meal.is_consumed || false, // Default consumption status
+    }));
+
+    // Make the API call
+    const response = await apiClient.post(
+      'meal-plans/create/',
+      { mealPlan: formattedMealPlan }, // Send the formatted meal plan
+      {
+        headers: {
+          Authorization: `Bearer ${token}`, // Include the authentication token
+        },
+      }
+    );
+
+    
+  } catch (error) {
+    if (error.response && error.response.status === 400) {
+      console.error('Duplicate meal plan detected:', error.response.data);
+    } else {
+      console.error('Error saving meal plan:', error);
+    }
+  }
+};
+
+export const bulkUpdateMealConsumedStatus = async (updates) => {
+  try {
+    const token = await getAuthToken(); // Get the authentication token
+
+    console.log('Payload sent to backend:', updates); // Log the updates payload
+
+    const response = await apiClient.patch(
+      'meal-plans/bulk-update-consumed/',
+      { updates },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`, // Include the authentication token
+        },
+      }
+    );
+
+    console.log('Meal statuses updated successfully:', response.data);
+  } catch (error) {
+    console.error('Error updating meal statuses:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+
+export const fetchMealPlan = async () => {
+  try {
+    const token = await getAuthToken(); // Get the authentication token
+
+    const response = await apiClient.get('meal-plans/', {
+      headers: {
+        Authorization: `Bearer ${token}`, // Include the authentication token
+      },
+    });
+
+    // Map the response data to include the required fields
+    const fetchedMealPlan = response.data.map((meal) => ({
+      id: meal.id, // Ensure the ID is included
+      name: meal.name,
+      meal: meal.meal,
+      suggestions: meal.suggestions,
+      is_consumed: meal.is_consumed,
+    }));
+
+    return fetchedMealPlan; // Return the formatted meal plan
+  } catch (error) {
+    console.error('Error fetching meal plan:', error.response?.data || error.message);
+    throw error; // Throw the error to handle it in the calling function
+  }
+};
+
+
+export const fetchBackendMeals = async () => {
+  try {
+    const token = await getAuthToken(); // Get the authentication token
+    const response = await apiClient.get('backend-meals/', {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // Use the token obtained from getAuthToken
+      },
+    });
+
+    // Axios automatically throws an error for non-2xx responses, so no need for `response.ok`
+    console.log('Backend Meals:', response.data);
+    return response.data; // Return the data directly
+  } catch (error) {
+    console.error('Error fetching backend meals:', error.response?.data || error.message);
+    throw error; // Rethrow the error to handle it in the calling function
+  }
 };

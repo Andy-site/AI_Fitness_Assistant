@@ -22,7 +22,7 @@ const LandNutri = () => {
   const [currentWeight, setCurrentWeight] = useState('');
   const [goal, setGoal] = useState('');
   const [loading, setLoading] = useState(false);
-
+  
 
   // User inputs
   const [dietaryRestriction, setDietaryRestriction] = useState('None');
@@ -58,19 +58,21 @@ const LandNutri = () => {
       url: 'https://ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com/nutritionAdvice',
       params: { noqueue: '1' },
       headers: {
-        'x-rapidapi-key': '823eb87dafmsh4f6cc51c44be9d0p1b6da0jsn4dc884f6b5f8',
+        'x-rapidapi-key': '82fc67173dmsh0f2e5bd76b273eap1f6ae8jsn4fcfc3bc4f65',
         'x-rapidapi-host': 'ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com',
         'Content-Type': 'application/json',
       },
       data: {
         goal,
-        dietary_restrictions: [dietaryRestriction],
+        dietary_restriction: [dietaryRestriction],
         current_weight: parseFloat(currentWeight),
         target_weight: parseFloat(targetWeight),
         daily_activity_level: activityLevel,
+        
         lang: 'en',
       },
     };
+    console.log('API Request:', options.data); // Log the request data for debugging
   
     try {
       const response = await axios.request(options);
@@ -80,6 +82,7 @@ const LandNutri = () => {
       navigation.navigate('MealDetails', {
         macronutrients: response.data.result?.macronutrients || {},
         mealPlan: response.data.result?.meal_suggestions || [],
+        dietaryRestriction: dietaryRestriction,
       });
     } catch (error) {
       console.error('Error fetching nutrition advice:', error);
