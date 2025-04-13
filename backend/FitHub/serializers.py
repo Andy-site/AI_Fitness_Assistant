@@ -51,7 +51,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = [
             'email', 'first_name', 'last_name', 'age', 'height', 'weight',
-            'goal', 'goal_weight', 'profile_photo', 'goal_duration', 'activity_level'
+            'goal', 'goal_weight', 'profile_photo', 'goal_duration', 'activity_level', 'created_at'
         ]
         read_only_fields = ['email']
 

@@ -187,11 +187,15 @@ const MealDetails = ({ route }) => {
     meal.is_consumed = !meal.is_consumed;
   
     try {
+      // Save the updated meal plan to the backend first
+      await saveMealPlanToBackend(updatedMealPlan);
+  
       // Make an API call to update the backend
       await bulkUpdateMealConsumedStatus([{ id: meal.id, is_consumed: meal.is_consumed }]);
   
       // Update the local state only after a successful API call
       setMealPlan(updatedMealPlan);
+  
     } catch (error) {
       // Revert the change locally if the API call fails
       meal.is_consumed = !meal.is_consumed;

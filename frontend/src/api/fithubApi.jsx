@@ -696,6 +696,20 @@ export const getExerciseDetailsByName = async (exerciseName, authToken) => {
 };
 
 
+export const fetchWorkoutDates = async () => {
+  try {
+    const token = await getAuthToken(); // Get the authentication token
+    const response = await apiClient.get('/workout-dates/', {
+      headers: {
+        Authorization: `Bearer ${token}`, // Include the authentication token
+      },
+    });
+    return response.data; // Returns an array of dates
+  } catch (error) {
+    console.error('Error fetching workout dates:', error);
+    throw error;
+  }
+};
 // *----------
 // Nutrition API Calls
 // -----------*

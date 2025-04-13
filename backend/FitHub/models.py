@@ -67,6 +67,8 @@ class CustomUser(AbstractUser):
         default='moderate',
     )
 
+    created_at = models.DateTimeField(auto_now_add=True)
+
     def calculate_calories(self, activity_level='moderate'):
         """
         Calculate daily calorie needs for weight loss or weight gain.
@@ -109,7 +111,14 @@ class CustomUser(AbstractUser):
             return {}
 
 
-    
+from datetime import datetime
+
+def default_february_first():
+    """
+    Returns February 1 of the current year.
+    """
+    return datetime(datetime.now().year, 2, 1)
+
 
 class OTP(models.Model):
     user = models.OneToOneField('CustomUser', on_delete=models.CASCADE)

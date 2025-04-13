@@ -68,6 +68,9 @@ const Home = ({ navigation }) => {
   
     fetchData();
   }, []);
+  const handleLogout = async () => {
+    navigation.navigate('LogoutScreen'); // Navigate to the logout screen
+  };
 
   const getBmiCategory = (bmiValue) => {
     if (bmiValue < 18.5) return 'Underweight';
@@ -123,6 +126,14 @@ const Home = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         </View>
+
+        <TouchableOpacity
+    style={styles.workoutButton}
+    onPress={() => navigation.navigate('Workout')} // Navigate to CreateWorkout screen
+  >
+    <Text style={styles.favoriteButtonText}>Workout</Text>
+    <MaterialIcons name="fitness-center" size={24} color="#FF6B6B" />
+  </TouchableOpacity>
 
         {/* BMI Display */}
         {bmi && (
@@ -230,6 +241,12 @@ const Home = ({ navigation }) => {
             >
               <Text style={styles.updateButtonText}>Update Profile</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+        style={styles.updateButton}
+        onPress={handleLogout}
+      >
+        <Text style={styles.updateButtonText}>Log out</Text>
+      </TouchableOpacity>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
@@ -299,6 +316,16 @@ const styles = StyleSheet.create({
       color: '#000',
       fontSize: 16,
       marginRight: 5,
+    },
+    workoutButton: {
+      backgroundColor: '#b3a0ff', // Pink color for Favorites button
+      paddingVertical: 10,
+      paddingHorizontal: 15,
+      borderRadius: 5,
+      flexDirection: 'row',
+      width: '50%',
+      alignSelf:'center',
+      alignItems: 'center',
     },
     browseLibraryButton: {
       backgroundColor: '#e2f163', // Green color for Browse Library button

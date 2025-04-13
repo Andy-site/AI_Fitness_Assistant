@@ -27,6 +27,8 @@
     "lodash": "^4.17.21",
     "react": "18.3.1",
     "react-native": "^0.76.5",
+    "react-native-big-calendar": "^4.17.1",
+    "react-native-calendars": "^1.1310.0",
     "react-native-chart-kit": "^6.12.0",
     "react-native-dropdown-picker": "^5.4.6",
     "react-native-element-dropdown": "^2.12.2",

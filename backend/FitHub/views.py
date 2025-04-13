@@ -785,7 +785,7 @@ class MealPlanCreateView(APIView):
 
         # Loop through the meal plan data and create entries
         for meal in data.get('mealPlan', []):
-            # Check if the meal already exists for the user with the same ingredients and created_at date
+            # Check if the meal already exists for the user with the same ingredients and today's date
             existing_meal = MealPlan.objects.filter(
                 user=user,
                 meal=meal.get('meal'),
@@ -795,10 +795,10 @@ class MealPlanCreateView(APIView):
             ).first()
 
             if existing_meal:
-                # Skip creating duplicate meal
+                # Skip creating duplicate meal for today
                 continue
 
-            # Create the meal if it doesn't exist
+            # Create the meal if it doesn't exist or the created_at date is different
             MealPlan.objects.create(
                 user=user,
                 meal=meal.get('meal'),
@@ -807,6 +807,7 @@ class MealPlanCreateView(APIView):
                 dietary_restriction=meal.get('dietary_restriction'),
                 calories=meal.get('calories'),
                 is_consumed=False,  # Default to False
+                created_at=now()  # Explicitly set the created_at date to today
             )
 
         return Response({"message": "Meal plan created successfully."}, status=status.HTTP_201_CREATED)
@@ -878,21 +879,28 @@ class UpdateMealConsumedStatusView(APIView):
 
     def patch(self, request, meal_id):
         """
-        Update the is_consumed status of a meal.
+        Update the is_consumed status of a meal for today's date.
         """
         try:
-            meal = MealPlan.objects.get(id=meal_id, user=request.user)
+            # Get today's date
+            today = now().date()
+
+            # Fetch the meal for the authenticated user and ensure it matches today's date
+            meal = MealPlan.objects.get(id=meal_id, user=request.user, created_at__date=today)
+
+            # Get the is_consumed value from the request
             is_consumed = request.data.get('is_consumed', None)
 
             if is_consumed is None:
                 return Response({"error": "is_consumed field is required."}, status=status.HTTP_400_BAD_REQUEST)
 
+            # Update the is_consumed status
             meal.is_consumed = is_consumed
             meal.save()
 
             return Response({"message": "Meal status updated successfully.", "is_consumed": meal.is_consumed}, status=status.HTTP_200_OK)
         except MealPlan.DoesNotExist:
-            return Response({"error": "Meal not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Meal not found or does not match today's date."}, status=status.HTTP_404_NOT_FOUND)
         
 
 class MealPlanStatsView(APIView):
@@ -968,3 +976,37 @@ class DailyCalorieSummaryView(APIView):
             "net_calories": net_calories,
         }, status=200)
     
+
+class WorkoutDatesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        Fetch all workout start dates for the authenticated user.
+        """
+        workout_dates = WorkoutExercise.objects.filter(workout__user=request.user).values_list('start_date', flat=True)
+        return Response(workout_dates)
+
+class CalorieGoalView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        Get the calorie goal for the authenticated user.
+        """
+        user = request.user
+
+        # Calculate calorie goals using the user's method
+        calorie_data = user.calculate_calories(activity_level=user.activity_level)
+
+        if not calorie_data:
+            return Response({"error": "Unable to calculate calorie goals."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Prepare the response data
+        response_data = {
+            "weight_loss_calories": calorie_data.get('weight_loss'),
+            "weight_gain_calories": calorie_data.get('weight_gain'),
+            "goal_duration_days": int(user.goal_duration.split()[0]) * 30 if user.goal_duration else 90,  # Convert goal duration to days
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
