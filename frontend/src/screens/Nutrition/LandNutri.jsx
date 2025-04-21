@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  View, Text, ActivityIndicator, StyleSheet, ScrollView, TextInput, Alert, TouchableOpacity, KeyboardAvoidingView, Platform 
+  View, Text, ActivityIndicator, StyleSheet, ScrollView, Alert, TouchableOpacity, KeyboardAvoidingView, Platform 
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -9,33 +9,32 @@ import { Picker } from '@react-native-picker/picker';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { capitalizeWords } from '../../utils/StringUtils';
-
+import { fetchMealPlan, saveMealPlanToBackend } from '../../services/mealApi';
 
 const dietaryRestrictions = ['None', 'Vegetarian', 'Vegan', 'Gluten-Free', 'Keto', 'Paleo'];
 
 const LandNutri = () => {
   const navigation = useNavigation();
-  
 
   // User details state
+  const [userId, setUserId] = useState(null);
   const [firstName, setFirstName] = useState('');
   const [currentWeight, setCurrentWeight] = useState('');
   const [goal, setGoal] = useState('');
   const [loading, setLoading] = useState(false);
-  
 
   // User inputs
   const [dietaryRestriction, setDietaryRestriction] = useState('None');
   const [targetWeight, setTargetWeight] = useState('');
   const [activityLevel, setActivityLevel] = useState('Moderate');
 
-  // Fetch user details from AsyncStorage
   useEffect(() => {
     const getUserDetails = async () => {
       try {
         const userDetails = await AsyncStorage.getItem('user_details');
         if (userDetails) {
           const user = JSON.parse(userDetails);
+          setUserId(user.id);
           setFirstName(user.first_name || 'User');
           setCurrentWeight(user.weight ? String(user.weight) : '');
           setGoal(user.goal || '');
@@ -46,43 +45,67 @@ const LandNutri = () => {
         console.error('Error retrieving user details:', error);
       }
     };
-
     getUserDetails();
   }, []);
 
   const getNutritionAdvice = async () => {
+    if (!userId) return;
     setLoading(true);
-  
-    const options = {
-      method: 'POST',
-      url: 'https://ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com/nutritionAdvice',
-      params: { noqueue: '1' },
-      headers: {
-        'x-rapidapi-key': 'cd885471a8mshe716357a6b4de6ap15f168jsn9658f7fd57d7',
-        'x-rapidapi-host': 'ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com',
-        'Content-Type': 'application/json',
-      },
-      data: {
-        goal,
-        dietary_restriction: [dietaryRestriction],
-        current_weight: parseFloat(currentWeight),
-        target_weight: parseFloat(targetWeight),
-        daily_activity_level: activityLevel,
 
-        lang: 'en',
-      },
-    };
-    console.log('API Request:', options.data); // Log the request data for debugging
-  
     try {
+      // 1) Check backend for existing plan
+      const existing = await fetchMealPlan();
+      if (existing && existing.length > 0) {
+        navigation.navigate('MealDetails', {
+          macronutrients: {}, // macronutrients not cached here
+          mealPlan: existing,
+          dietaryRestriction,
+        });
+        return;
+      }
+
+      // 2) Call external API for fresh advice
+      const options = {
+        method: 'POST',
+        url: 'https://ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com/nutritionAdvice',
+        params: { noqueue: '1' },
+        headers: {
+          'x-rapidapi-key': 'cd885471a8mshe716357a6b4de6ap15f168jsn9658f7fd57d7',
+          'x-rapidapi-host': 'ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com',
+          'Content-Type': 'application/json',
+        },
+        data: {
+          goal,
+          dietary_restriction: [dietaryRestriction],
+          current_weight: parseFloat(currentWeight),
+          target_weight: parseFloat(targetWeight),
+          daily_activity_level: activityLevel,
+          lang: 'en',
+        },
+      };
       const response = await axios.request(options);
-      console.log('API Response:', response.data);
-  
-      // Navigate directly to MealDetails with the API response
+      const result = response.data.result || {};
+      const suggestions = result.meal_suggestions || [];
+
+      // 3) Save to backend cache
+      await saveMealPlanToBackend(
+        suggestions.map(item => ({
+          meal: item.meal,
+          suggestions: [{
+            name: item.name,
+            ingredients: item.ingredients,
+            calories: item.calories || 0,
+          }],
+          dietary_restriction: dietaryRestriction,
+          is_consumed: false,
+        }))
+      );
+
+      // 4) Navigate with fresh data
       navigation.navigate('MealDetails', {
-        macronutrients: response.data.result?.macronutrients || {},
-        mealPlan: response.data.result?.meal_suggestions || [],
-        dietaryRestriction: dietaryRestriction,
+        macronutrients: result.macronutrients || {},
+        mealPlan: suggestions,
+        dietaryRestriction,
       });
     } catch (error) {
       console.error('Error fetching nutrition advice:', error);
@@ -92,14 +115,13 @@ const LandNutri = () => {
     }
   };
 
-
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
       style={styles.outercontainer}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
     >
-      <Header title="Nutrition Advice"/>
+      <Header title="Nutrition Advice" />
       <ScrollView style={styles.container}>
         <View style={styles.userInfo}>
           <Text style={styles.title}>Welcome, {firstName}!</Text>
@@ -109,46 +131,37 @@ const LandNutri = () => {
           <Text>Activity Level: {activityLevel}</Text>
         </View>
 
-        
-        {/* Input Fields */}
         <View style={styles.inputContainer}>
-         
-
           <Text style={styles.sectionTitle}>Select Dietary Restriction:</Text>
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={dietaryRestriction}
-              onValueChange={(itemValue) => setDietaryRestriction(itemValue)}
+              onValueChange={setDietaryRestriction}
               style={styles.picker}
             >
-              {dietaryRestrictions.map((option, index) => (
-                <Picker.Item key={index} label={option} value={option} />
+              {dietaryRestrictions.map((opt, i) => (
+                <Picker.Item key={i} label={opt} value={opt} />
               ))}
             </Picker>
           </View>
         </View>
 
-        {/* Fetch Nutrition Advice */}
         <TouchableOpacity 
-  style={[styles.button, loading && { opacity: 0.6 }]} 
-  onPress={getNutritionAdvice} 
-  disabled={loading}
->
-  {loading ? (
-    <ActivityIndicator size="small" color="#000" />
-  ) : (
-    <Text style={styles.buttonText}>Plan Details</Text>
-  )}
-</TouchableOpacity>
-
-
-       
+          style={[styles.button, loading && { opacity: 0.6 }]} 
+          onPress={getNutritionAdvice}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color="#000" />
+          ) : (
+            <Text style={styles.buttonText}>Plan Details</Text>
+          )}
+        </TouchableOpacity>
       </ScrollView>
-      <Footer/>
+      <Footer />
     </KeyboardAvoidingView>
   );
 };
-
 const styles = StyleSheet.create({
   outercontainer: {
     flex: 1,

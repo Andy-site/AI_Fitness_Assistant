@@ -10,7 +10,9 @@ import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 
 
-const API_BASE_URL = 'http://192.168.0.117:8000/';
+// const API_BASE_URL = 'http://192.168.0.117:8000/';
+const API_BASE_URL = 'http://localhost:8000/';
+
 
 const EditProfile = () => {
   const [firstName, setFirstName] = useState('');
@@ -114,8 +116,8 @@ const EditProfile = () => {
         );
         return;
       }
-  
-      const formattedGoalDuration = `${goalDuration} ${parseInt(goalDuration) === 1 ? 'month' : 'months'}`;
+      const formattedGoalDuration = `${goalDuration} month`;
+
     
     const formData = new FormData();
     formData.append('first_name', firstName.trim());
@@ -253,13 +255,17 @@ const EditProfile = () => {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Goal Duration:</Text>
               <Picker
-                selectedValue={goalDuration}
-                onValueChange={(itemValue) => setGoalDuration(itemValue)}
-                style={styles.picker}>
-                {Array.from({ length: 12 }, (_, i) => (
-                  <Picker.Item key={i} label={`${i + 1} Month${i > 0 ? 's' : ''}`} value={`${i + 1}`} />
-                ))}
-              </Picker>
+  selectedValue={goalDuration}
+  onValueChange={(itemValue) => setGoalDuration(itemValue)}
+  style={styles.picker}>
+  {Array.from({ length: 12 }, (_, i) => (
+    <Picker.Item
+      key={i}
+      label={`${i + 1} Month${i > 0 ? 's' : ''}`}
+      value={`${i + 1}`} // Pass only the numeric value
+    />
+  ))}
+</Picker>
             </View>
 
             {/* Picker for Activity Level */}

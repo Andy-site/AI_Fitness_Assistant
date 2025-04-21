@@ -24,6 +24,9 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
+CALORIE_API_URL = os.getenv('CALORIE_API_URL')
+CALORIE_API_KEY = os.getenv('CALORIE_API_KEY')
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
