@@ -862,17 +862,20 @@ class BackendMealsView(APIView):
 
     def get(self, request):
         """
-        Fetch all meals for the authenticated user.
+        Fetch all meals for the authenticated user for a specific date.
         """
         user = request.user
+        start_date = request.query_params.get('start_date')  # e.g., '2025-04-21'
 
-        # Fetch meals for the user
-        meals = MealPlan.objects.filter(user=user).values('id', 'name', 'is_consumed')
+        if start_date:
+            meals = MealPlan.objects.filter(user=user, created_at__date=start_date)
+        else:
+            meals = MealPlan.objects.filter(user=user)
 
-        # Format the response
-        formatted_meals = list(meals)
+        # Return all needed fields
+        data = meals.values('id', 'meal', 'name', 'ingredients', 'calories', 'is_consumed', 'created_at')
+        return Response(list(data), status=status.HTTP_200_OK)
 
-        return Response(formatted_meals, status=status.HTTP_200_OK)
 
 class UpdateMealConsumedStatusView(APIView):
     permission_classes = [IsAuthenticated]

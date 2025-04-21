@@ -50,10 +50,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = [
+            'id',
             'email', 'first_name', 'last_name', 'age', 'height', 'weight',
             'goal', 'goal_weight', 'profile_photo', 'goal_duration', 'activity_level', 'created_at'
         ]
-        read_only_fields = ['email']
+        read_only_fields = ['id','email']
 
     def validate(self, data):
         """

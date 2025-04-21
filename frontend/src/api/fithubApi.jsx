@@ -776,7 +776,7 @@ export const bulkUpdateMealConsumedStatus = async (updates) => {
 export const fetchMealPlan = async () => {
   try {
     const token = await getAuthToken(); // Get the authentication token
-
+    const today = new Date().toISOString().split('T')[0];
     const response = await apiClient.get('meal-plans/', {
       headers: {
         Authorization: `Bearer ${token}`, // Include the authentication token
@@ -802,19 +802,36 @@ export const fetchMealPlan = async () => {
 
 export const fetchBackendMeals = async () => {
   try {
-    const token = await getAuthToken(); // Get the authentication token
-    const response = await apiClient.get('backend-meals/', {
+    const token = await getAuthToken();
+    const today = new Date().toISOString().split('T')[0];
+
+    const response = await apiClient.get(`backend-meals/?start_date=${today}`, {
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`, // Use the token obtained from getAuthToken
+        Authorization: `Bearer ${token}`,
       },
     });
 
-    // Axios automatically throws an error for non-2xx responses, so no need for `response.ok`
-    console.log('Backend Meals:', response.data);
-    return response.data; // Return the data directly
+    const rawMeals = response.data;
+
+    // 🔄 Convert to expected format with suggestions[]
+    const formattedMealPlan = rawMeals.map(meal => ({
+      meal: meal.meal,
+      suggestions: [{
+        name: meal.name,
+        ingredients: meal.ingredients || [],
+        calories: meal.calories || 0
+      }],
+      is_consumed: meal.is_consumed,
+      dietary_restriction: meal.dietary_restriction || 'None',
+      id: meal.id || null, // Ensure ID is included for updates
+    }));
+
+    console.log('Formatted Backend Meals:', formattedMealPlan);
+    return formattedMealPlan;
+
   } catch (error) {
     console.error('Error fetching backend meals:', error.response?.data || error.message);
-    throw error; // Rethrow the error to handle it in the calling function
+    throw error;
   }
 };

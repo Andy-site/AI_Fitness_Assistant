@@ -3,13 +3,15 @@ import {
   View, Text, ActivityIndicator, StyleSheet, ScrollView, Alert, TouchableOpacity, KeyboardAvoidingView, Platform 
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {picker} from '@react-native-picker/picker';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { capitalizeWords } from '../../utils/StringUtils';
-import { fetchMealPlan, saveMealPlanToBackend } from '../../services/mealApi';
+import { fetchMealPlan, fetchUserDetails, saveMealPlanToBackend } from '../../api/fithubApi';
+import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
 const dietaryRestrictions = ['None', 'Vegetarian', 'Vegan', 'Gluten-Free', 'Keto', 'Paleo'];
 
@@ -28,68 +30,92 @@ const LandNutri = () => {
   const [targetWeight, setTargetWeight] = useState('');
   const [activityLevel, setActivityLevel] = useState('Moderate');
 
-  useEffect(() => {
-    const getUserDetails = async () => {
-      try {
-        const userDetails = await AsyncStorage.getItem('user_details');
-        if (userDetails) {
-          const user = JSON.parse(userDetails);
-          setUserId(user.id);
-          setFirstName(user.first_name || 'User');
-          setCurrentWeight(user.weight ? String(user.weight) : '');
-          setGoal(user.goal || '');
-          setActivityLevel(capitalizeWords(user.activity_level));
-          setTargetWeight(user.goal_weight ? String(user.goal_weight) : '');
+ 
+    useEffect(() => {
+      const getUserDetails = async () => {
+        try {
+          const user = await fetchUserDetails(); // already returns object
+          console.log('User details:', user); // check if user object is valid
+    
+          if (user && user.id) {
+            setUserId(user.id);
+            setFirstName(user.first_name || 'User');
+            setCurrentWeight(user.weight ? String(user.weight) : '');
+            setGoal(user.goal || '');
+            setActivityLevel(capitalizeWords(user.activity_level));
+            setTargetWeight(user.goal_weight ? String(user.goal_weight) : '');
+          } else {
+            console.warn('User data missing or incomplete:', user);
+          }
+        } catch (error) {
+          console.error('Error retrieving user details:', error);
         }
-      } catch (error) {
-        console.error('Error retrieving user details:', error);
-      }
-    };
-    getUserDetails();
-  }, []);
-
-  const getNutritionAdvice = async () => {
-    if (!userId) return;
-    setLoading(true);
-
-    try {
-      // 1) Check backend for existing plan
-      const existing = await fetchMealPlan();
-      if (existing && existing.length > 0) {
-        navigation.navigate('MealDetails', {
-          macronutrients: {}, // macronutrients not cached here
-          mealPlan: existing,
-          dietaryRestriction,
-        });
-        return;
-      }
-
-      // 2) Call external API for fresh advice
-      const options = {
-        method: 'POST',
-        url: 'https://ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com/nutritionAdvice',
-        params: { noqueue: '1' },
-        headers: {
-          'x-rapidapi-key': 'cd885471a8mshe716357a6b4de6ap15f168jsn9658f7fd57d7',
-          'x-rapidapi-host': 'ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com',
-          'Content-Type': 'application/json',
-        },
-        data: {
-          goal,
-          dietary_restriction: [dietaryRestriction],
-          current_weight: parseFloat(currentWeight),
-          target_weight: parseFloat(targetWeight),
-          daily_activity_level: activityLevel,
-          lang: 'en',
-        },
       };
-      const response = await axios.request(options);
-      const result = response.data.result || {};
-      const suggestions = result.meal_suggestions || [];
+    
+      getUserDetails();
+    }, []);
+    
 
-      // 3) Save to backend cache
-      await saveMealPlanToBackend(
-        suggestions.map(item => ({
+    const getNutritionAdvice = async () => {
+      console.log('Button pressed. User ID:', userId);
+      if (!userId) return;
+    
+      setLoading(true);
+    
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        console.log('Checking backend meal plans for date:', today);
+    
+        const existing = await fetchMealPlan();
+    
+        if (existing && existing.length > 0) {
+          const transformedMeals = existing.map(item => ({
+            meal: item.meal,
+            suggestions: [{
+              name: item.name,
+              ingredients: item.ingredients || [],
+              calories: item.calories || 0,
+            }],
+            is_consumed: item.is_consumed,
+            dietary_restriction: item.dietary_restriction,
+          }));
+    
+          console.log('✅ Fetched from backend. Not saving again.');
+          navigation.navigate('MealDetails', {
+            macronutrients: {}, // Optional: replace with actual macros
+            mealPlan: transformedMeals,
+            dietaryRestriction,
+          });
+    
+          return; // ⛔️ Prevent saving again
+        }
+    
+        // No existing data — fetch from external API
+        console.log('🔄 Fetching new meal plan from external API...');
+    
+        const options = {
+          method: 'POST',
+          url: 'https://ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com/nutritionAdvice',
+          params: { noqueue: '1' },
+          headers: {
+            'x-rapidapi-key': 'YOUR_API_KEY',
+            'x-rapidapi-host': 'ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com',
+            'Content-Type': 'application/json',
+          },
+          data: {
+            goal,
+            dietary_restriction: [dietaryRestriction],
+            current_weight: parseFloat(currentWeight),
+            target_weight: parseFloat(targetWeight),
+            daily_activity_level: activityLevel,
+            lang: 'en',
+          },
+        };
+    
+        const response = await axios.request(options);
+        const suggestions = response.data.result?.meal_suggestions || [];
+    
+        const formattedMealPlan = suggestions.map(item => ({
           meal: item.meal,
           suggestions: [{
             name: item.name,
@@ -98,22 +124,32 @@ const LandNutri = () => {
           }],
           dietary_restriction: dietaryRestriction,
           is_consumed: false,
-        }))
-      );
-
-      // 4) Navigate with fresh data
-      navigation.navigate('MealDetails', {
-        macronutrients: result.macronutrients || {},
-        mealPlan: suggestions,
-        dietaryRestriction,
-      });
-    } catch (error) {
-      console.error('Error fetching nutrition advice:', error);
-      Alert.alert('Error', 'Failed to fetch nutrition advice. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
+        }));
+    
+        // ✅ Add log here before saving
+        console.log('📦 Saving NEW meal plan to backend:', JSON.stringify(formattedMealPlan, null, 2));
+    
+        await saveMealPlanToBackend(formattedMealPlan);
+    
+        navigation.navigate('MealDetails', {
+          macronutrients: response.data.result?.macronutrients || {},
+          mealPlan: formattedMealPlan,
+          dietaryRestriction,
+          fetchedFromAPI: true, // add this
+        });
+        
+    
+      } catch (error) {
+        console.error('❌ Nutrition Advice Error:', error.response?.data || error.message);
+        Alert.alert('Error', 'Failed to get meal plan.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    
+    
+  
 
   return (
     <KeyboardAvoidingView 
@@ -156,6 +192,8 @@ const LandNutri = () => {
           ) : (
             <Text style={styles.buttonText}>Plan Details</Text>
           )}
+          
+
         </TouchableOpacity>
       </ScrollView>
       <Footer />

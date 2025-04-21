@@ -33,7 +33,8 @@ notifee.onBackgroundEvent(async ({ type, detail }) => {
 });
 
 const MealDetails = ({ route }) => {
-  const { macronutrients, mealPlan: initialMealPlan, dietaryRestriction } = route.params;
+  const { macronutrients, mealPlan: initialMealPlan, dietaryRestriction, fetchedFromAPI: isFromAPI = false } = route.params;
+const [fetchedFromAPI, setFetchedFromAPI] = useState(isFromAPI);
 
   const [mealPlan, setMealPlan] = useState(initialMealPlan);
   const [activeMealIndex, setActiveMealIndex] = useState(0);
@@ -42,6 +43,7 @@ const MealDetails = ({ route }) => {
   const [selectedTime, setSelectedTime] = useState(new Date());
   const [reminderDate, setReminderDate] = useState('Today');
   const pickerKey = useRef(0);
+ 
 
   const { addNotification } = useContext(NotificationContext);
 
@@ -80,42 +82,37 @@ const MealDetails = ({ route }) => {
       Alert.alert('Notification Error', 'Failed to set reminder: ' + error.message);
     }
   };
+
   useEffect(() => {
-    const data = async () => {
+    const fetchAndSetMeals = async () => {
       try {
-        // Fetch backend meals
         const backendMeals = await fetchBackendMeals();
-        console.log('Backend Meals:', JSON.stringify(backendMeals));
+        const updatedMealPlan = backendMeals.map(meal => ({
+          meal: meal.meal,
+          suggestions: meal.suggestions || [{
+            name: meal.name || 'Unknown Meal',
+            ingredients: meal.ingredients || [],
+            calories: meal.calories || 0
+          }],
+          is_consumed: meal.is_consumed,
+          dietary_restriction: meal.dietary_restriction,
+          id: meal.id,
+        }));
   
-        // Map backend data to update the mealPlan state
-        const updatedMealPlan = mealPlan.map((meal) => {
-          const matchingMeal = backendMeals.find(
-            (backendMeal) => backendMeal.name === meal.suggestions[0]?.name
-          );
-  
-          if (matchingMeal) {
-            return {
-              ...meal,
-              id: matchingMeal.id, // Add the backend ID
-              name: matchingMeal.name, // Add the backend name
-              is_consumed: matchingMeal.is_consumed, // Sync the consumed status
-            };
-          }
-  
-          return meal; // Return the original meal if no match is found
-        });
-  
-        // Update the state with the updated meal plan
         setMealPlan(updatedMealPlan);
-        console.log('Updated Meal Plan:', JSON.stringify(updatedMealPlan, null, 2));
+        setFetchedFromAPI(false); // backend source
+        console.log('Synced backend meals:', JSON.stringify(updatedMealPlan, null, 2));
       } catch (error) {
-        console.error('Error fetching meal data:', error.message);
-        Alert.alert('Error', 'Failed to fetch meal data.');
+        console.error('Error syncing backend meals:', error);
+        Alert.alert('Error', 'Failed to load backend meals.');
       }
     };
   
-    data();
+    fetchAndSetMeals();
   }, []);
+  
+  
+  
 
   useEffect(() => {
     const updateConsumedStatusForToday = async () => {
@@ -206,15 +203,20 @@ const MealDetails = ({ route }) => {
   useEffect(() => {
     const saveMealPlan = async () => {
       try {
-        await saveMealPlanToBackend(mealPlan); // Pass the `mealPlan` state to the API function
+        if (fetchedFromAPI) {
+          console.log('Saving newly generated meal plan to backend...');
+          await saveMealPlanToBackend(mealPlan);
+        } else {
+          console.log('Meal plan fetched from backend — skipping save.');
+        }
       } catch (error) {
         Alert.alert('Error', 'Failed to save meal plan: ' + error.message);
       }
     };
   
     saveMealPlan();
-  }, [mealPlan]); // Dependency array ensures it runs when `mealPlan` changes
-
+  }, [mealPlan, fetchedFromAPI]);
+  
   
   useEffect(() => {
     async function setupNotifications() {

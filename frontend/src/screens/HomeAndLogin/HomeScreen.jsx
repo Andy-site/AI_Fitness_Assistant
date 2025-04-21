@@ -247,7 +247,7 @@ const Home = ({ navigation }) => {
       >
         <Text style={styles.updateButtonText}>Log out</Text>
       </TouchableOpacity>
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#b3a0ff',
     padding: 20,
     borderRadius: 15,
     alignItems: 'center',
@@ -393,16 +393,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     borderRadius: 10,
     marginBottom: 10,
+    width:'100%',
+    alignItems: 'center',
   },
   updateButtonText: {
     color: '#000',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
+   
+  },
+  cancelButton: {
+    backgroundColor: '#FF6B6B',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    width:'100%',
+    alignItems: 'center',
   },
   cancelText: {
-    color: '#AAA',
-    fontSize: 14,
-    marginTop: 10,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
   // BMI Styles
   bmiContainer: {
