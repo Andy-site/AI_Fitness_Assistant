@@ -10,7 +10,8 @@ import {
   ToastAndroid,
   Modal
 } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { getLibraryExercises, deleteLibraryExercise } from '../../api/fithubApi';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
@@ -27,21 +28,27 @@ const LibraryDetails = ({ route }) => {
   const { libraryId, token } = route.params;
   const navigation = useNavigation();
 
-  useEffect(() => {
-    const fetchExercises = async () => {
-      try {
-        const data = await getLibraryExercises(libraryId, token);
-        console.log('Fetched Exercises:', data);
-        setLibraryExercises(data);
-      } catch (error) {
-        console.error('Error fetching exercises:', error);
-        setError(error.message || 'Failed to fetch exercises');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchExercises();
-  }, [libraryId, token]);
+  useFocusEffect(
+    useCallback(() => {
+      const fetchExercises = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const data = await getLibraryExercises(libraryId, token);
+          console.log('Fetched Exercises:', data);
+          setLibraryExercises(data);
+        } catch (error) {
+          console.error('Error fetching exercises:', error);
+          setError(error.message || 'Failed to fetch exercises');
+        } finally {
+          setLoading(false);
+        }
+      };
+  
+      fetchExercises();
+    }, [libraryId, token])
+  );
+  
 
   useEffect(() => {
     return () => {
@@ -51,7 +58,7 @@ const LibraryDetails = ({ route }) => {
 
   const handleAddExercise = () => {
     navigation.navigate('SetExerciseLibrary', { libraryId });
-    showNotification('Exercise Added Successfully!');
+    
   };
 
   const handleDeleteExercise = async (exerciseId) => {
@@ -186,7 +193,7 @@ const LibraryDetails = ({ route }) => {
                 onPress={handleAddExercise}
                 style={styles.addButton}>
                 <View style={styles.row}>
-                  <Icon name="plus" size={20} color="#fff" />
+                  <Icon name="plus" size={20} color="#000" />
                   <Text style={styles.addButtonText}> Exercise</Text>
                 </View>
               </TouchableOpacity>
@@ -232,9 +239,10 @@ const styles = StyleSheet.create({
   outerContainer: { flex: 1, backgroundColor: '#000' },
   innerContainer: {
     flex: 1,
-    padding: 20,
+    padding: 5,
     marginTop: 70,
     backgroundColor: '#000',
+    marginBottom:60,
   },
   titleContainer: {
     flexDirection: 'row',
@@ -242,13 +250,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 15,
   },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
+  title: { marginLeft: 10,fontSize: 20, fontWeight: 'bold', color: '#fff' },
   sectionHeader: {
-    backgroundColor: '#e2f163',
+    backgroundColor: '#adde86',
     padding: 10,
-    borderRadius: 5,
-    marginBottom: 10,
-    marginTop: 10,
+    // borderRadius: 5,
+    marginBottom: 5,
+    marginTop: 20,
   },
   sectionHeaderText: {
     fontSize: 20,
@@ -262,8 +270,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 5,
     backgroundColor: '#B3A0FF',
-    borderRadius: 8,
-    marginBottom: 10,
+    // borderRadius: 8,
+    marginBottom: 5,
     justifyContent: 'space-between',
   },
   exerciseDetailsContainer: {
@@ -296,12 +304,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   addButton: {
-    backgroundColor: '#B3A0FF',
+    backgroundColor: '#e2f163',
     paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 25,
+    paddingHorizontal: 10,
+    borderRadius: 15,
+    width:'30%',
+    fontSize: 20,
+    marginRight: 5,
   },
-  addButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
+  addButtonText: { marginLeft:10,color: '#000', fontSize: 18, fontWeight: 'bold' },
   deleteButton: { padding: 10 },
   row: {
     flexDirection: 'row',

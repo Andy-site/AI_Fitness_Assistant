@@ -126,7 +126,7 @@ const LandNutri = () => {
           is_consumed: false,
         }));
     
-        // ✅ Add log here before saving
+        //  Add log here before saving
         console.log('📦 Saving NEW meal plan to backend:', JSON.stringify(formattedMealPlan, null, 2));
     
         await saveMealPlanToBackend(formattedMealPlan);
