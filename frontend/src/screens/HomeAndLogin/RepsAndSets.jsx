@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     borderBottomWidth: 1,
     padding: 10,
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
     borderRadius: 15,
   },
   setTitle: {

@@ -1,10 +1,13 @@
 from rest_framework import serializers
-from .models import CustomUser, Workout, WorkoutExercise, ExercisePerformance, WorkoutLibrary, WorkoutLibraryExercise
+from .models import CustomUser, Workout, WorkoutExercise, ExercisePerformance, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise, MealPlan
+import re
+from rest_framework import serializers
+from .models import CustomUser
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['email', 'password', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'username']
+        fields = ['email', 'password', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'username', 'goal_weight','goal_duration','activity_level']
         extra_kwargs = {'password': {'write_only': True}, 'username': {'required': False}}  # Make username not required
 
     def validate_username(self, value):
@@ -16,6 +19,18 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Username already exists")
         return value
 
+    def validate_goal_weight(self, value):
+        # Retrieve the current user weight (assuming it is passed as part of the registration data)
+        current_weight = self.initial_data.get('weight')
+        goal = self.initial_data.get('goal')
+
+        if goal == 'Weight Loss' and value >= current_weight:
+            raise serializers.ValidationError("Goal weight must be less than your current weight for weight loss.")
+        if goal == 'Weight Gain' and value <= current_weight:
+            raise serializers.ValidationError("Goal weight must be greater than your current weight for weight gain.")
+        
+        return value
+
     def create(self, validated_data):
         # Set the username to the email if not provided
         if 'username' not in validated_data:
@@ -24,27 +39,110 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         # Create the user with the validated data
         user = CustomUser.objects.create_user(**validated_data)
         return user
+    
+    def get_calories(self, obj):
+        return obj.calculate_calories(activity_level='moderate')
+
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    profile_photo = serializers.ImageField(required=False)  # If you want the user to be able to upload an image
+    profile_photo = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = CustomUser
-        fields = ['email', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal','profile_photo']
-        read_only_fields = ['email']  # Make sure the email is not editable
-    
-    def update(self, instance, validated_data):
-        # Check if profile photo is provided and update
-        profile_photo = validated_data.pop('profile_photo', None)
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+        fields = [
+            'id',
+            'email', 'first_name', 'last_name', 'age', 'height', 'weight',
+            'goal', 'goal_weight', 'profile_photo', 'goal_duration', 'activity_level', 'created_at'
+        ]
+        read_only_fields = ['id','email']
 
-        # If a new profile photo is uploaded, update it
-        if profile_photo:
-            instance.profile_photo = profile_photo
+    def validate(self, data):
+        """
+        Validate all fields together.
+        """
+        # Convert numeric fields to proper types
+        try:
+            if 'age' in data:
+                data['age'] = int(data['age'])
+            if 'height' in data:
+                data['height'] = float(data['height'])
+            if 'weight' in data:
+                data['weight'] = float(data['weight'])
+            if 'goal_weight' in data:
+                data['goal_weight'] = float(data['goal_weight'])
+        except (TypeError, ValueError):
+            raise serializers.ValidationError("Invalid numeric value provided.")
+
+        # Validate goal weight against current weight
+        if all(key in data for key in ['goal', 'weight', 'goal_weight']):
+            if data['goal'] == 'Weight Loss' and data['goal_weight'] >= data['weight']:
+                raise serializers.ValidationError({
+                    "goal_weight": "Goal weight must be less than current weight for weight loss."
+                })
+            if data['goal'] == 'Weight Gain' and data['goal_weight'] <= data['weight']:
+                raise serializers.ValidationError({
+                    "goal_weight": "Goal weight must be greater than current weight for weight gain."
+                })
+
+        return data
+
+    def update(self, instance, validated_data):
+        """
+        Handle profile update with proper error handling.
+        """
+        try:
+            # Handle profile photo separately
+            profile_photo = validated_data.pop('profile_photo', None)
+            if profile_photo is not None:
+                instance.profile_photo = profile_photo
+            
+            # Update other fields
+            for attr, value in validated_data.items():
+                if hasattr(instance, attr):
+                    setattr(instance, attr, value)
+
+            instance.save()
+            return instance
+        except Exception as e:
+            raise serializers.ValidationError({
+                "message": f"Error updating profile: {str(e)}"
+            })
+
+    def to_representation(self, instance):
+        """
+        Customize the serialized output.
+        """
+        data = super().to_representation(instance)
         
-        instance.save()
-        return instance
+        # Handle profile photo URL
+        if instance.profile_photo:
+            if hasattr(instance.profile_photo, 'url'):
+                data['profile_photo'] = instance.profile_photo.url
+            else:
+                data['profile_photo'] = None
+        
+        # Ensure numeric fields are properly formatted
+        data['age'] = int(instance.age) if instance.age else None
+        data['height'] = float(instance.height) if instance.height else None
+        data['weight'] = float(instance.weight) if instance.weight else None
+        data['goal_weight'] = float(instance.goal_weight) if instance.goal_weight else None
+
+        return data
+
+
+
+class ExerciseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Exercise
+        fields = '__all__'  # Expose all fields in the API response
+
+class FavoriteExerciseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FavoriteExercise
+        fields = ['id', 'user', 'exercise']
+
+class ToggleFavoriteExerciseSerializer(serializers.Serializer):
+    exercise_name = serializers.CharField(max_length=255)
 
 class WorkoutSerializer(serializers.ModelSerializer):
     workout_library_name = serializers.CharField(source="workout_library.name", read_only=True)  # Get library name
@@ -81,3 +179,9 @@ class WorkoutLibraryExerciseSerializer(serializers.ModelSerializer):
         model = WorkoutLibraryExercise
         fields = ['id', 'library', 'workout_exercise_id', 'name', 'body_part']
         read_only_fields = ['id', 'library']
+
+class MealPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MealPlan
+        fields = ['id', 'user', 'meal', 'name', 'ingredients', 'calories', 'is_consumed', 'created_at', 'dietary_restriction']
+        read_only_fields = ['id', 'user', 'created_at']

@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   categoryItem: {
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,

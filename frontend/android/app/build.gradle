@@ -110,9 +110,6 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
-    implementation platform('com.google.firebase:firebase-bom:33.9.0') // Use latest version
-    implementation 'com.google.firebase:firebase-analytics'
-    implementation 'com.google.firebase:firebase-messaging'
     implementation 'androidx.core:core:1.9.0'
 
     if (hermesEnabled.toBoolean()) {
@@ -123,4 +120,3 @@ dependencies {
 }
 
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
-apply plugin: 'com.google.gms.google-services'

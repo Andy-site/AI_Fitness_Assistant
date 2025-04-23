@@ -72,7 +72,7 @@ const PasswordScreen = ({ navigation, route }) => {
       if (!validatePassword()) {
         return;
       }
-      navigation.navigate('NameScreen', { 
+      navigation.navigate('UserInput', { 
         email, 
         password: password 
       });

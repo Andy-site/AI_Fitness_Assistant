@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, StyleSheet, Modal, ScrollView } from 'react-native';
-import { exerciseOptions, fetchData } from '../../utils/ExerciseFetcher';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Header from '../../components/Header';
-import { capitalizeWords } from '../../utils/StringUtils';
 import Footer from '../../components/Footer';
-import { addExerciseToLibrary, getAuthToken } from '../../api/fithubApi';
+import { capitalizeWords } from '../../utils/StringUtils';
+import { addExerciseToLibrary, getAuthToken, fetchExercises as fetchFromApi } from '../../api/fithubApi';
 
-const bodyPartsList = ['back', 'cardio', 'chest', 'lower arms', 'lower legs', 'neck', 'shoulders', 'upper arms', 'upper legs', 'waist'];
+const bodyPartsList = ['None', 'back', 'cardio', 'chest', 'lower arms', 'lower legs', 'neck', 'shoulders', 'upper arms', 'upper legs', 'waist'];
 
 const SetExerciseLibrary = ({ route }) => {
   const [exercises, setExercises] = useState([]);
@@ -16,21 +15,45 @@ const SetExerciseLibrary = ({ route }) => {
   const [selectedBodyPart, setSelectedBodyPart] = useState('');
   const [showBodyPartModal, setShowBodyPartModal] = useState(false);
   const [selectedExercises, setSelectedExercises] = useState([]);
+  const [error, setError] = useState(null);
+  const [shouldFetch, setShouldFetch] = useState(false);
   const { libraryId } = route.params;
 
-  const fetchExercises = async (bodyPart) => {
-    setLoading(true);
-    try {
-      const url = `https://exercisedb.p.rapidapi.com/exercises/bodyPart/${bodyPart}`;
-      const data = await fetchData(url, exerciseOptions);
-      setExercises(data);
-      categorizeByEquipment(data);
-    } catch (error) {
-      console.error('Error fetching exercises:', error);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    const fetchAllExercises = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetchFromApi(
+          selectedBodyPart,
+          null,      // No equipment filter
+          null,      // No search query
+          1,
+          100
+        );
+
+        console.log("API Response:", response);
+
+        if (response && response.results) {
+          setExercises(response.results);
+          categorizeByEquipment(response.results);
+        } else {
+          setError('No exercises found.');
+        }
+      } catch (error) {
+        console.error('Error fetching exercises:', error);
+        setError('Failed to load exercises. Please try again later.');
+      } finally {
+        setLoading(false);
+        setShouldFetch(false);
+      }
+    };
+
+    if (shouldFetch && selectedBodyPart) {
+      fetchAllExercises();
     }
-  };
+  }, [shouldFetch, selectedBodyPart]);
 
   const categorizeByEquipment = (exerciseList) => {
     const categorized = {};
@@ -44,33 +67,34 @@ const SetExerciseLibrary = ({ route }) => {
   };
 
   const toggleExerciseSelection = (exercise) => {
-    setSelectedExercises(prevState => {
-      if (prevState.includes(exercise.id)) {  // Correct field name: exercise.id
-        return prevState.filter(id => id !== exercise.id); // Deselect exercise
-      }
-      return [...prevState, exercise.id]; // Select exercise
-    });
+    setSelectedExercises(prevState =>
+      prevState.includes(exercise.id)
+        ? prevState.filter(id => id !== exercise.id)
+        : [...prevState, exercise.id]
+    );
   };
 
   const handleConfirmSelection = async () => {
     try {
-      const token = await getAuthToken(); // Fetch the token asynchronously
+      const token = await getAuthToken();
       if (!token) {
         alert('No token found. Please log in.');
         return;
       }
-      console.log('Selected Exercises:', selectedExercises);
   
-      // Log the selected exercises before making the API call
-      const exercisesToAdd = exercises.filter(ex => selectedExercises.includes(ex.id)); // Use ex.id instead of ex.workout_exercise_id
-    
-      // Log the exercises that will be sent to the API
-      console.log('Exercises to Add:', exercisesToAdd);
+      const exercisesToAdd = exercises.filter(ex => selectedExercises.includes(ex.id));
   
       for (let exerciseData of exercisesToAdd) {
         try {
-          console.log('Sending Exercise to API:', exerciseData);  // Log individual exercise data
-          await addExerciseToLibrary(libraryId, exerciseData, token); // Use the libraryId from route params
+          // Ensure required field `body_part` is added from `category`
+          console.log("Selected Exercises to Add:", exercisesToAdd);
+
+          const payload = {
+            ...exerciseData,
+            bodyPart: exerciseData.category, // ✅ Map category to body_part
+          };
+  
+          await addExerciseToLibrary(libraryId, payload, token);
         } catch (error) {
           console.error('Error adding exercise to library:', error);
           alert('Failed to add exercises');
@@ -85,29 +109,6 @@ const SetExerciseLibrary = ({ route }) => {
     }
   };
   
-  
-
-  const renderExerciseCategory = ({ item }) => {
-    return (
-      <View style={styles.categoryContainer}>
-        <Text style={styles.categoryTitle}>{capitalizeWords(item)}</Text>
-        <View style={styles.exercisesContainer}>
-          {equipmentCategories[item]?.map(ex => (
-            <View key={ex.id} style={styles.exerciseRow}>
-              <Text style={styles.exerciseText}>{capitalizeWords(ex.name)}</Text>
-              <TouchableOpacity onPress={() => toggleExerciseSelection(ex)}>
-                <Icon
-                  name={selectedExercises.includes(ex.id) ? 'check-circle' : 'circle'} // Correct field name: ex.id
-                  size={24}
-                  color={selectedExercises.includes(ex.id) ? '#e2f163' : '#fff'}
-                />
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  };
 
   const renderBodyPartModal = () => (
     <Modal visible={showBodyPartModal} transparent animationType="slide">
@@ -119,8 +120,8 @@ const SetExerciseLibrary = ({ route }) => {
           renderItem={({ item }) => (
             <TouchableOpacity key={item} style={styles.modalItem} onPress={() => {
               setSelectedBodyPart(item);
-              fetchExercises(item);
               setShowBodyPartModal(false);
+              setShouldFetch(true);
             }}>
               <Text style={styles.modalText}>{capitalizeWords(item)}</Text>
             </TouchableOpacity>
@@ -134,41 +135,51 @@ const SetExerciseLibrary = ({ route }) => {
     <View style={styles.container}>
       <Header title="Exercise Library" />
 
-      <ScrollView style={styles.scrollView}>
         <View style={styles.selectionRow}>
           <Text style={styles.selectionLabel}>Select Body Part:</Text>
           <TouchableOpacity onPress={() => setShowBodyPartModal(true)} style={styles.selectionBox}>
             <Text style={styles.selectionText}>{capitalizeWords(selectedBodyPart) || 'Select'}</Text>
-            <Icon name="caret-down" size={20} color="#fff" style={styles.dropdownIcon} />
+            <Icon name="caret-down" size={25} color="#000" style={styles.dropdownIcon} />
           </TouchableOpacity>
         </View>
 
-        {loading && <ActivityIndicator size='large' color='#000' />}
-
-        {Object.keys(equipmentCategories).map((category) => (
-          <View key={category} style={styles.categoryContainer}>
-            <Text style={styles.categoryTitle}>{capitalizeWords(category)}</Text>
-            <View style={styles.exercisesContainer}>
-              {equipmentCategories[category].map(ex => (
-                <View key={ex.id} style={styles.exerciseRow}>
-                  <Text style={styles.exerciseText}>{capitalizeWords(ex.name)}</Text>
-                  <TouchableOpacity onPress={() => toggleExerciseSelection(ex)}>
-                    <Icon
-                      name={selectedExercises.includes(ex.id) ? 'check-circle' : 'circle'} // Correct field name: ex.id
-                      size={24}
-                      color={selectedExercises.includes(ex.id) ? '#e2f163' : '#fff'}
-                    />
-                  </TouchableOpacity>
-                </View>
-              ))}
+        <ScrollView style={styles.scrollView}>
+        {loading ? (
+  <View style={styles.loadingContainer}>
+    <ActivityIndicator size="large" color="#e2f163" />
+    <Text style={styles.loadingText}>Loading Exercises...</Text>
+  </View>
+) : (
+  <>
+    {Object.keys(equipmentCategories).map((category) => (
+      <View key={category} style={styles.categoryContainer}>
+        <Text style={styles.categoryTitle}>{capitalizeWords(category)}</Text>
+        <View style={styles.exercisesContainer}>
+          {equipmentCategories[category].map(ex => (
+            <View key={ex.id} style={styles.exerciseRow}>
+              <Text style={styles.exerciseText}>{capitalizeWords(ex.name)}</Text>
+              <TouchableOpacity onPress={() => toggleExerciseSelection(ex)}>
+                <Icon
+                  name={selectedExercises.includes(ex.id) ? 'check-circle' : 'circle'}
+                  size={24}
+                  color={selectedExercises.includes(ex.id) ? '#e2f163' : '#fff'}
+                />
+              </TouchableOpacity>
             </View>
-          </View>
-        ))}
+          ))}
+        </View>
+      </View>
+    ))}
 
-        {/* Confirm Button inside ScrollView */}
-        <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmSelection}>
-          <Text style={styles.confirmButtonText}>Confirm</Text>
-        </TouchableOpacity>
+{selectedBodyPart && !loading && (
+  <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmSelection}>
+    <Text style={styles.confirmButtonText}>Confirm</Text>
+  </TouchableOpacity>
+)}
+
+  </>
+)}
+
       </ScrollView>
 
       {renderBodyPartModal()}
@@ -179,31 +190,60 @@ const SetExerciseLibrary = ({ route }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  scrollView: { flex: 1, padding: 16, marginBottom: 70 }, // Add extra bottom padding for button space
+  scrollView: { flex: 1,  marginBottom: 70 },
   selectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
-    padding: 20,
-    marginTop: 70,
+    marginBottom: 5,
+    paddingHorizontal: 20,
+    marginTop: 80,
     borderRadius: 5,
+    justifyContent: 'space-between',
+    gap: 10, // Optional: If using RN >= 0.71, for spacing
   },
-  selectionLabel: { color: '#fff', fontSize: 16, marginRight: 10 },
+  
+  selectionLabel: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '600',
+    marginRight: 10,
+  },
+  
   selectionBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#896cfe',
-    padding: 10,
+    backgroundColor: '#e2f163',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: 5,
-    flex: 1,
+    width: 130, 
     justifyContent: 'space-between',
   },
-  selectionText: { color: '#fff', fontSize: 16 },
+  
+  selectionText: {
+    color: '#000',
+    fontSize: 18,
+    fontWeight: '600',
+    flexShrink: 1,
+  },
+  
   dropdownIcon: { marginLeft: 5 },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 40,
+  },
+  loadingText: {
+    color: '#fff',
+    marginTop: 10,
+    fontSize: 16,
+  },
+  
 
   categoryContainer: {
     margin: 15,
-    backgroundColor: '#896cfe',
+    backgroundColor: '#B3A0FF',
     padding: 10,
     marginVertical: 2,
     borderRadius: 8,
@@ -223,17 +263,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginVertical: 5,
-    borderBottomWidth: 1, // Adds a bottom border (separator)
-    
-    borderBottomColor: '#ccc', 
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
   },
   exerciseText: {
     color: '#000',
     fontSize: 16,
     marginVertical: 2,
-    fontWeight:500,
+    fontWeight: '500',
     flexShrink: 1,
-    maxWidth:'90%'
+    maxWidth: '90%',
   },
 
   modalContainer: {

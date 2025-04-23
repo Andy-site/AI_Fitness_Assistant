@@ -1,10 +1,13 @@
 import React, { useContext, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { NotificationContext } from '../../components/NotificationContext';
-import Icon from 'react-native-vector-icons/Ionicons'; // Make sure to install react-native-vector-icons
+import Icon from 'react-native-vector-icons/Ionicons'; // Ensure you have installed react-native-vector-icons
+import Header from '../../components/Header';
+import Footer from '../../components/Footer';
+
 
 const Notification = ({ navigation }) => {
-  const { notifications, markAsRead, removeNotification } = useContext(NotificationContext);
+  const { notifications, removeNotification, clearAllNotifications } = useContext(NotificationContext);
 
   // Filter unique notifications based on date and time
   const uniqueNotifications = Array.from(
@@ -20,11 +23,15 @@ const Notification = ({ navigation }) => {
     return unsubscribe;
   }, [navigation]);
 
-  // Get notification icon based on type
+  // Get notification icon - optimized for reminder notifications
   const getNotificationIcon = (type) => {
+    // Since we only have reminder notifications for now
+    if (type === 'reminder' || !type) {
+      return <Icon name="alarm-outline" size={24} color="#B3A0FF" />;
+    }
+    
+    // Keep this structure for future expansion if needed
     switch(type) {
-      case 'reminder':
-        return <Icon name="alarm-outline" size={24} color="#896CFE" />;
       case 'achievement':
         return <Icon name="trophy-outline" size={24} color="#FFB347" />;
       case 'workout':
@@ -32,19 +39,15 @@ const Notification = ({ navigation }) => {
       case 'alert':
         return <Icon name="alert-circle-outline" size={24} color="#F44336" />;
       default:
-        return <Icon name="notifications-outline" size={24} color="#896CFE" />;
+        return <Icon name="notifications-outline" size={24} color="#B3A0FF" />;
     }
   };
 
   const renderNotificationItems = () => {
     return uniqueNotifications.map((item) => (
-      <TouchableOpacity 
-        key={item.id}
-        style={[styles.notificationItem, !item.read && styles.unreadNotification]}
-        onPress={() => markAsRead && markAsRead(item.id)}
-      >
+      <View key={item.id} style={[styles.notificationItem, !item.read && styles.unreadNotification]}>
         <View style={styles.iconContainer}>
-          {getNotificationIcon(item.type || 'default')}
+          {getNotificationIcon(item.type || 'reminder')}
         </View>
         <View style={styles.contentContainer}>
           <Text style={styles.notificationText}>{item.message}</Text>
@@ -52,20 +55,23 @@ const Notification = ({ navigation }) => {
         </View>
         <TouchableOpacity 
           style={styles.deleteButton}
-          onPress={() => removeNotification && removeNotification(item.id)}
+          onPress={() => removeNotification(item.id)}
         >
-          <Icon name="close-circle" size={22} color="#DDD" />
+          <Icon name="close-circle" size={22} color="#F44336" />
         </TouchableOpacity>
-      </TouchableOpacity>
+      </View>
     ));
   };
 
   return (
     <View style={styles.container}>
+      {/* Header Component */}
+      <Header title="Notifications" />
+      
       <View style={styles.header}>
-        <Text style={styles.title}>Notifications</Text>
+        <Text style={styles.title}>Reminders</Text>
         {uniqueNotifications.length > 0 && (
-          <TouchableOpacity>
+          <TouchableOpacity onPress={clearAllNotifications}>
             <Text style={styles.clearAllText}>Clear All</Text>
           </TouchableOpacity>
         )}
@@ -85,6 +91,9 @@ const Notification = ({ navigation }) => {
           {renderNotificationItems()}
         </ScrollView>
       )}
+      
+      {/* Footer Component */}
+      <Footer navigation={navigation} />
     </View>
   );
 };
@@ -92,7 +101,7 @@ const Notification = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    paddingTop: 20,
+    paddingTop: 0,
     backgroundColor: '#000',
   },
   header: {
@@ -103,6 +112,7 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#222',
+    marginTop:70,
     marginBottom: 10
   },
   title: { 
@@ -112,7 +122,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   clearAllText: {
-    color: '#896CFE',
+    color: '#B3A0FF',
     fontSize: 14,
     fontWeight: '600'
   },
@@ -153,7 +163,7 @@ const styles = StyleSheet.create({
   },
   unreadNotification: {
     borderLeftWidth: 4,
-    borderLeftColor: '#896CFE',
+    borderLeftColor: '#B3A0FF',
   },
   iconContainer: {
     width: 45,
@@ -180,9 +190,6 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 5,
-    fontsize: 12,
-    fontWeight: '600',
-    color: '#999',
     position: 'absolute',
     top: 5,
     right: 5,

@@ -138,7 +138,7 @@ const CreateLibrary = () => {
             onPress={() => setModalVisible(true)}
             style={styles.addButton}>
             <View style={styles.row}>
-              <Icon name="plus" size={20} color="#fff" />
+              <Icon name="plus" size={20} color="#000" />
               <Text style={styles.addButtonText}> Create New</Text>
               {/* You can change the text if needed */}
             </View>
@@ -232,13 +232,13 @@ const styles = StyleSheet.create({
     
     container: {
       flex: 1,
-      padding: 20,
+      padding: 10,
       justifyContent: 'center',
       backgroundColor: '#000',
       marginTop: 70,
     },
     label: {
-      fontSize: 18,
+      fontSize: 20,
       marginBottom: 10,
       fontWeight: 'bold',
       color: '#fff',
@@ -276,12 +276,16 @@ const styles = StyleSheet.create({
       borderBottomWidth: 1,
       borderBottomColor: '#ddd',
       alignItems: 'center',
+      backgroundColor: '#B3A0FF',
+      
     },
     libraryText: {
-      fontSize: 16,
+      fontSize: 18,
       color: 'white',
       fontWeight: 'bold',
       flex: 1,
+      
+      marginLeft: 5,  
     },
     actionsContainer: {
       flexDirection: 'row',
@@ -306,28 +310,31 @@ const styles = StyleSheet.create({
       backgroundColor: 'rgba(0,0,0,0.5)',
     },
     modalContainer: {
-      backgroundColor: '#896cfe',
+      backgroundColor: '#B3A0FF',
       padding: 30,
       borderRadius: 10,
       width: '80%',
       alignItems: 'center',
     },
     addButton: {
-        backgroundColor: '#896cfe', // Background color for the button
+        backgroundColor: '#e2f163', // Background color for the button
         padding: 10,
         borderRadius: 5,
         flexDirection: 'row', // To align icon and text in a row
         alignItems: 'center', // Vertically centers the icon and text
         justifyContent: 'center', // Centers the content
+        marginRight: 10, // Adds space to the right of the button
       },
       row: {
         flexDirection: 'row', // Aligns items in a row
         alignItems: 'center', // Centers items vertically
       },
       addButtonText: {
-        color: '#fff', // Text color
-        fontSize: 16, // Font size
+        color: '#000', // Text color
+        fontSize: 18, // Font size
         marginLeft: 5, // Adds space between the icon and the text
+        fontWeight: 500, // Makes the text bold
+   
       },
     CreateButton: {
       backgroundColor: '#e2f163',

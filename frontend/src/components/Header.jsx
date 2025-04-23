@@ -1,17 +1,21 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 const Header = ({ title, showBackButton = true }) => {
   const navigation = useNavigation();
+  const route = useRoute();
+  
+  // Check if current screen is Notification to hide the notification icon
+  const isNotificationScreen = route.name === 'Notification';
 
   const handleBackPress = () => {
     navigation.goBack();
   };
 
   const handleNotificationPress = () => {
-    navigation.navigate('Notification'); // Navigate to Notification screen
+    navigation.navigate('Notification');
   };
 
   return (
@@ -26,10 +30,12 @@ const Header = ({ title, showBackButton = true }) => {
       {/* Title */}
       <Text style={styles.title}>{title}</Text>
 
-      {/* Notification Icon */}
-      <TouchableOpacity onPress={handleNotificationPress} style={styles.notificationButton}>
-        <Icon name="bell" size={24} color="#896CFE" />
-      </TouchableOpacity>
+      {/* Notification Icon - Only show if not on Notification screen */}
+      {!isNotificationScreen && (
+        <TouchableOpacity onPress={handleNotificationPress} style={styles.notificationButton}>
+          <Icon name="bell" size={24} color="#B3A0FF" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -56,7 +62,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#896CFE',
+    color: '#B3A0FF',
     textAlign: 'center',
   },
   notificationButton: {

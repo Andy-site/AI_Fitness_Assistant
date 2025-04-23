@@ -1,35 +1,57 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from . import views
 
 urlpatterns = [
     
-    path('register/', views.RegisterView, name='register'),
-    path('user-details/', views.get_user_details, name='get_user_details'),
-    path('send-otp/', views.SendOtpView, name='send-otp'),
-    path('verify-otp/', views.VerifyOtpView, name='verify-otp'),
-    path('login/', views.LoginView, name='login'),  
-    path('reset-password/', views.reset_password, name='reset-password'),
-    path('home/', views.HomeView, name='home'),
-    path('forgot-password/otp/', views.ForgotPasswordOTPView, name='forgot-password-otp'),
-    path('forgot-password/verify/', views.verify_password_reset_otp, name='verify-password-reset-otp'),
-    path('reset-password/', views.reset_password, name='reset-password'),
-    path('log-exercise-performance/', views.LogExercisePerformance, name='log-exercise-performance'),
-    path('start-exercise/', views.StartExercise, name='start-exercise'),
-    path('end-exercise/', views.EndExercise, name='end-exercise'),
+    # Authentication URLs
+    path('register/', views.RegisterView.as_view(), name='register'),
+    path('login/', views.LoginView.as_view(), name='login'),
+    path('logout/', views.LogoutView.as_view(), name='logout'),
+    path('send-otp/', views.SendOtpView.as_view(), name='send_otp'),
+    path('verify-otp/', views.VerifyOtpView.as_view(), name='verify_otp'),
 
+    # Password Reset URLs
+    path('request-password-reset-otp/', views.ForgotPasswordOTPView.as_view()),
+    path('verify-password-reset-otp/', views.VerifyPasswordResetOtpView.as_view()),
+    path('reset-password/', views.ResetPasswordView.as_view()),
 
-    path('libraries/', views.list_workout_libraries, name='list-libraries'),
-    path('libraries/create/', views.create_workout_library, name='create-library'),
-    path('libraries/<int:library_id>/delete/', views.delete_workout_library, name='delete-library'),
+    # Calorie Goal
 
-    # WorkoutLibraryExercise endpoints (nested under a library)
-    path('libraries/<int:library_id>/exercises/', views.list_library_exercises, name='list-library-exercises'),
-    path('libraries/<int:library_id>/exercises/add/', views.add_exercise_to_library, name='add-exercise-to-library'),
-    path('libraries/<int:library_id>/exercises/<int:exercise_id>/delete/', views.delete_library_exercise, name='delete-library-exercise'),
+    # User Profile URLs
+    path('user/profile/', views.UserDetailsView.as_view(), name='user_details'),
+    path('user/profile/update/', views.UserProfileUpdateView.as_view(), name='user_profile_update'),
+ path('exercises/', views.ExerciseListView.as_view(), name='exercise_list'),
+    path('start-exercise/', views.StartExerciseView.as_view(), name='start_exercise'),
+    path('end-exercise/', views.EndExerciseView.as_view(), name='end_exercise'),
+    path('log-exercise-performance/', views.LogExercisePerformanceView.as_view(), name='log_exercise_performance'),
 
-    path('profile/update/', views.user_profile_update, name='profile-update'),
+    # Workout Library URLs
+    path('workout-libraries/', views.WorkoutLibraryListView.as_view(), name='workout_libraries'),
+    path('workout-libraries/create/', views.WorkoutLibraryCreateView.as_view(), name='create_workout_library'),
+    path('workout-libraries/<int:library_id>/delete/', views.WorkoutLibraryDeleteView.as_view(), name='delete_workout_library'),
+    path('workout-libraries/<int:library_id>/exercises/add/', views.WorkoutLibraryExerciseAddView.as_view(), name='add_exercise_to_library'),
+    path('workout-libraries/<int:library_id>/exercises/', views.WorkoutLibraryExerciseListView.as_view(), name='get_library_exercises'),
+    path('workout-libraries/<int:library_id>/exercises/<int:exercise_id>/delete/', views.WorkoutLibraryExerciseDeleteView.as_view(), name='delete_library_exercise'),
+    path('workout-dates/', views.WorkoutDatesView.as_view(), name='workout_dates'),
+    # Favorite Exercise URLs
+    path('favorites/', views.FavoriteExerciseView.as_view(), name='favorite_exercises'),
+    path('favorites/<int:favorite_id>/', views.FavoriteExerciseView.as_view(), name='favorite_exercise_detail'),
+    path('toggle-favorite/', views.ToggleFavoriteExercise.as_view(), name='toggle_favorite_exercise'),
+
+    # Meal Plan URLs
+    path('meal-plans/', views.MealPlanListView.as_view(), name='meal_plan_list'),
+    path('meal-plans/create/', views.MealPlanCreateView.as_view(), name='meal_plan_create'),
+    path('meal-plans/stats/', views.MealPlanStatsView.as_view(), name='meal_plan_stats'),
+    path('backend-meals/', views.BackendMealsView.as_view(), name='backend_meals'),
+    path('meal-plans/<int:meal_id>/update-consumed/', views.UpdateMealConsumedStatusView.as_view(), name='update_meal_consumed'),
+    path('meal-plans/bulk-update-consumed/', views.BulkUpdateMealConsumedStatusView.as_view(), name='bulk_update_meal_consumed'),
+
+    # Calorie Summary URL
+    path('daily-calorie-summary/', views.DailyCalorieSummaryView.as_view(), name='daily_calorie_summary'),
+    path('calorie-goal/', views.CalorieGoalView.as_view(), name='calorie_goal'),
+
+    #Home page URL
+    path('', views.HomeView.as_view(), name='home'),
+
 ]
-
-
-
-    

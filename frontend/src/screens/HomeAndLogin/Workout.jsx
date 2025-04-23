@@ -6,346 +6,588 @@ import {
   ActivityIndicator,
   ScrollView,
   TouchableOpacity,
-  Image,
-  TextInput,TouchableWithoutFeedback,
- 
+  Modal,
+  SafeAreaView,
 } from 'react-native';
-import { fetchData, exerciseOptions } from '../../utils/ExerciseFetcher';
-import Footer from '../../components/Footer';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Header from '../../components/Header';
+import Footer from '../../components/Footer';
+import { Picker } from '@react-native-picker/picker';
+import { fetchExercises } from '../../api/fithubApi';
 import { capitalizeWords } from '../../utils/StringUtils';
+import { checkFavoriteStatus} from '../../api/fithubApi';
 
+const categories = [
+  'chest', 'back', 'cardio', 'lower arms', 'waist', 'shoulders',
+  'lower legs', 'neck', 'upper arms', 'upper legs'
+];
 
-const images = {
-  back: require('../../assets/Images/back.png'),
-  cardio: require('../../assets/Images/cardio.png'),
-  chest: require('../../assets/Images/chest.png'),
-  'lower arms': require('../../assets/Images/arms2.png'),
-  'lower legs': require('../../assets/Images/legs3.png'),
-  neck: require('../../assets/Images/neck.png'),
-  shoulders: require('../../assets/Images/shoulders.png'),
-  'upper arms': require('../../assets/Images/arms1.png'),
-  'upper legs': require('../../assets/Images/legs1.png'),
-  waist: require('../../assets/Images/waist.png'),
-};
+const equipmentList = [
+  'roller', 'skierg machine', 'tire', 'stepmill machine', 'hammer',
+  'weighted', 'dumbbell', 'ez barbell', 'band', 'cable',
+  'upper body ergometer', 'rope', 'elliptical machine', 'kettlebell',
+  'medicine ball', 'leverage machine', 'wheel roller', 'barbell',
+  'assisted', 'resistance band', 'bosu ball', 'smith machine',
+  'sled machine', 'stability ball', 'olympic barbell', 'trap bar',
+  'body weight', 'stationary bike'
+];
 
 const Workout = () => {
-  const [bodyParts, setBodyParts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exercises, setExercises] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searching, setSearching] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(0);
-  // This state controls whether the search bar is in "active" mode.
-  const [searchActive, setSearchActive] = useState(false);
+  const [filteredExercises, setFilteredExercises] = useState([]);
+  const [favoriteExercises, setFavoriteExercises] = useState({});
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [shouldFetch, setShouldFetch] = useState(true);
+  const [error, setError] = useState(null);
   const navigation = useNavigation();
 
   useEffect(() => {
-    const fetchBodyParts = async () => {
-      const url = 'https://exercisedb.p.rapidapi.com/exercises/bodyPartList/';
-      try {
-        const data = await fetchData(url, exerciseOptions);
-        if (Array.isArray(data)) {
-          setBodyParts(data);
-        }
-      } catch (error) {
-        console.error('Error fetching body parts:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBodyParts();
-  }, []);
-
-  
-  useEffect(() => {
-    const fetchExercises = async (query, currentPage) => {
-      if (searching || query.trim() === '') return; // Prevent fetching if search query is empty
-  
-      setSearching(true);
-      setPage(currentPage); // Reset page number when new search query is initiated.
+    const fetchAllExercises = async () => {
+      setLoading(true);
+      setError(null);
   
       try {
-        const url = `https://exercisedb.p.rapidapi.com/exercises?limit=10&offset=${currentPage * 10}`;
+        const exercisesData = await fetchExercises(
+          selectedCategory,
+          selectedEquipment,
+          '', // No search query for now
+          1,  // Page 1
+          20  // Fetch 20 exercises
+        );
   
-        const data = await fetchData(url, exerciseOptions);
+        console.log("API Response:", exercisesData); // Debugging log
   
-        if (data && Array.isArray(data)) {
-          setExercises(prev => (currentPage === 0 ? data : [...prev, ...data])); // Append data on next pages
-          setHasMore(data.length === 10);
-          setPage(currentPage + 1);
+        if (exercisesData && exercisesData.results) {
+          setExercises(exercisesData.results);
+          setFilteredExercises(exercisesData.results);
         } else {
-          setHasMore(false);
+          setError('No exercises found.');
         }
       } catch (error) {
         console.error('Error fetching exercises:', error);
+        setError('Failed to load exercises. Please try again later.');
       } finally {
-        setSearching(false);
+        setLoading(false);
+        setShouldFetch(false); // Reset the fetch trigger
       }
     };
   
-    if (searchQuery.trim()) {
-      fetchExercises(searchQuery, 0); // Fetch only if there’s search query
+    if (shouldFetch) {
+      fetchAllExercises();
     }
-  }, [searchQuery, searching]);
-  
-  
-    
+  }, [shouldFetch]);
 
-  const handleBodyPartSelect = part => {
-    navigation.navigate('Exercises', { bodyPart: part });
+  const applyFilters = () => {
+    let filtered = [...exercises];
+
+    if (selectedCategory) {
+      filtered = filtered.filter(exercise =>
+        exercise.category?.toLowerCase() === selectedCategory.toLowerCase()
+      );
+    }
+
+    if (selectedEquipment) {
+      filtered = filtered.filter(exercise =>
+        exercise.equipment?.toLowerCase() === selectedEquipment.toLowerCase()
+      );
+    }
+
+    console.log("Filtered Exercises:", filtered); // Debugging log
+    setFilteredExercises(filtered);
+    setShouldFetch(true);
+    setFilterModalVisible(false); // Close the modal after applying filters
   };
 
-  const handleExerciseSelect = exercise => {
-    navigation.navigate('ExeDetails', { exercise });
+  const clearFilters = () => {
+    setSelectedCategory(null);
+    setSelectedEquipment(null);
+    setShouldFetch(true);
   };
 
-  const handleOutsidePress = () => {
-    setSearchActive(false);
-    setSearchQuery('');
+  const navigateToExerciseDetails = async (exercise) => {
+      navigation.navigate('ExeDetails', { 
+        exerciseName: exercise.name, 
+        bodyPart: exercise.category, 
+
+      });
   };
+
+  const renderLoadingState = () => (
+    <View style={styles.loadingContainer}>
+      <View style={styles.loaderBox}>
+        <ActivityIndicator size="large" color="#E2F163" />
+        <Text style={styles.loadingText}>Loading exercises...</Text>
+      </View>
+    </View>
+  );
+
+  const renderErrorState = () => (
+    <View style={styles.errorContainer}>
+      <Icon name="exclamation-circle" size={50} color="#E2F163" />
+      <Text style={styles.errorText}>{error}</Text>
+      <TouchableOpacity 
+        style={styles.retryButton}
+        onPress={() => {
+          const fetchAllExercises = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+              const exercisesData = await fetchExercises(
+                selectedCategory,
+                selectedEquipment,
+                '', // You can add a searchQuery if needed
+                1, // Starting page number (you can change this for pagination)
+                20 // Limit the number of exercises per page
+              );
+              setExercises(exercisesData);
+              setFilteredExercises(exercisesData);
+            } catch (error) {
+              setError('Failed to load exercises. Please try again later.');
+            } finally {
+              setLoading(false);
+            }
+          };
+          fetchAllExercises();
+        }}
+      >
+        <Text style={styles.retryButtonText}>Retry</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
-    <TouchableWithoutFeedback onPress={handleOutsidePress}>
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Header title="Select Body Parts" />
+        <Header title="Workout Exercises" />
 
-        {/* Top row: Library Button & Search Bar */}
-        <View style={styles.topRow}>
-          {!searchActive && (
-            <TouchableOpacity
-              style={styles.libraryButton}
-              onPress={() => navigation.navigate('CreateLibrary')}
-            >
-              <Text style={styles.libraryButtonText}>My Library</Text>
-              <Icon name="list-ul" size={24} color="#000" />
-            </TouchableOpacity>
-          )}
-          
-          <View style={styles.searchBarRow}>
-          <View style={styles.searchBarRow}>
-  <View
-    style={[
-      styles.searchBarContainer,
-      searchActive ? styles.searchBarActive : styles.searchBarInactive,
-    ]}
-  >
-    <TextInput
-      style={styles.searchBar}
-      placeholder="Search for exercises..."
-      placeholderTextColor="#666"
-      value={searchQuery}
-      onChangeText={setSearchQuery}
-      autoCorrect={false}
-      onFocus={() => setSearchActive(true)}
-      onBlur={() => {
-        if (!searchQuery.trim()) setSearchActive(false);
-      }}
-    />
-    <TouchableOpacity
-      onPress={() => setSearchActive(true)} 
-      style={styles.searchIconContainer} 
-    >
-      <Icon name="search" size={20} color="#e2f163" style={styles.searchIcon} />
-    </TouchableOpacity>
-  </View>
-</View>
+        {loading ? (
+          renderLoadingState()
+        ) : error ? (
+          renderErrorState()
+        ) : (
+          <>
+            {/* Top Row */}
+            <View style={styles.topRowContainer}>
+              <View style={styles.topRow}>
+                <TouchableOpacity 
+                  style={styles.libraryButton} 
+                  onPress={() => navigation.navigate('CreateLibrary')}
+                >
+                  <Icon name="list-ul" size={20} color="#000" />
+                  <Text style={styles.buttonText}>Browse Library</Text>
+                </TouchableOpacity>
 
-
-            
-          </View>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {searching ? (
-            <ActivityIndicator size="large" color="#E2F163" style={styles.loader} />
-          ) : (
-            <View style={styles.exercisesContainer}>
-              {searchQuery && exercises.length > 0 ? (
-                exercises.map((exercise, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.exerciseItem}
-                    onPress={() => handleExerciseSelect(exercise)}
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity 
+                    style={styles.iconButton} 
+                    onPress={() => navigation.navigate('ExerciseSearch')}
                   >
-                    <Text style={styles.exerciseText}>Name: {capitalizeWords(exercise.name)}</Text>
-                    <Text style={styles.equipmentText}>
-                      Equipment: {capitalizeWords(exercise.equipment)}
-                    </Text>
+                    <Icon name="search" size={20} color="#000" />
                   </TouchableOpacity>
-                ))
-              ) : searchQuery ? (
-                <Text style={styles.noResultsText}>No exercises found</Text>
-              ) : (
-                <View style={styles.bodyPartsContainer}>
-                  {bodyParts.map((part, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={styles.bodyPartItem}
-                      onPress={() => handleBodyPartSelect(part)}
-                    >
-                      {images[part] && (
-                        <Image source={images[part]} style={styles.bodyPartImage} />
-                      )}
-                      <View style={styles.separator} />
-                      <Text style={styles.bodyPartText}>
-                        {part.charAt(0).toUpperCase() + part.slice(1)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+
+                  <TouchableOpacity 
+                    style={styles.iconButton} 
+                    onPress={() => setFilterModalVisible(true)}
+                  >
+                    <Icon name="filter" size={20} color="#000" />
+                  </TouchableOpacity>
                 </View>
-              )}
+              </View>
             </View>
-          )}
-        </ScrollView>
+
+            {/* Filter Feedback */}
+            {(selectedCategory || selectedEquipment) && (
+              <View style={styles.filterFeedback}>
+                <View style={styles.filterLabels}>
+                  {selectedCategory && (
+                    <View style={styles.filterTag}>
+                      <Text style={styles.filterTagText}>
+                        Body Part: {capitalizeWords(selectedCategory)}
+                      </Text>
+                    </View>
+                  )}
+                  {selectedEquipment && (
+                    <View style={styles.filterTag}>
+                      <Text style={styles.filterTagText}>
+                        Equipment: {capitalizeWords(selectedEquipment)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <TouchableOpacity 
+                  style={styles.clearFiltersButton} 
+                  onPress={clearFilters}
+                >
+                  <Icon name="times-circle" size={20} color="#E2F163" />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Filter Modal */}
+            <Modal 
+              visible={filterModalVisible} 
+              animationType="slide" 
+              transparent
+              onRequestClose={() => setFilterModalVisible(false)}
+            >
+              <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Filter Exercises</Text>
+                    <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+                      <Icon name="times" size={24} color="#000" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={styles.filterLabel}>Body Part</Text>
+                  <View style={styles.pickerContainer}>
+                    <Picker 
+                      selectedValue={selectedCategory} 
+                      onValueChange={setSelectedCategory} 
+                      style={styles.picker}
+                    >
+                      <Picker.Item label="All Body Parts" value={null} />
+                      {categories.map((category, index) => (
+                        <Picker.Item key={index} label={capitalizeWords(category)} value={category} />
+                      ))}
+                    </Picker>
+                  </View>
+
+                  <Text style={styles.filterLabel}>Equipment</Text>
+                  <View style={styles.pickerContainer}>
+                    <Picker 
+                      selectedValue={selectedEquipment} 
+                      onValueChange={setSelectedEquipment} 
+                      style={styles.picker}
+                    >
+                      <Picker.Item label="All Equipment" value={null} />
+                      {equipmentList.map((equipment, index) => (
+                        <Picker.Item key={index} label={capitalizeWords(equipment)} value={equipment} />
+                      ))}
+                    </Picker>
+                  </View>
+
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity 
+                      style={styles.applyFilterButton} 
+                      onPress={applyFilters}
+                    >
+                      <Text style={styles.applyFilterButtonText}>Apply Filters</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={styles.clearButton} 
+                      onPress={() => {
+                        clearFilters();
+                        setFilterModalVisible(false);
+                      }}
+                    >
+                      <Text style={styles.clearButtonText}>Clear All</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
+
+            {/* Exercises List */}
+            {filteredExercises.length > 0 ? (
+              <ScrollView 
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContainer}
+                showsVerticalScrollIndicator={false}
+              >
+                {filteredExercises.map((exercise, index) => (
+                  <TouchableOpacity 
+                    key={index} 
+                    style={styles.exerciseItem}
+                    onPress={() => navigateToExerciseDetails(exercise)}
+                  >
+                    <Text style={styles.exerciseText}>{capitalizeWords(exercise.name)}</Text>
+                    <View style={styles.exerciseDetails}>
+                      <Text style={styles.equipmentText}>
+                        <Text style={styles.labelText}>Equipment: </Text>
+                        {capitalizeWords(exercise.equipment)}
+                      </Text>
+                      <Text style={styles.bodyPartText}>
+                        <Text style={styles.labelText}>Body Part: </Text>
+                        {capitalizeWords(exercise.category)}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.noResultsContainer}>
+                <Text style={styles.noResultsText}>No exercises match your filters</Text>
+                <TouchableOpacity onPress={clearFilters}>
+                  <Text style={styles.clearFiltersText}>Clear Filters</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
+        )}
+
         <Footer />
       </View>
-    </TouchableWithoutFeedback>
-  
+    </SafeAreaView>
   );
 };
 
+
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
   container: {
     flex: 1,
     backgroundColor: '#000000',
   },
+  topRowContainer: {
+    paddingHorizontal: 15,
+    marginTop: 90,
+  },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '95%',
-    alignSelf: 'center',
-    marginVertical: 15,
-    marginTop: 90,
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingVertical: 15,
+  },
+  actionButtons: {
+    flexDirection: 'row'
   },
   libraryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#e2f163',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
     borderRadius: 10,
-    marginRight: 10,
-    borderBlockColor: '#ffffff',
-    borderEndWidth:1,
-    flexDirection: 'row', // Align icon and text horizontally
-    alignItems: 'center', // Vertically center the items within the button
+    flex: 0.8,
   },
-  libraryButtonText: {
-    color: '#000000',
+  iconButton: {
+    backgroundColor: '#e2f163',
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
+    marginLeft: 10,
+  },
+  buttonText: {
+    color: '#000',
     fontSize: 16,
     fontWeight: 'bold',
-    padding:5,
-    marginRight: 5,
+    marginLeft: 8,
   },
-  searchBarRow: {
+  filterFeedback: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    justifyContent: 'space-between',
+    backgroundColor: '#333',
+    padding: 12,
+    borderRadius: 8,
+    marginHorizontal: 15,
+    marginBottom: 15,
   },
-  searchBarContainer: {
+  filterLabels: {
+    flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 1,
-    flex: 1, // Search bar should take available spacee
-    position: 'relative', // Needed for positioning the icon inside the input
+    flexWrap: 'wrap',
   },
-  searchBarActive: {
-    flex: 1,
+  filterTag: {
+    backgroundColor: '#444',
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: 5,
+    marginRight: 8,
+    marginBottom: 5,
   },
-  searchBarInactive: {
-    flex: 1,
+  filterTagText: {
+    color: '#E2F163',
+    fontSize: 14,
   },
-  searchIcon: {
-    marginLeft: 10,
-    marginRight:5,
-    backgroundColor: '#896cfe',
+  clearFiltersButton: {
     padding: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#896cfe',
   },
-  searchBar: {
+  scrollView: {
     flex: 1,
-    color: '#000000',
-    fontSize: 15,
   },
   scrollContainer: {
-    flexGrow: 1,
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    marginTop: 10,
-    paddingBlockEnd:50,
-  },
-  loader: {
-    marginTop: 20,
-  },
-  exercisesContainer: {
-    width: '100%',
+    paddingHorizontal: 15,
+    paddingBottom: 20,
   },
   exerciseItem: {
-    padding: 5,
-    backgroundColor: '#896cfe',
-    marginBottom: 10,
+    padding: 15,
+    backgroundColor: '#B3A0FF',
+    marginBottom: 12,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#ffffff',
   },
   exerciseText: {
     fontSize: 16,
-    color: '#000000',
-    fontWeight: '500',
+    color: '#000',
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  exerciseDetails: {
+    marginTop: 3,
+  },
+  labelText: {
+    fontWeight: 'bold',
+    color: '#fff',
   },
   equipmentText: {
     fontSize: 14,
     color: '#e2f163',
-    fontWeight: '400',
-    fontFamily:'Times',
-  },
-  noResultsText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  bodyPartsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginBottom: 25,
-    gap:5,
-  },
-  bodyPartItem: {
-    width: '45%',
-    height: 180,
-    backgroundColor: '#896cfe',
-    marginBottom: 20,
-    padding: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bodyPartImage: {
-    width: '105%',
-    height: 155,
-    resizeMode: 'cover',
-  },
-  separator: {
-    width: '100%',
-    height: 1,
-    backgroundColor: '#ffffff',
-    marginVertical: 3,
+    marginBottom: 3,
   },
   bodyPartText: {
+    fontSize: 14,
+    color: '#ffffff',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loaderBox: {
+    backgroundColor: 'rgba(25, 25, 25, 0.8)',
+    padding: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#E2F163',
     fontSize: 16,
-    color: '#000000',
+    marginTop: 15,
+    fontWeight: '500',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000',
+  },
+  filterLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000',
+    marginBottom: 8,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    marginBottom: 20,
+    backgroundColor: '#f9f9f9',
+  },
+  picker: {
+    height: 50,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  applyFilterButton: {
+    backgroundColor: '#B3A0FF',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    flex: 1,
+    marginRight: 10,
+    alignItems: 'center',
+  },
+  applyFilterButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  clearButton: {
+    borderWidth: 1,
+    borderColor: '#B3A0FF',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    flex: 1,
+    alignItems: 'center',
+  },
+  clearButtonText: {
+    color: '#B3A0FF',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    color: '#E2F163',
+    fontSize: 16,
     textAlign: 'center',
-    fontWeight: '700',
-    marginBottom: 10,
+    marginTop: 15,
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#E2F163',
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#000',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  noResultsText: {
+    color: '#E2F163',
+    fontSize: 16,
+    textAlign: 'center',
+    marginVertical: 15,
+  },
+  clearFiltersText: {
+    color: '#B3A0FF',
+    fontWeight: 'bold',
+    fontSize: 16,
+    padding: 10,
   },
 });
 
