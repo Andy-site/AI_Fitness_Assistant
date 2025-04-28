@@ -1,8 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'http://192.168.0.117:8000/api/'; // Replace with your actual server IP and port
-// const API_BASE_URL = 'http://localhost:8000/api/';
+// const API_BASE_URL = 'http://192.168.0.117:8000/api/'; // Replace with your actual server IP and port
+const API_BASE_URL = 'http://localhost:8000/api/';
 
 
 const apiClient = axios.create({
@@ -420,7 +420,35 @@ export const fetchExercises = async (selectedCategory, selectedEquipment, search
 
 
 
+export const fetchCalorieProgress = async () => {
+  try {
+    const token = await getAuthToken(); // Get the authentication token
+    const response = await apiClient.get('progress/summary/',{
+      headers: {
+        Authorization: `Bearer ${token}`, // Include the token in the headers
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch progress summary:', error);
+    throw error;
+  }
+};
 
+export const fetchExerciseProgress = async () => {
+  try {
+    const token = await getAuthToken(); // Get the authentication token
+    const response = await apiClient.get('progress/exercise/',{
+      headers: {
+        Authorization: `Bearer ${token}`, // Include the token in the headers
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch exercise progress:', error);
+    throw error;
+  }
+};
 
 export const startExercise = async (exerciseData) => {
   try {

@@ -16,12 +16,14 @@ urlpatterns = [
     path('verify-password-reset-otp/', views.VerifyPasswordResetOtpView.as_view()),
     path('reset-password/', views.ResetPasswordView.as_view()),
 
-    # Calorie Goal
-
     # User Profile URLs
     path('user/profile/', views.UserDetailsView.as_view(), name='user_details'),
     path('user/profile/update/', views.UserProfileUpdateView.as_view(), name='user_profile_update'),
- path('exercises/', views.ExerciseListView.as_view(), name='exercise_list'),
+
+    # Calorie Goal
+    path('exercises/', views.ExerciseListView.as_view(), name='exercise_list'),
+    path('progress/summary/', views.CalorieProgressSummaryView.as_view(), name='calorie-progress-summary'),
+    path('progress/exercise/', views.ExerciseProgressView.as_view(), name='exercise-progress'),
     path('start-exercise/', views.StartExerciseView.as_view(), name='start_exercise'),
     path('end-exercise/', views.EndExerciseView.as_view(), name='end_exercise'),
     path('log-exercise-performance/', views.LogExercisePerformanceView.as_view(), name='log_exercise_performance'),

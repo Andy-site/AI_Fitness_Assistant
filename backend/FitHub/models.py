@@ -223,23 +223,29 @@ class DailyCalorieSummary(models.Model):
     net_calories = models.FloatField(default=0.0)
 
     def calculate_net_calories(self):
+        # Total calories from workout and meals
         burned = Workout.objects.filter(user=self.user, workout_date=self.date).aggregate(total=Sum('total_calories'))['total'] or 0
         consumed = MealPlan.objects.filter(user=self.user, created_at__date=self.date).aggregate(total=Sum('calories'))['total'] or 0
+
         self.calories_burned = burned
         self.calories_consumed = consumed
-        balance = consumed - burned
+
+        # User's base target calories (without exercise)
         data = self.user.calculate_calories(activity_level=self.user.activity_level)
-        target = data.get('weight_loss') or data.get('weight_gain') or 0
-        if self.user.goal == 'Weight Loss':
-            self.net_calories = target - balance
-        elif self.user.goal == 'Weight Gain':
-            self.net_calories = balance - target
+        base_target = data.get('weight_loss') or data.get('weight_gain') or 0
+
+        if self.user.goal == 'Weight Gain':
+            adjusted_target = base_target + burned  # Gain needs to compensate burned calories
+            self.net_calories = consumed - adjusted_target
+        elif self.user.goal == 'Weight Loss':
+            adjusted_target = base_target - burned  # Loss should consider burned calories
+            self.net_calories = adjusted_target - consumed
         else:
-            self.net_calories = balance
+            # For maintenance, simple balance
+            self.net_calories = consumed - burned
+
         self.save()
 
-    def __str__(self):
-        return f"Calorie Summary for {self.user.email} on {self.date}"
 
 
 class WorkoutLibraryExercise(models.Model):
@@ -250,3 +256,22 @@ class WorkoutLibraryExercise(models.Model):
 
     def __str__(self):
         return f"{self.name} in {self.library.name}"
+    
+
+
+class ExerciseHistory(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='exercise_histories')
+    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='exercise_histories')
+    workout = models.ForeignKey(Workout, on_delete=models.CASCADE, related_name='exercise_histories')
+    date = models.DateField(default=now)
+    sets = models.IntegerField(default=1)
+    reps_per_set = models.IntegerField(default=8)
+    weight_per_set = models.FloatField(default=0.0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def total_volume(self):
+        return self.sets * self.reps_per_set * self.weight_per_set
+
+    def __str__(self):
+        return f"{self.user.email} - {self.exercise.name} on {self.date}"

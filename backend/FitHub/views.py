@@ -6,12 +6,12 @@ from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from .serializers import UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer, UserProfileSerializer, ExerciseSerializer, FavoriteExerciseSerializer, ToggleFavoriteExerciseSerializer, MealPlanSerializer
-from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise, MealPlan, DailyCalorieSummary
+from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise, MealPlan, DailyCalorieSummary, ExerciseHistory
 import logging
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from django.utils.timezone import now
+from django.utils import timezone
 from datetime import timedelta
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
@@ -316,7 +316,7 @@ class StartExerciseView(APIView):
         # Get or create today's workout
         workout, _ = Workout.objects.get_or_create(
             user=user,
-            workout_date=now().date(),
+            workout_date=timezone.now().date(),
             defaults={'total_time': timedelta(seconds=0), 'total_calories': 0}
         )
 
@@ -326,7 +326,7 @@ class StartExerciseView(APIView):
             workout_exercise_id=exercise_data['workout_exercise_id'],  # Store API exercise ID
             name=exercise_data.get('exercise_name'),
             body_part=exercise_data.get('body_part'),
-            start_date=now().date()
+            start_date=timezone.now().date()
         )
 
         return Response({
@@ -334,6 +334,35 @@ class StartExerciseView(APIView):
             "workout_exercise_id": workout_exercise.id
         }, status=status.HTTP_201_CREATED)
 
+
+class ExerciseProgressView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, format=None):
+        user = request.user
+
+        # Get all exercise histories for this user, ordered by date
+        histories = ExerciseHistory.objects.filter(user=user).order_by('date')
+
+        exercise_data = {}
+
+        for history in histories:
+            exercise_name = history.exercise.name
+
+            if exercise_name not in exercise_data:
+                exercise_data[exercise_name] = []
+
+            exercise_data[exercise_name].append({
+                'date': history.date.strftime('%Y-%m-%d'),
+                'sets': history.sets,
+                'reps_per_set': history.reps_per_set,
+                'weight_per_set': history.weight_per_set,
+                'total_volume': history.total_volume(),
+            })
+
+        return Response({
+            'exercise_progress': exercise_data
+        })
 
 class EndExerciseView(APIView):
     permission_classes = [IsAuthenticated]
@@ -585,6 +614,31 @@ class ExerciseEquipmentView(APIView):
         equipment = Exercise.objects.values_list('equipment', flat=True).distinct()
         return Response(list(equipment))  # Return plain list instead of loop
 
+
+class CalorieProgressSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, format=None):
+        user = request.user
+        today = timezone.now().date()
+        summaries = DailyCalorieSummary.objects.filter(
+            user=user,
+            date__range=[today - timedelta(days=6), today]
+        ).order_by('date')
+
+        data = []
+        for summary in summaries:
+            data.append({
+                'date': summary.date.strftime('%Y-%m-%d'),
+                'calories_consumed': summary.calories_consumed,
+                'calories_burned': summary.calories_burned,
+                'net_calories': summary.net_calories,
+            })
+
+        return Response({
+            'goal': user.goal,
+            'data': data,
+        })
 
 class ToggleFavoriteExercise(APIView):
     permission_classes = [IsAuthenticated]

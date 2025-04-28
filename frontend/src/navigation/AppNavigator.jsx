@@ -53,6 +53,9 @@ import ExerciseSearch from '../screens/HomeAndLogin/ExerciseSearch';
 import ExerciseEquipment from '../screens/HomeAndLogin/ExerciseEquipment';
 import FavoriteExercises from '../screens/HomeAndLogin/FavoriteExercises';
 import Dashboard from '../screens/ProfileAndSetting/Dashboard';
+import ProgressScreen from '../screens/ProfileAndSetting/Progress';
+import WorkoutCalendar from '../screens/ProfileAndSetting/WorkoutCalendar';
+import ProgressTracking from '../screens/ProfileAndSetting/TrackProgress';
 
 
 const Stack = createNativeStackNavigator();
@@ -62,7 +65,7 @@ const AppNavigator = () => {
     <NavigationContainer>
 
 
-        <Stack.Navigator initialRouteName="LoginScreen">
+        <Stack.Navigator initialRouteName="Progress">
         <Stack.Screen name="Landing" component={Landing}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading1" component={Loading1}  options={{ headerShown: false }}/>
         <Stack.Screen name="Loading2" component={Loading2}  options={{ headerShown: false }}/>
@@ -109,7 +112,9 @@ const AppNavigator = () => {
         <Stack.Screen name="ExerciseEquipment" component={ExerciseEquipment} options={{ headerShown: false }}/>
 
         <Stack.Screen name="Dashboard" component={Dashboard} options={{ headerShown: false }}/>
-
+        <Stack.Screen name="Progress" component={ProgressScreen} options={{ headerShown: false }}/>
+        <Stack.Screen name="WorkoutCalendar" component={WorkoutCalendar} options={{ headerShown: false }}/>
+        <Stack.Screen name="ProgressTracking" component={ProgressTracking} options={{ headerShown: false }}/>
 
       </Stack.Navigator>
     </NavigationContainer>
