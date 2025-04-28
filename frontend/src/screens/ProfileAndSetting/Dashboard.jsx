@@ -69,7 +69,7 @@ const Dashboard = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title="FitHub" />
+      <Header title="Settings" />
       <View style={styles.content}>
         {/* User Welcome Section */}
         <View style={styles.welcomeContainer}>
@@ -162,40 +162,40 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     marginTop: 70,
-    marginBottom: 70,
+    marginBottom: 50,
   },
   welcomeContainer: {
-    flexDirection: 'row',
+    
     alignItems: 'center',
     backgroundColor: '#1A1A1A',
     paddingVertical: 15,
     paddingHorizontal: 20,
     borderRadius: 15,
     marginBottom: 30,
-    elevation: 5,
-    shadowColor: '#B3A0FF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 5,
   },
   profileImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: '#333',
+    alignSelf:'center',
+
   },
   welcomeTextContainer: {
     marginLeft: 16,
   },
   welcomeText: {
+    marginTop:10,
     color: '#AAA',
     fontSize: 16,
     marginBottom: 4,
+    textAlign:'center',
   },
   userName: {
     color: '#E2F163',
     fontSize: 22,
     fontWeight: 'bold',
+    textAlign:'center',
   },
   cardsContainer: {
     flex: 1,
@@ -204,8 +204,8 @@ const styles = StyleSheet.create({
   navCard: {
     backgroundColor: '#1A1A1A',
     borderRadius: 15,
-    padding: 20,
-    marginBottom: 16,
+    padding: 10,
+    marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
     elevation: 3,
