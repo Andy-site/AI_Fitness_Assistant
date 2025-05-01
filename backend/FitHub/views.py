@@ -6,7 +6,7 @@ from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from .serializers import UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer, UserProfileSerializer, ExerciseSerializer, FavoriteExerciseSerializer, ToggleFavoriteExerciseSerializer, MealPlanSerializer
-from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise, MealPlan, DailyCalorieSummary, ExerciseHistory
+from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise, MealPlan, DailyCalorieSummary, ExerciseHistory, get_top_exercises
 import logging
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -414,6 +414,24 @@ class LogExercisePerformanceView(APIView):
             )
 
         return Response({'message': 'Exercise performance logged successfully.'}, status=status.HTTP_201_CREATED)
+    
+class RecommendExercisesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        raw_recommended = get_top_exercises(user)
+
+        recommended = [
+            {
+                "id": item["workout_exercise__exercise__id"],
+                "name": item["workout_exercise__exercise__name"],
+                "category": item["workout_exercise__exercise__category"],
+            }
+            for item in raw_recommended
+        ]
+
+        return Response({"recommended_exercises": recommended}, status=200)
 
 class FavoriteExerciseView(APIView):
     permission_classes = [IsAuthenticated]

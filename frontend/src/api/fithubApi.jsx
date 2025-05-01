@@ -35,7 +35,9 @@ export const loginUser = async (email, password) => {
     if (response.data.access && response.data.refresh) {
       await AsyncStorage.setItem('access_token', response.data.access);
       await AsyncStorage.setItem('refresh_token', response.data.refresh);
+      console.log(response.data.access);
       console.log('Tokens stored successfully');
+      
       
       // Fetch user details after successful login
       try {
@@ -524,6 +526,23 @@ export const logExercisePerformance = async (Exercise_Id, set_data, userToken) =
     console.error('Error logging performance:', error.response?.data || error.message);
     throw error;
   }
+};
+
+export const fetchRecommendedExercises = async() =>{
+  try{
+    const token = await getAuthToken();
+    const response = await apiClient.get('recommend-exercise/',{
+      headers:{
+        Authorization:`Bearer ${token}`,
+      },
+    });
+    return response.data;
+    console.log("Recommendation",response.data);
+  }catch(error){
+      console.error("Error fetching",error.response?.data||error.message);
+      throw error;
+  }
+
 };
 
 

@@ -27,6 +27,7 @@ urlpatterns = [
     path('start-exercise/', views.StartExerciseView.as_view(), name='start_exercise'),
     path('end-exercise/', views.EndExerciseView.as_view(), name='end_exercise'),
     path('log-exercise-performance/', views.LogExercisePerformanceView.as_view(), name='log_exercise_performance'),
+    path('recommend-exercise/',views.RecommendExercisesView.as_view(),name='recommend-top-exercise'),
 
     # Workout Library URLs
     path('workout-libraries/', views.WorkoutLibraryListView.as_view(), name='workout_libraries'),

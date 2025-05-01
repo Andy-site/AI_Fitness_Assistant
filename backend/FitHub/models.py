@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.db.models import Sum
 from django.conf import settings
 from datetime import datetime
+from collections import defaultdict
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, first_name, last_name, password=None, **extra_fields):
@@ -275,3 +276,28 @@ class ExerciseHistory(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.exercise.name} on {self.date}"
+    
+def get_top_exercises(user, top_n=10):
+        """
+        Returns top N exercises based on total volume (reps * weight) for the given user,
+        including exercise ID, name, photo, and primary muscle.
+        """
+        from django.db.models import Sum, F, FloatField, ExpressionWrapper
+
+        performances = (
+            ExercisePerformance.objects
+            .filter(workout_exercise__workout__user=user)
+            .annotate(volume=ExpressionWrapper(
+                F('reps') * F('weight'),
+                output_field=FloatField()
+            ))
+            .values(
+                'workout_exercise__exercise__id',
+                'workout_exercise__exercise__name',
+                'workout_exercise__exercise__category',
+            )
+            .annotate(total_volume=Sum('volume'))
+            .order_by('-total_volume')[:top_n]
+        )
+
+        return performances

@@ -50,6 +50,11 @@ const Dashboard = () => {
     navigation.navigate(screenName);
   };
 
+  const handleLogout = async () => {
+    navigation.navigate('LogoutScreen'); // Navigate to the login screen
+   };
+
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -129,6 +134,18 @@ const Dashboard = () => {
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#B3A0FF" style={styles.cardArrow} />
           </TouchableOpacity>
+
+          {/* Logout Card */}
+<TouchableOpacity style={styles.navCard} onPress={handleLogout}>
+  <View style={[styles.cardIcon, { backgroundColor: 'rgba(255, 99, 99, 0.2)' }]}>
+    <MaterialIcons name="logout" size={28} color="#FF6363" />
+  </View>
+  <View style={styles.cardTextContainer}>
+    <Text style={styles.cardTitle}>Logout</Text>
+    <Text style={styles.cardDescription}>Sign out of your account</Text>
+  </View>
+  <MaterialIcons name="chevron-right" size={24} color="#B3A0FF" style={styles.cardArrow} />
+</TouchableOpacity>
         </View>
       </View>
       <Footer />
@@ -161,7 +178,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
-    marginTop: 70,
+    marginTop: 50,
     marginBottom: 50,
   },
   welcomeContainer: {
@@ -171,7 +188,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 20,
     borderRadius: 15,
-    marginBottom: 30,
+    marginBottom: 10,
   },
   profileImage: {
     width: 100,
