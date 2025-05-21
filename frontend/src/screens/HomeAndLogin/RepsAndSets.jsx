@@ -14,7 +14,7 @@ import {capitalizeWords} from '../../utils/StringUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Footer from '../../components/Footer';
 import Header from '../../components/Header';
-import {endExerciseSession, logExercisePerformance} from '../../api/fithubApi';
+import {endExerciseSession, logExercisePerformance, cancelExerciseSession} from '../../api/fithubApi';
 import {getAuthToken} from '../../api/fithubApi';
 import {useNavigation} from '@react-navigation/native';
 import {Picker} from '@react-native-picker/picker';
@@ -139,6 +139,36 @@ const RepsAndSets = ({route}) => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  const cancelWorkout = async () => {
+  Alert.alert(
+    'Cancel Workout',
+    'Are you sure you want to cancel this workout? This action cannot be undone.',
+    [
+      {
+        text: 'No',
+        style: 'cancel',
+      },
+      {
+        text: 'Yes, Cancel',
+        onPress: async () => {
+  try {
+    if (intervalId) {
+      clearInterval(intervalId);
+      setIntervalId(null);
+    }
+    await cancelExerciseSession(API_Exercise_Id);
+    navigation.navigate('Workout');
+  } catch (error) {
+    console.error('Error cancelling workout:', error);
+    Alert.alert('Error', error.message || 'Failed to cancel workout.');
+  } 
+        },
+        style: 'destructive',
+      },
+    ]
+  );
+};
+
   const finishWorkout = async () => {
     if (!userToken) {
       Alert.alert('Error', 'User is not logged in.');
@@ -190,7 +220,6 @@ const RepsAndSets = ({route}) => {
         calories_burned: calories,
       };
       console.log('Ending exercise payload:', endPayload);
-
       const endResponse = await endExerciseSession(
         API_Exercise_Id,
         totalTime,
@@ -208,9 +237,13 @@ const RepsAndSets = ({route}) => {
           {
             text: 'OK',
             onPress: () => {
-              if (intervalId) clearInterval(intervalId);
-              navigation.navigate('Workout');
-            },
+  if (intervalId) {
+    clearInterval(intervalId);
+    setIntervalId(null);
+  }
+  navigation.navigate('Workout');
+},
+
           },
         ],
       );
@@ -311,10 +344,19 @@ const RepsAndSets = ({route}) => {
           </View>
         ))}
 
-        <TouchableOpacity style={styles.finishButton} onPress={finishWorkout}>
-          <Icon name="check-circle" size={20} color="#ffffff" />
-          <Text style={styles.finishButtonText}>Finish Workout</Text>
-        </TouchableOpacity>
+        <View style={styles.actionButtonsRow}>
+  <TouchableOpacity style={[styles.finishButton, { marginRight: 10 }]} onPress={finishWorkout}>
+    <Icon name="check-circle" size={20} color="#000" />
+    <Text style={styles.finishButtonText}>Finish Workout</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity style={styles.cancelButton} onPress={cancelWorkout}>
+    <Icon name="times-circle" size={20} color="#fff" />
+    <Text style={styles.cancelButtonText}>Cancel Workout</Text>
+  </TouchableOpacity>
+</View>
+
+
       </ScrollView>
 
       <View style={styles.footerContainer}>
@@ -447,21 +489,49 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     fontWeight: '500',
   },
-  finishButton: {
-    flexDirection: 'row',
-    backgroundColor: '#00C853',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    marginBottom: 70,
-    alignSelf: 'center',
-  },
+
+
+  actionButtonsRow: {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginTop: 20,
+  marginBottom: 70,
+  paddingHorizontal: 20,
+},
+
+finishButton: {
+  flexDirection: 'row',
+  backgroundColor: '#e2f163',
+  borderRadius: 8,
+  paddingVertical: 12,
+  paddingHorizontal: 15,
+  alignItems: 'center',
+  justifyContent: 'center',
+  flex: 1,
+},
+
+cancelButton: {
+  flexDirection: 'row',
+  backgroundColor: '#FF0000',
+  borderRadius: 8,
+  paddingVertical: 12,
+  paddingHorizontal: 15,
+  alignItems: 'center',
+  justifyContent: 'center',
+  flex: 1,
+},
+
+cancelButtonText: {
+  fontSize: 16,
+  fontWeight: '600',
+  marginLeft: 10,
+  color: '#fff',
+},
+
   finishButtonText: {
     fontSize: 16,
-    color: '#ffffff',
+    color: '#000',
     fontWeight: '600',
     marginLeft: 10,
   },

@@ -95,7 +95,7 @@ const ExerciseSearch = () => {
     setError(null);
 
     try {
-      const exercisesData = await fetchExercises(null, null, trimmedQuery, 1, 20);
+      const exercisesData = await fetchExercises(null, null, trimmedQuery, 1, 90);
 
       if (!isMounted.current) return;
 

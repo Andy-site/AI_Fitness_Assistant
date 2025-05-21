@@ -45,6 +45,7 @@ const ExeDetails = ({ route }) => {
 
       const data = await getExerciseDetailsByName(exerciseName, authToken);
       setExerciseDetails(data);
+      
 
       // Explicitly check favorite status
       const favoriteStatus = await checkFavoriteStatus(exerciseName, authToken);
@@ -118,38 +119,39 @@ const ExeDetails = ({ route }) => {
   }, [exerciseName, isFavorite]);
 
   const handleStartPress = async () => {
-    if (!exerciseDetails?.id || !bodyPart) {
-      Alert.alert('Missing Information', 'Cannot start without exercise data.');
-      return;
-    }
+  if (!exerciseDetails?.name || !bodyPart) {
+    Alert.alert('Missing Information', 'Cannot start without exercise data.');
+    return;
+  }
 
-    const startTime = Date.now();
+  const startTime = Date.now();
 
-    const exerciseData = {
-      workout_exercise_id: exerciseDetails.id,
-      body_part: bodyPart,
-      start_time: startTime,
-      exercise_name: exerciseDetails.name,
-    };
-
-    try {
-      const authToken = await getAuthToken();
-      if (!authToken) throw new Error('User is not authenticated');
-
-      const result = await startExercise(exerciseData, authToken);
-
-      navigation.navigate('RepsAndSets', {
-        workout_exercise_id: exerciseDetails.id,
-        startTime,
-        bodyPart,
-        exercise_id: result.workout_exercise_id,
-        exercise_name: exerciseDetails.name,
-      });
-    } catch (error) {
-      console.error('Error starting exercise:', error);
-      Alert.alert('Error', error.message || 'An error occurred while starting the exercise session.');
-    }
+  const exerciseData = {
+    exercise_name: exerciseDetails.name,
+    body_part: bodyPart,
+    workout_exercise_id: exerciseDetails.id, // pass this only if required
   };
+  console.log('Exercise Name sent:', exerciseData.exercise_name);
+
+  try {
+    const authToken = await getAuthToken();
+    if (!authToken) throw new Error('User is not authenticated');
+
+    const result = await startExercise(exerciseData, authToken);
+
+    navigation.navigate('RepsAndSets', {
+      workout_exercise_id: exerciseDetails.id, // optional
+      startTime,
+      bodyPart,
+      exercise_id: result.workout_exercise_id, // backend ID
+      exercise_name: exerciseDetails.name,
+    });
+  } catch (error) {
+    console.error('Error starting exercise:', error);
+    Alert.alert('Error', error.message || 'An error occurred while starting the exercise session.');
+  }
+};
+
 
   if (loading) {
     return (

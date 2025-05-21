@@ -57,6 +57,55 @@ export const loginUser = async (email, password) => {
   }
 };
 
+export const fetchDailySummary = async (date = null) => {
+  try {
+    const token = await getAuthToken();
+    const response = await apiClient.get(`summary/`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { date }, // pass null for today's summary
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching daily summary:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const recalculateCalories = async () => {
+  try {
+    const token = await getAuthToken();
+    const response = await apiClient.post(`recalculate-calories/`, {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error recalculating calories:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+
+export const previewCalories = async (exerciseName, duration) => {
+  try {
+    const token = await getAuthToken();
+    const response = await apiClient.post(
+      `preview-calories/`,
+      { exercise_name: exerciseName, duration }, // duration in minutes
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error previewing calories:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+
+
 // **Get Token Function**
 export const getAuthToken = async () => {
   try {
@@ -452,6 +501,53 @@ export const fetchExerciseProgress = async () => {
   }
 };
 
+export const fetchProgressData = async (period, date, week) => {
+  try {
+    const token = await getAuthToken();
+    let url = `visualization/?period=${period}`;
+    if (date) url += `&date=${date}`;           // date in "YYYY-MM-DD"
+    if (week) url += `&week=${week}`;           // week as a number string "1", "2", etc.
+
+    const response = await apiClient.get(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    return response.data;
+
+  } catch (error) {
+    console.error('Error fetching progress data:', error);
+    throw error;
+  }
+};
+
+
+
+export async function fetchWorkoutStats() {
+  try {
+    const token = await getAuthToken(); // Get the authentication token
+    const response = await fetch(`${API_BASE_URL}workout-stats/`, {
+      method: 'GET',
+      headers: {
+        
+        Authorization: `Bearer ${token}`,  // if you use token auth
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch workout stats');
+    }
+
+    const data = await response.json();
+    
+    return data; // { workouts_completed, workout_streak, avg_workout_duration }
+  } catch (error) {
+    console.error('Error fetching workout stats:', error);
+    throw error;
+  }
+}
+
 export const startExercise = async (exerciseData) => {
   try {
     const token = await AsyncStorage.getItem('access_token');
@@ -472,6 +568,25 @@ export const startExercise = async (exerciseData) => {
     console.error('Error in startExercise:', error.response?.data || error.message);
     throw error.response?.data || { message: 'Failed to start exercise' };
   }
+};
+
+export const cancelExerciseSession = async (workoutExerciseId) => {
+  const token = await getAuthToken();
+
+  const response = await fetch(`${API_BASE_URL}cancel-exercise/${workoutExerciseId}/`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to cancel exercise session.');
+  }
+
+  return await response.json();
 };
 
 

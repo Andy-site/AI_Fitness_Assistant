@@ -1,5 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, ActivityIndicator, FlatList, StyleSheet, SafeAreaView } from 'react-native';
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  SafeAreaView,
+} from 'react-native';
+import {Picker} from '@react-native-picker/picker';
 import { fetchExerciseProgress } from '../../api/fithubApi';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { capitalizeWords } from '../../utils/StringUtils';
@@ -10,38 +18,60 @@ const ProgressScreen = () => {
   const [exerciseProgress, setExerciseProgress] = useState({});
   const [loading, setLoading] = useState(true);
   const [highestRecords, setHighestRecords] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const isMounted = useRef(true);
 
-  // Calculate highest records when exercise progress data changes
+  // Extract categories and calculate highest records
   useEffect(() => {
     if (Object.keys(exerciseProgress).length > 0) {
+      const allCategories = ['All', ...Object.keys(exerciseProgress)];
+      setCategories(allCategories);
+
       const records = [];
-      
-      Object.keys(exerciseProgress).forEach((exerciseName) => {
-        const exerciseRecords = exerciseProgress[exerciseName];
-        let maxRecord = null;
-        
-        exerciseRecords.forEach((record) => {
-          if (!maxRecord || record.weight_per_set > maxRecord.weight_per_set) {
-            maxRecord = record;
+
+      // If "All" selected, show all categories, else only selected category
+      const categoriesToProcess =
+        selectedCategory === 'All' ? Object.keys(exerciseProgress) : [selectedCategory];
+
+      categoriesToProcess.forEach((category) => {
+        const exercises = exerciseProgress[category];
+        const groupedByExercise = {};
+
+        exercises.forEach((record) => {
+          const exerciseName = record.exercise;
+          if (!groupedByExercise[exerciseName]) {
+            groupedByExercise[exerciseName] = [];
+          }
+          groupedByExercise[exerciseName].push(record);
+        });
+
+        Object.entries(groupedByExercise).forEach(([exerciseName, recordsForExercise]) => {
+          let maxRecord = null;
+
+          recordsForExercise.forEach((record) => {
+            if (!maxRecord || record.weight_per_set > maxRecord.weight_per_set) {
+              maxRecord = record;
+            }
+          });
+
+          if (maxRecord) {
+            records.push({
+              category,
+              exerciseName,
+              weight: maxRecord.weight_per_set,
+              date: maxRecord.date,
+              id: `${category}-${exerciseName}-${maxRecord.date}`,
+            });
           }
         });
-        
-        if (maxRecord) {
-          records.push({
-            exerciseName,
-            weight: maxRecord.weight_per_set,
-            date: maxRecord.date,
-            id: `${exerciseName}-${maxRecord.date}` // Unique ID for each record
-          });
-        }
       });
-      
+
       setHighestRecords(records);
     }
-  }, [exerciseProgress]);
+  }, [exerciseProgress, selectedCategory]);
 
-  // Fetch data on mount with proper cleanup
+  // Fetch data on mount
   useEffect(() => {
     const loadProgress = async () => {
       try {
@@ -62,7 +92,6 @@ const ProgressScreen = () => {
 
     loadProgress();
 
-    // Cleanup function to run on unmount
     return () => {
       isMounted.current = false;
     };
@@ -70,6 +99,7 @@ const ProgressScreen = () => {
 
   const renderExerciseItem = ({ item }) => (
     <View style={styles.exerciseCard}>
+      <Text style={styles.categoryText}>{capitalizeWords(item.category)}</Text>
       <Text style={styles.exerciseName}>{capitalizeWords(item.exerciseName)}</Text>
       <View style={styles.detailRow}>
         <MaterialIcons name="fitness-center" size={16} color="#E2F163" />
@@ -89,6 +119,18 @@ const ProgressScreen = () => {
   return (
     <SafeAreaView style={styles.outercontainer}>
       <Header title="Records" />
+      <View style={styles.dropdownWrapper}>
+        <Picker
+          selectedValue={selectedCategory}
+          onValueChange={(itemValue) => setSelectedCategory(itemValue)}
+          style={styles.picker}
+          dropdownIconColor="#E2F163"
+        >
+          {categories.map((cat) => (
+            <Picker.Item key={cat} label={capitalizeWords(cat)} value={cat} />
+          ))}
+        </Picker>
+      </View>
       <View style={styles.contentWrapper}>
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -97,16 +139,16 @@ const ProgressScreen = () => {
         ) : (
           <FlatList
             data={highestRecords}
-            keyExtractor={item => item.id}
+            keyExtractor={(item) => item.id}
             renderItem={renderExerciseItem}
             ListEmptyComponent={renderEmptyList}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
-            removeClippedSubviews={false} // Helps with view hierarchy issues
+            removeClippedSubviews={false}
             initialNumToRender={10}
             maxToRenderPerBatch={5}
             windowSize={10}
-            extraData={loading} // Re-render when loading changes
+            extraData={loading}
           />
         )}
       </View>
@@ -120,13 +162,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  dropdownWrapper: {
+    marginHorizontal: 10,
+    marginTop: 90,
+    borderWidth: 1,
+    borderColor: '#B3A0FF',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  picker: {
+    color: '#E2F163',
+    backgroundColor: '#1a1a1a',
+    height: 50,
+  },
   contentWrapper: {
     flex: 1,
     paddingHorizontal: 10,
     paddingTop: 20,
     paddingBottom: 20,
     marginBottom: 20,
-    marginTop: 50,
+    marginTop: 10,
   },
   loadingContainer: {
     flex: 1,
@@ -139,10 +194,16 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 10,
   },
+  categoryText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#444',
+    marginBottom: 5,
+  },
   exerciseName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#000',
     marginBottom: 10,
   },
   exerciseDetail: {

@@ -47,7 +47,7 @@ const GoalScreen = ({ navigation, route }) => {
       ...route.params,
       goal,
       goal_weight: goalWeight,
-      goal_duration: `${goalDuration} ${parseInt(goalDuration) === 1 ? 'month' : 'months'}`,
+      goal_duration: `${goalDuration}`, 
       activity_level: activityLevel,
       first_name: route.params.firstName,
       last_name: route.params.lastName,
@@ -127,14 +127,20 @@ const GoalScreen = ({ navigation, route }) => {
         <Text style={styles.label}>Select Your Goal Duration</Text>
         <View style={styles.pickerContainer}>
           <Picker
-            selectedValue={goalDuration}
-            onValueChange={(itemValue) => setGoalDuration(itemValue)}
-            style={styles.picker}
-          >
-            {Array.from({ length: 12 }, (_, i) => (
-              <Picker.Item key={i} label={`${i + 1} Month${i > 0 ? 's' : ''}`} value={`${i + 1}`} />
-            ))}
-          </Picker>
+  selectedValue={goalDuration}
+  onValueChange={(itemValue) => setGoalDuration(itemValue)}
+  style={styles.picker}
+>
+  {Array.from({ length: 12 }, (_, i) => {
+    const month = i + 1;
+    const label = `${month} Month${month > 1 ? 's' : ''}`;
+    const value = `${month} month`; // must match Django's expected format
+    return <Picker.Item key={month} label={label} value={value} />;
+  })}
+</Picker>
+
+
+
         </View>
 
         <Text style={styles.label}>Select Your Activity Level</Text>

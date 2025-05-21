@@ -80,25 +80,25 @@ const LandNutri = () => {
             dietary_restriction: item.dietary_restriction,
           }));
     
-          console.log('✅ Fetched from backend. Not saving again.');
+          console.log(' Fetched from backend. Not saving again.');
           navigation.navigate('MealDetails', {
             macronutrients: {}, // Optional: replace with actual macros
             mealPlan: transformedMeals,
             dietaryRestriction,
           });
     
-          return; // ⛔️ Prevent saving again
+          return; //  Prevent saving again
         }
     
         // No existing data — fetch from external API
-        console.log('🔄 Fetching new meal plan from external API...');
+        console.log(' Fetching new meal plan from external API...');
     
         const options = {
           method: 'POST',
           url: 'https://ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com/nutritionAdvice',
           params: { noqueue: '1' },
           headers: {
-            'x-rapidapi-key': 'YOUR_API_KEY',
+            'x-rapidapi-key': 'cd885471a8mshe716357a6b4de6ap15f168jsn9658f7fd57d7',
             'x-rapidapi-host': 'ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com',
             'Content-Type': 'application/json',
           },
@@ -112,23 +112,22 @@ const LandNutri = () => {
           },
         };
     
-        const response = await axios.request(options);
-        const suggestions = response.data.result?.meal_suggestions || [];
-    
-        const formattedMealPlan = suggestions.map(item => ({
-          meal: item.meal,
-          suggestions: [{
-            name: item.name,
-            ingredients: item.ingredients,
-            calories: item.calories || 0,
-          }],
-          dietary_restriction: dietaryRestriction,
-          is_consumed: false,
-        }));
-    
-        //  Add log here before saving
-        console.log('📦 Saving NEW meal plan to backend:', JSON.stringify(formattedMealPlan, null, 2));
-    
+        const response = await axios.request(options);   
+const suggestions = response.data.result?.meal_suggestions || [];
+
+const formattedMealPlan = suggestions.map(item => ({
+  meal: item.meal,
+  suggestions: item.suggestions.map(suggestion => ({
+    name: suggestion.name || 'Unknown Meal',
+    ingredients: suggestion.ingredients || [],
+    calories: suggestion.calories || 0,
+  })),
+  dietary_restriction: dietaryRestriction,
+  is_consumed: false,
+}));
+
+
+
         await saveMealPlanToBackend(formattedMealPlan);
     
         navigation.navigate('MealDetails', {

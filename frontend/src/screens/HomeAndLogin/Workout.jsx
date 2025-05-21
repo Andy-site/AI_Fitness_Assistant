@@ -18,6 +18,7 @@ import { fetchExercises } from '../../api/fithubApi';
 import { capitalizeWords } from '../../utils/StringUtils';
 import { checkFavoriteStatus} from '../../api/fithubApi';
 
+
 const categories = [
   'chest', 'back', 'cardio', 'lower arms', 'waist', 'shoulders',
   'lower legs', 'neck', 'upper arms', 'upper legs'
@@ -32,89 +33,75 @@ const equipmentList = [
   'sled machine', 'stability ball', 'olympic barbell', 'trap bar',
   'body weight', 'stationary bike'
 ];
+const ITEMS_PER_PAGE = 10;
 
 const Workout = () => {
   const [loading, setLoading] = useState(true);
   const [exercises, setExercises] = useState([]);
-  const [filteredExercises, setFilteredExercises] = useState([]);
-  const [favoriteExercises, setFavoriteExercises] = useState({});
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedEquipment, setSelectedEquipment] = useState(null);
-  const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [shouldFetch, setShouldFetch] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const navigation = useNavigation();
+
+  // Applied filters for actual fetching
+  const [appliedCategory, setAppliedCategory] = useState(null);
+  const [appliedEquipment, setAppliedEquipment] = useState(null);
+
+  // Temporary filters used in modal only
+  const [tempCategory, setTempCategory] = useState(null);
+  const [tempEquipment, setTempEquipment] = useState(null);
+
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+
 
   useEffect(() => {
     const fetchAllExercises = async () => {
       setLoading(true);
       setError(null);
-  
       try {
         const exercisesData = await fetchExercises(
-          selectedCategory,
-          selectedEquipment,
-          '', // No search query for now
-          1,  // Page 1
-          20  // Fetch 20 exercises
+          appliedCategory,
+          appliedEquipment,
+          '',
+          page,
+          ITEMS_PER_PAGE
         );
-  
-        console.log("API Response:", exercisesData); // Debugging log
-  
-        if (exercisesData && exercisesData.results) {
-          setExercises(exercisesData.results);
-          setFilteredExercises(exercisesData.results);
-        } else {
-          setError('No exercises found.');
-        }
-      } catch (error) {
-        console.error('Error fetching exercises:', error);
+        setExercises(exercisesData.results);
+        setTotalCount(exercisesData.count);
+      } catch (err) {
         setError('Failed to load exercises. Please try again later.');
       } finally {
         setLoading(false);
-        setShouldFetch(false); // Reset the fetch trigger
       }
     };
-  
-    if (shouldFetch) {
-      fetchAllExercises();
-    }
-  }, [shouldFetch]);
+
+    fetchAllExercises();
+  }, [page, appliedCategory, appliedEquipment]);
 
   const applyFilters = () => {
-    let filtered = [...exercises];
-
-    if (selectedCategory) {
-      filtered = filtered.filter(exercise =>
-        exercise.category?.toLowerCase() === selectedCategory.toLowerCase()
-      );
-    }
-
-    if (selectedEquipment) {
-      filtered = filtered.filter(exercise =>
-        exercise.equipment?.toLowerCase() === selectedEquipment.toLowerCase()
-      );
-    }
-
-    console.log("Filtered Exercises:", filtered); // Debugging log
-    setFilteredExercises(filtered);
-    setShouldFetch(true);
-    setFilterModalVisible(false); // Close the modal after applying filters
+    setAppliedCategory(tempCategory);
+    setAppliedEquipment(tempEquipment);
+    setPage(1); // reset pagination
+    setFilterModalVisible(false);
   };
 
   const clearFilters = () => {
-    setSelectedCategory(null);
-    setSelectedEquipment(null);
-    setShouldFetch(true);
+    setTempCategory(null);
+    setTempEquipment(null);
+    setAppliedCategory(null);
+    setAppliedEquipment(null);
+    setPage(1);
   };
 
-  const navigateToExerciseDetails = async (exercise) => {
-      navigation.navigate('ExeDetails', { 
-        exerciseName: exercise.name, 
-        bodyPart: exercise.category, 
-
-      });
+  const navigateToExerciseDetails = (exercise) => {
+    navigation.navigate('ExeDetails', {
+      exerciseName: exercise.name,
+      bodyPart: exercise.category,
+    });
   };
+
+  const capitalizeWords = (str) =>
+    str.replace(/\b\w/g, (char) => char.toUpperCase());
 
   const renderLoadingState = () => (
     <View style={styles.loadingContainer}>
@@ -129,30 +116,9 @@ const Workout = () => {
     <View style={styles.errorContainer}>
       <Icon name="exclamation-circle" size={50} color="#E2F163" />
       <Text style={styles.errorText}>{error}</Text>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.retryButton}
-        onPress={() => {
-          const fetchAllExercises = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-              const exercisesData = await fetchExercises(
-                selectedCategory,
-                selectedEquipment,
-                '', // You can add a searchQuery if needed
-                1, // Starting page number (you can change this for pagination)
-                20 // Limit the number of exercises per page
-              );
-              setExercises(exercisesData);
-              setFilteredExercises(exercisesData);
-            } catch (error) {
-              setError('Failed to load exercises. Please try again later.');
-            } finally {
-              setLoading(false);
-            }
-          };
-          fetchAllExercises();
-        }}
+        onPress={() => setPage(1)}
       >
         <Text style={styles.retryButtonText}>Retry</Text>
       </TouchableOpacity>
@@ -170,11 +136,11 @@ const Workout = () => {
           renderErrorState()
         ) : (
           <>
-            {/* Top Row */}
+            {/* Top Controls */}
             <View style={styles.topRowContainer}>
               <View style={styles.topRow}>
-                <TouchableOpacity 
-                  style={styles.libraryButton} 
+                <TouchableOpacity
+                  style={styles.libraryButton}
                   onPress={() => navigation.navigate('CreateLibrary')}
                 >
                   <Icon name="list-ul" size={20} color="#000" />
@@ -182,16 +148,20 @@ const Workout = () => {
                 </TouchableOpacity>
 
                 <View style={styles.actionButtons}>
-                  <TouchableOpacity 
-                    style={styles.iconButton} 
+                  <TouchableOpacity
+                    style={styles.iconButton}
                     onPress={() => navigation.navigate('ExerciseSearch')}
                   >
                     <Icon name="search" size={20} color="#000" />
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
-                    style={styles.iconButton} 
-                    onPress={() => setFilterModalVisible(true)}
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => {
+                      setTempCategory(appliedCategory);
+                      setTempEquipment(appliedEquipment);
+                      setFilterModalVisible(true);
+                    }}
                   >
                     <Icon name="filter" size={20} color="#000" />
                   </TouchableOpacity>
@@ -200,26 +170,26 @@ const Workout = () => {
             </View>
 
             {/* Filter Feedback */}
-            {(selectedCategory || selectedEquipment) && (
+            {(appliedCategory || appliedEquipment) && (
               <View style={styles.filterFeedback}>
                 <View style={styles.filterLabels}>
-                  {selectedCategory && (
+                  {appliedCategory && (
                     <View style={styles.filterTag}>
                       <Text style={styles.filterTagText}>
-                        Body Part: {capitalizeWords(selectedCategory)}
+                        Body Part: {capitalizeWords(appliedCategory)}
                       </Text>
                     </View>
                   )}
-                  {selectedEquipment && (
+                  {appliedEquipment && (
                     <View style={styles.filterTag}>
                       <Text style={styles.filterTagText}>
-                        Equipment: {capitalizeWords(selectedEquipment)}
+                        Equipment: {capitalizeWords(appliedEquipment)}
                       </Text>
                     </View>
                   )}
                 </View>
-                <TouchableOpacity 
-                  style={styles.clearFiltersButton} 
+                <TouchableOpacity
+                  style={styles.clearFiltersButton}
                   onPress={clearFilters}
                 >
                   <Icon name="times-circle" size={20} color="#E2F163" />
@@ -228,9 +198,9 @@ const Workout = () => {
             )}
 
             {/* Filter Modal */}
-            <Modal 
-              visible={filterModalVisible} 
-              animationType="slide" 
+            <Modal
+              visible={filterModalVisible}
+              animationType="slide"
               transparent
               onRequestClose={() => setFilterModalVisible(false)}
             >
@@ -238,50 +208,64 @@ const Workout = () => {
                 <View style={styles.modalContent}>
                   <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>Filter Exercises</Text>
-                    <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+                    <TouchableOpacity
+                      onPress={() => setFilterModalVisible(false)}
+                    >
                       <Icon name="times" size={24} color="#000" />
                     </TouchableOpacity>
                   </View>
 
                   <Text style={styles.filterLabel}>Body Part</Text>
                   <View style={styles.pickerContainer}>
-                    <Picker 
-                      selectedValue={selectedCategory} 
-                      onValueChange={setSelectedCategory} 
+                    <Picker
+                      selectedValue={tempCategory}
+                      onValueChange={setTempCategory}
                       style={styles.picker}
                     >
                       <Picker.Item label="All Body Parts" value={null} />
-                      {categories.map((category, index) => (
-                        <Picker.Item key={index} label={capitalizeWords(category)} value={category} />
+                      {categories.map((category, idx) => (
+                        <Picker.Item
+                          key={idx}
+                          label={capitalizeWords(category)}
+                          value={category}
+                        />
                       ))}
                     </Picker>
                   </View>
 
                   <Text style={styles.filterLabel}>Equipment</Text>
                   <View style={styles.pickerContainer}>
-                    <Picker 
-                      selectedValue={selectedEquipment} 
-                      onValueChange={setSelectedEquipment} 
+                    <Picker
+                      selectedValue={tempEquipment}
+                      onValueChange={setTempEquipment}
                       style={styles.picker}
                     >
                       <Picker.Item label="All Equipment" value={null} />
-                      {equipmentList.map((equipment, index) => (
-                        <Picker.Item key={index} label={capitalizeWords(equipment)} value={equipment} />
+                      {equipmentList.map((equipment, idx) => (
+                        <Picker.Item
+                          key={idx}
+                          label={capitalizeWords(equipment)}
+                          value={equipment}
+                        />
                       ))}
                     </Picker>
                   </View>
 
                   <View style={styles.modalActions}>
-                    <TouchableOpacity 
-                      style={styles.applyFilterButton} 
+                    <TouchableOpacity
+                      style={styles.applyFilterButton}
                       onPress={applyFilters}
                     >
-                      <Text style={styles.applyFilterButtonText}>Apply Filters</Text>
+                      <Text style={styles.applyFilterButtonText}>
+                        Apply Filters
+                      </Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={styles.clearButton} 
+
+                    <TouchableOpacity
+                      style={styles.clearButton}
                       onPress={() => {
+                        setTempCategory(null);
+                        setTempEquipment(null);
                         clearFilters();
                         setFilterModalVisible(false);
                       }}
@@ -294,19 +278,21 @@ const Workout = () => {
             </Modal>
 
             {/* Exercises List */}
-            {filteredExercises.length > 0 ? (
-              <ScrollView 
+            {exercises.length > 0 ? (
+              <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContainer}
                 showsVerticalScrollIndicator={false}
               >
-                {filteredExercises.map((exercise, index) => (
-                  <TouchableOpacity 
-                    key={index} 
+                {exercises.map((exercise, index) => (
+                  <TouchableOpacity
+                    key={index}
                     style={styles.exerciseItem}
                     onPress={() => navigateToExerciseDetails(exercise)}
                   >
-                    <Text style={styles.exerciseText}>{capitalizeWords(exercise.name)}</Text>
+                    <Text style={styles.exerciseText}>
+                      {capitalizeWords(exercise.name)}
+                    </Text>
                     <View style={styles.exerciseDetails}>
                       <Text style={styles.equipmentText}>
                         <Text style={styles.labelText}>Equipment: </Text>
@@ -322,13 +308,55 @@ const Workout = () => {
               </ScrollView>
             ) : (
               <View style={styles.noResultsContainer}>
-                <Text style={styles.noResultsText}>No exercises match your filters</Text>
+                <Text style={styles.noResultsText}>
+                  No exercises match your filters
+                </Text>
                 <TouchableOpacity onPress={clearFilters}>
                   <Text style={styles.clearFiltersText}>Clear Filters</Text>
                 </TouchableOpacity>
               </View>
             )}
           </>
+        )}
+
+        {/* Pagination */}
+        {totalCount > ITEMS_PER_PAGE && (
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: 10,
+            paddingHorizontal: 10,
+            marginBottom: 70
+          }}>
+            <TouchableOpacity
+              onPress={() => setPage(prev => Math.max(prev - 1, 1))}
+              disabled={page === 1}
+              style={[
+                styles.pageButton,
+                page === 1 && styles.disabledButton
+              ]}
+            >
+              <Text style={styles.pageButtonText}>Previous</Text>
+            </TouchableOpacity>
+
+            <Text style={{ alignSelf: 'center', color: '#fff', paddingTop: 8 }}>
+              Page {page} of {Math.ceil(totalCount / ITEMS_PER_PAGE)}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() =>
+                setPage(prev => Math.min(prev + 1, Math.ceil(totalCount / ITEMS_PER_PAGE)))
+              }
+              disabled={page === Math.ceil(totalCount / ITEMS_PER_PAGE)}
+              style={[
+                styles.pageButton,
+                page === Math.ceil(totalCount / ITEMS_PER_PAGE) && styles.disabledButton
+              ]}
+            >
+              <Text style={styles.pageButtonText}>Next</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         <Footer />
@@ -351,6 +379,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginTop: 90,
   },
+  pageButton: {
+  backgroundColor: '#e2f163',
+  paddingVertical: 8,
+  paddingHorizontal: 16,
+  borderRadius: 5,
+},
+
+disabledButton: {
+  backgroundColor: '#808080',
+  
+},
+
+pageButtonText: {
+  color: '#000',
+  fontSize: 16,
+},
+
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -46,6 +46,8 @@ const WorkoutCalendar = () => {
         // Fetch exercise progress
         const exerciseData = await fetchExerciseProgress();
         setExerciseProgress(exerciseData.exercise_progress);
+        console.log('Fetched exerciseProgress:', exerciseData.exercise_progress);
+
       } catch (error) {
         console.error('Error fetching calendar data:', error);
       } finally {

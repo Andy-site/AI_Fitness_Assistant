@@ -7,7 +7,7 @@ from .models import CustomUser
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['email', 'password', 'first_name', 'last_name', 'age', 'height', 'weight', 'goal', 'username', 'goal_weight','goal_duration','activity_level']
+        fields = ['email', 'password', 'first_name', 'last_name', 'age', 'height', 'weight',  'goal', 'username', 'goal_weight','goal_duration','activity_level']
         extra_kwargs = {'password': {'write_only': True}, 'username': {'required': False}}  # Make username not required
 
     def validate_username(self, value):
@@ -41,20 +41,28 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
     
     def get_calories(self, obj):
-        return obj.calculate_calories(activity_level='moderate')
+        return obj.calculate_calories(activity_level=obj.activity_level)
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
     profile_photo = serializers.ImageField(required=False, allow_null=True)
+    estimated_weight = serializers.SerializerMethodField()
+    calories = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
         fields = [
             'id',
-            'email', 'first_name', 'last_name', 'age', 'height', 'weight',
-            'goal', 'goal_weight', 'profile_photo', 'goal_duration', 'activity_level', 'created_at'
+            'email', 'first_name', 'last_name', 'age', 'height', 'weight', 'estimated_weight',
+            'goal', 'goal_weight', 'profile_photo', 'goal_duration', 'activity_level', 'created_at','calories'
         ]
         read_only_fields = ['id','email']
+    
+    def get_estimated_weight(self, obj):
+        return obj.get_estimated_current_weight()
+
+    def get_calories(self, obj):
+        return obj.calculate_calories(activity_level=obj.activity_level)
 
     def validate(self, data):
         """
@@ -128,6 +136,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
         data['goal_weight'] = float(instance.goal_weight) if instance.goal_weight else None
 
         return data
+    
+   
 
 
 
@@ -152,7 +162,23 @@ class WorkoutSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'workout_date', 'total_time', 'total_calories', 'workout_library', 'workout_library_name']
         read_only_fields = ['id', 'workout_date']
 
+class UserWorkoutStatsSerializer(serializers.ModelSerializer):
+    workouts_completed = serializers.SerializerMethodField()
+    workout_streak = serializers.SerializerMethodField()
+    avg_workout_duration = serializers.SerializerMethodField()
 
+    class Meta:
+        model = CustomUser
+        fields = ['workouts_completed', 'workout_streak', 'avg_workout_duration']
+
+    def get_workouts_completed(self, obj):
+        return obj.workouts.count()
+
+    def get_workout_streak(self, obj):
+        return obj.get_workout_streak()
+
+    def get_avg_workout_duration(self, obj):
+        return round(obj.get_avg_workout_duration(), 2)
 
 class WorkoutExerciseSerializer(serializers.ModelSerializer):
     class Meta:
@@ -162,10 +188,14 @@ class WorkoutExerciseSerializer(serializers.ModelSerializer):
 
 
 class ExercisePerformanceSerializer(serializers.ModelSerializer):
+    category = serializers.CharField(source='workout_exercise.exercise.category', read_only=True)
+    exercise_name = serializers.CharField(source='workout_exercise.exercise.name', read_only=True)
+
     class Meta:
         model = ExercisePerformance
-        fields = ['id', 'workout_exercise', 'set_number', 'reps', 'weight']
+        fields = ['id', 'workout_exercise', 'set_number', 'reps', 'weight', 'category', 'exercise_name']
         read_only_fields = ['id']
+
         
 
 class WorkoutLibrarySerializer(serializers.ModelSerializer):

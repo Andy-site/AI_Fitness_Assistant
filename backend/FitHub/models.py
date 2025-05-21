@@ -8,6 +8,9 @@ from django.db.models import Sum
 from django.conf import settings
 from datetime import datetime
 from collections import defaultdict
+from django.db.models import Sum, Avg, Count
+from datetime import timedelta, date
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, first_name, last_name, password=None, **extra_fields):
@@ -53,10 +56,8 @@ class CustomUser(AbstractUser):
     activity_level = models.CharField(max_length=20, choices=ACTIVITY_LEVEL_CHOICES, default='moderate')
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def calculate_calories(self, activity_level='moderate'):
-        """
-        Calculate daily calorie needs for weight loss or weight gain.
-        """
+    def calculate_calories(self, activity_level=None):
+        activity_level = activity_level or self.activity_level
         if self.gender == 'male':
             bmr = 10 * self.weight + 6.25 * self.height - 5 * self.age + 5
         else:
@@ -80,6 +81,131 @@ class CustomUser(AbstractUser):
         elif self.goal == 'Weight Gain':
             return {'weight_gain': round(tdee + daily_adjustment)}
         return {}
+
+    def get_estimated_current_weight(self):
+        """
+        Estimate current weight based on net calories consumed over time.
+        7700 kcal ≈ 1 kg weight change.
+        """
+        total_net_calories = self.daily_summaries.aggregate(total=Sum('net_calories'))['total'] or 0
+        weight_change = total_net_calories / 7700.0
+        estimated_weight = round(self.weight + weight_change, 2)
+        return estimated_weight
+
+    def get_calorie_trend(self, days=30):
+        """
+        Returns daily average calories consumed, burned, and net calories for past `days`.
+        """
+        from django.db.models.functions import TruncDate
+
+        start_date = date.today() - timedelta(days=days)
+        summaries = self.daily_summaries.filter(date__gte=start_date).order_by('date')
+
+        trend_data = []
+        for day in (start_date + timedelta(n) for n in range(days)):
+            day_summary = summaries.filter(date=day).first()
+            if day_summary:
+                trend_data.append({
+                    'date': day,
+                    'calories_consumed': day_summary.calories_consumed,
+                    'calories_burned': day_summary.calories_burned,
+                    'net_calories': day_summary.net_calories,
+                })
+            else:
+                trend_data.append({
+                    'date': day,
+                    'calories_consumed': 0,
+                    'calories_burned': 0,
+                    'net_calories': 0,
+                })
+        return trend_data
+
+    def get_workout_trend(self, days=30):
+        """
+        Returns daily workout counts and calories burned for the past `days`.
+        """
+        start_date = date.today() - timedelta(days=days)
+        workouts = self.workouts.filter(workout_date__gte=start_date)
+
+        daily_data = defaultdict(lambda: {'workout_count': 0, 'calories_burned': 0})
+
+        for workout in workouts:
+            day = workout.workout_date
+            daily_data[day]['workout_count'] += 1
+            daily_data[day]['calories_burned'] += workout.total_calories or 0
+
+        trend_data = []
+        for day in (start_date + timedelta(n) for n in range(days)):
+            data = daily_data.get(day, {'workout_count': 0, 'calories_burned': 0})
+            trend_data.append({'date': day, **data})
+
+        return trend_data
+
+    def get_progress_summary(self):
+        """
+        Summary including:
+        - Estimated current weight vs starting weight
+        - Total calories consumed, burned, net calories in last 30 days
+        - Average daily calories consumed and burned
+        """
+        days = 30
+        start_date = date.today() - timedelta(days=days)
+
+        # Weight progress
+        estimated_weight = self.get_estimated_current_weight()
+
+        # Calorie sums in last 30 days
+        calorie_stats = self.daily_summaries.filter(date__gte=start_date).aggregate(
+            total_consumed=Sum('calories_consumed'),
+            total_burned=Sum('calories_burned'),
+            total_net=Sum('net_calories'),
+            avg_consumed=Avg('calories_consumed'),
+            avg_burned=Avg('calories_burned'),
+            days_recorded=Count('id'),
+        )
+
+        return {
+            'starting_weight': self.weight,
+            'estimated_current_weight': estimated_weight,
+            'weight_goal': self.goal_weight,
+            'goal': self.goal,
+            'calories_last_30_days': {
+                'total_consumed': calorie_stats['total_consumed'] or 0,
+                'total_burned': calorie_stats['total_burned'] or 0,
+                'total_net': calorie_stats['total_net'] or 0,
+                'avg_consumed': calorie_stats['avg_consumed'] or 0,
+                'avg_burned': calorie_stats['avg_burned'] or 0,
+                'days_recorded': calorie_stats['days_recorded'] or 0,
+            }
+        }
+    
+    
+    def get_workout_streak(self):
+        workouts_dates = self.workouts.order_by('-workout_date').values_list('workout_date', flat=True)
+        streak = 0
+        current_day = date.today()
+
+        for workout_date in workouts_dates:
+            if workout_date == current_day:
+                streak += 1
+                current_day -= timedelta(days=1)
+            elif workout_date < current_day:
+                break
+        return streak
+
+    def get_avg_workout_duration(self):
+        avg_duration = self.workouts.aggregate(avg_time=Avg('total_time'))['avg_time']
+        if avg_duration:
+            return avg_duration.total_seconds() / 60
+        return 0
+
+    def get_workout_stats(self):
+        return {
+            "workouts_completed": self.workouts.count(),
+            "workout_streak": self.get_workout_streak(),
+            "avg_workout_duration": round(self.get_avg_workout_duration(), 2),
+        }
+
 
 class OTP(models.Model):
     user = models.OneToOneField('CustomUser', on_delete=models.CASCADE)
@@ -133,6 +259,7 @@ class Exercise(models.Model):
     description = models.TextField(blank=True, null=True)
     image_url = models.URLField(blank=True, null=True)
     secondary = models.TextField(blank=True, null=True)
+    met = models.FloatField(default=5.0) 
 
     def __str__(self):
         return self.name
@@ -153,37 +280,21 @@ class WorkoutExercise(models.Model):
     total_calories = models.FloatField(default=0.0)
 
     def calculate_calories(self):
-        """
-        Calculate calories using external Calorie API via query parameters:
-        - activity: exercise name
-        - weight: user weight in pounds
-        - duration: minutes performed
-        """
-        # Prepare params
-        # assume weight stored in kg, convert to pounds
-        weight_lbs = round(self.workout.user.weight * 2.20462)
-        mins = int(self.total_time.total_seconds() / 60) if self.total_time else 60
-        params = {
-            'activity': self.exercise.name,
-            'weight': weight_lbs,
-            'duration': mins,
-        }
-        url = settings.CALORIE_API_URL 
-        headers = {}
-        # include API key if provided
-        if hasattr(settings, 'CALORIE_API_KEY'):
-            headers['Authorization'] = f"Bearer {settings.CALORIE_API_KEY}"
+        user = self.workout.user
+        weight_kg = user.weight
+        mins = self.total_time.total_seconds() / 60 if self.total_time else 60
 
-        response = requests.get(url, params=params, headers=headers)
-        data = response.json()
-        total_cal = data.get('calories', 0)
+        if not self.exercise or not self.exercise.met or not weight_kg or mins <= 0:
+            self.total_calories = 0.0
+            self.save(update_fields=['total_calories'])
+            return 0.0
 
-        self.total_calories = total_cal
+        met = self.exercise.met
+        calories = met * weight_kg * 0.0175 * mins
+        self.total_calories = round(calories, 2)
         self.save(update_fields=['total_calories'])
-        return total_cal
+        return self.total_calories
 
-    def __str__(self):
-        return f"{self.exercise.name} on {self.workout.workout_date}"
 
 class ExercisePerformance(models.Model):
     workout_exercise = models.ForeignKey(WorkoutExercise, on_delete=models.CASCADE, related_name="performance")
@@ -224,29 +335,37 @@ class DailyCalorieSummary(models.Model):
     net_calories = models.FloatField(default=0.0)
 
     def calculate_net_calories(self):
-        # Total calories from workout and meals
-        burned = Workout.objects.filter(user=self.user, workout_date=self.date).aggregate(total=Sum('total_calories'))['total'] or 0
-        consumed = MealPlan.objects.filter(user=self.user, created_at__date=self.date).aggregate(total=Sum('calories'))['total'] or 0
+        # 1. Total calories burned from workouts
+        burned = Workout.objects.filter(
+            user=self.user,
+            workout_date=self.date
+        ).aggregate(total=Sum('total_calories'))['total'] or 0
+
+        # 2. Total calories consumed from meals marked as consumed
+        consumed = MealPlan.objects.filter(
+            user=self.user,
+            is_consumed=True,
+            created_at__date=self.date
+        ).aggregate(total=Sum('calories'))['total'] or 0
 
         self.calories_burned = burned
         self.calories_consumed = consumed
 
-        # User's base target calories (without exercise)
-        data = self.user.calculate_calories(activity_level=self.user.activity_level)
-        base_target = data.get('weight_loss') or data.get('weight_gain') or 0
+        # 3. Fetch user target calorie goal
+        target_data = self.user.calculate_calories(activity_level=self.user.activity_level)
+        base_target = target_data.get('weight_loss') or target_data.get('weight_gain') or 0
 
+        # 4. Compute net calories depending on user's goal
         if self.user.goal == 'Weight Gain':
-            adjusted_target = base_target + burned  # Gain needs to compensate burned calories
-            self.net_calories = consumed - adjusted_target
+            goal_threshold = base_target + burned
+            self.net_calories = consumed - goal_threshold
         elif self.user.goal == 'Weight Loss':
-            adjusted_target = base_target - burned  # Loss should consider burned calories
-            self.net_calories = adjusted_target - consumed
+            goal_threshold = base_target - burned
+            self.net_calories = goal_threshold - consumed
         else:
-            # For maintenance, simple balance
             self.net_calories = consumed - burned
 
         self.save()
-
 
 
 class WorkoutLibraryExercise(models.Model):

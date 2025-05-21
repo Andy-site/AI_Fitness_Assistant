@@ -1,3 +1,4 @@
+from calendar import monthrange
 from time import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
@@ -12,13 +13,14 @@ from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.utils import timezone
-from datetime import timedelta
+from datetime import datetime, timedelta, date
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Index
 from django.core.paginator import Paginator
 from django.db.models import Sum, Count
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
@@ -300,33 +302,46 @@ class HomeView(APIView):
         return Response({'message': 'Welcome to the Home page!'}, status=status.HTTP_200_OK)
 
 
+from django.utils.timezone import now, timedelta
+
 class StartExerciseView(APIView):
     permission_classes = [IsAuthenticated]
-    
-    def post(self, request):
-        """Start an exercise session and record start details."""
-        user = request.user
-        exercise_data = request.data  # Receive exercise data from frontend
 
-        # Ensure required fields are provided
-        required_fields = ['exercise_name', 'body_part', 'workout_exercise_id']
+    def post(self, request):
+        """Start an exercise session and clean up any stale entries."""
+        user = request.user
+        exercise_data = request.data
+
+        required_fields = ['exercise_name', 'body_part']
         if not all(field in exercise_data for field in required_fields):
             return Response({"error": "Incomplete exercise data."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            exercise = Exercise.objects.get(name__iexact=exercise_data['exercise_name'])
+        except Exercise.DoesNotExist:
+            return Response({"error": "Exercise not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        today = now().date()
+
+        # Remove any unended exercise entries (total_time is null and start_date is not today)
+        WorkoutExercise.objects.filter(
+            workout__user=user,
+            exercise=exercise,
+            total_time__isnull=True
+        ).exclude(start_date=today).delete()
 
         # Get or create today's workout
         workout, _ = Workout.objects.get_or_create(
             user=user,
-            workout_date=timezone.now().date(),
+            workout_date=today,
             defaults={'total_time': timedelta(seconds=0), 'total_calories': 0}
         )
 
-        # Create a new workout exercise entry
+        # Create a new workout exercise session
         workout_exercise = WorkoutExercise.objects.create(
             workout=workout,
-            workout_exercise_id=exercise_data['workout_exercise_id'],  # Store API exercise ID
-            name=exercise_data.get('exercise_name'),
-            body_part=exercise_data.get('body_part'),
-            start_date=timezone.now().date()
+            exercise=exercise,
+            start_date=today
         )
 
         return Response({
@@ -334,6 +349,27 @@ class StartExerciseView(APIView):
             "workout_exercise_id": workout_exercise.id
         }, status=status.HTTP_201_CREATED)
 
+class CancelExerciseView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, workout_exercise_id):
+        """Cancel an exercise session by deleting the entry."""
+        user = request.user
+        try:
+            workout_exercise = WorkoutExercise.objects.get(id=workout_exercise_id, workout__user=user)
+            workout_exercise.delete()
+            return Response({"message": "Workout exercise cancelled and deleted."}, status=status.HTTP_200_OK)
+        except WorkoutExercise.DoesNotExist:
+            return Response({"error": "Workout exercise not found or already deleted."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class WorkoutStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        data = user.get_workout_stats()
+        return Response(data)
 
 class ExerciseProgressView(APIView):
     permission_classes = [IsAuthenticated]
@@ -342,17 +378,22 @@ class ExerciseProgressView(APIView):
         user = request.user
 
         # Get all exercise histories for this user, ordered by date
-        histories = ExerciseHistory.objects.filter(user=user).order_by('date')
+        histories = ExerciseHistory.objects.filter(user=user).select_related(
+            'exercise'
+        ).order_by('date')
 
         exercise_data = {}
 
         for history in histories:
-            exercise_name = history.exercise.name
+            exercise = history.exercise
+            category = exercise.category  # e.g. "Chest", "Back"
+            exercise_name = exercise.name
 
-            if exercise_name not in exercise_data:
-                exercise_data[exercise_name] = []
+            if category not in exercise_data:
+                exercise_data[category] = []
 
-            exercise_data[exercise_name].append({
+            exercise_data[category].append({
+                'exercise': exercise_name,
                 'date': history.date.strftime('%Y-%m-%d'),
                 'sets': history.sets,
                 'reps_per_set': history.reps_per_set,
@@ -363,6 +404,7 @@ class ExerciseProgressView(APIView):
         return Response({
             'exercise_progress': exercise_data
         })
+
 
 class EndExerciseView(APIView):
     permission_classes = [IsAuthenticated]
@@ -557,7 +599,7 @@ class Meta:
 class ExerciseListPagination(PageNumberPagination):
     page_size = 20  # Default limit to 20 exercises per request
     page_size_query_param = 'limit'
-    max_page_size = 100  # Prevent excessive data retrieval
+    max_page_size = 2000  # Prevent excessive data retrieval
 
 class ExerciseListView(ListAPIView):
     """
@@ -1085,3 +1127,99 @@ class CalorieGoalView(APIView):
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
+    
+class ProgressVisualizationAPIView(APIView):
+    """
+    Returns aggregated data for workouts and meals over different periods:
+    - week: last 7 days
+    - month: whole selected month (or specific week if week param is provided)
+    - 3months: last 90 days
+    """
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        period = request.query_params.get('period', 'week')
+        date_str = request.query_params.get('date')  # expected format: YYYY-MM-DD
+        selected_week = request.query_params.get('week')  # optional: 1-4
+
+        today = date.today()
+
+        if period == 'month' and date_str:
+            try:
+                month_start = datetime.strptime(date_str, "%Y-%m-%d").date()
+                year = month_start.year
+                month = month_start.month
+                days_in_month = monthrange(year, month)[1]
+                full_month_end = date(year, month, days_in_month)
+
+                # Handle optional week filtering
+                if selected_week and selected_week.isdigit():
+                    week = int(selected_week)
+                    if 1 <= week <= 4:
+                        start_day = (week - 1) * 7 + 1
+                        end_day = min(week * 7, days_in_month)
+                        start_date = date(year, month, start_day)
+                        end_date = date(year, month, end_day)
+                    else:
+                        start_date = month_start
+                        end_date = full_month_end
+                else:
+                    # All weeks of the month
+                    start_date = month_start
+                    end_date = full_month_end
+
+            except ValueError:
+                return Response({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
+
+        elif period == '3months':
+            start_date = today - timedelta(days=90)
+            end_date = today
+
+        elif period == 'week':
+            start_date = today - timedelta(days=7)
+            end_date = today
+
+        else:
+            start_date = today - timedelta(days=7)
+            end_date = today
+
+        # --- Aggregate Workout Data ---
+        workouts = Workout.objects.filter(user=user, workout_date__range=[start_date, end_date])
+        workout_data = defaultdict(lambda: {'calories_burned': 0, 'workout_count': 0})
+
+        for w in workouts:
+            workout_data[w.workout_date]['calories_burned'] += w.total_calories or 0
+            workout_data[w.workout_date]['workout_count'] += 1
+
+        # --- Aggregate Meal Data ---
+        meals = MealPlan.objects.filter(user=user, is_consumed=True, created_at__date__range=[start_date, end_date])
+        meal_data = defaultdict(int)
+        for m in meals:
+            meal_date = m.created_at.date()
+            meal_data[meal_date] += m.calories
+
+        # --- Compile Daily Results ---
+        num_days = (end_date - start_date).days + 1
+        results = []
+        for i in range(num_days):
+            day = start_date + timedelta(days=i)
+            results.append({
+                'date': day.isoformat(),
+                'workout_calories_burned': workout_data[day]['calories_burned'],
+                'workout_count': workout_data[day]['workout_count'],
+                'meal_calories_consumed': meal_data[day],
+            })
+
+        total_workout_calories = sum(item['workout_calories_burned'] for item in results)
+        total_meal_calories = sum(item['meal_calories_consumed'] for item in results)
+
+        return Response({
+            'period': period,
+            'start_date': start_date.isoformat(),
+            'end_date': end_date.isoformat(),
+            'daily_data': results,
+            'summary': {
+                'total_workout_calories': total_workout_calories,
+                'total_meal_calories': total_meal_calories,
+            }
+        })

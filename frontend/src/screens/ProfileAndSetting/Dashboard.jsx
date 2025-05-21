@@ -7,8 +7,12 @@ import {
   StyleSheet,
   SafeAreaView,
   Image,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
@@ -24,18 +28,24 @@ const Dashboard = () => {
   const [name, setName] = useState('Fitness Enthusiast');
   const [profileImage, setProfileImage] = useState(null);
 
-  useEffect(() => {
+  useFocusEffect(
+  useCallback(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const userResponse = await fetchUserDetails();
         setUserData(userResponse);
         setName(userResponse?.first_name + ' ' + userResponse?.last_name || 'Fitness Enthusiast');
-        setProfileImage({
-          uri: userResponse.profile_photo.startsWith('http')
-            ? userResponse.profile_photo
-            : `${API_BASE_URL}${userResponse.profile_photo}`,
-        });
+        setProfileImage(
+          userResponse.profile_photo
+            ? {
+                type: 'image',
+                uri: userResponse.profile_photo.startsWith('http')
+                  ? userResponse.profile_photo
+                  : `${API_BASE_URL}${userResponse.profile_photo}`,
+              }
+            : { type: 'icon' }
+        );
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('Failed to load data');
@@ -43,8 +53,11 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
+
     fetchData();
-  }, []);
+  }, [])
+);
+
 
   const navigateToScreen = (screenName) => {
     navigation.navigate(screenName);
@@ -73,16 +86,23 @@ const Dashboard = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.outcontainer}>
       <Header title="Settings" />
-      <View style={styles.content}>
+    <SafeAreaView style={styles.container}>
+    
         {/* User Welcome Section */}
         <View style={styles.welcomeContainer}>
-          <Image
-            source={profileImage}
-            style={styles.profileImage}
-            resizeMode="cover"
-          />
+          {profileImage?.type === 'image' ? (
+    <Image
+      source={{ uri: profileImage.uri }}
+      style={styles.profileImage}
+    />
+  ) : (
+    <View style={styles.profileImage}>
+      <MaterialIcons name="person" size={80} color="#888" alignSelf='center' />
+    </View>
+  )}
+
           <View style={styles.welcomeTextContainer}>
             <Text style={styles.welcomeText}>Welcome back,</Text>
             <Text style={styles.userName}>{name || 'Fitness Enthusiast'}</Text>
@@ -90,7 +110,8 @@ const Dashboard = () => {
         </View>
 
         {/* Navigation Cards */}
-        <View style={styles.cardsContainer}>
+
+        <ScrollView style={styles.cardsContainer}>
           <TouchableOpacity style={styles.navCard} onPress={() => navigateToScreen('WorkoutCalendar')}>
             <View style={[styles.cardIcon, { backgroundColor: 'rgba(226, 241, 99, 0.2)' }]}>
               <MaterialIcons name="calendar-today" size={28} color="#E2F163" />
@@ -112,6 +133,18 @@ const Dashboard = () => {
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#B3A0FF" style={styles.cardArrow} />
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.navCard} onPress={() => navigateToScreen('Visualization')}>
+  <View style={[styles.cardIcon, { backgroundColor: 'rgba(100, 149, 237, 0.2)' }]}>
+    <MaterialIcons name="bar-chart" size={28} color="#6495ED" />
+  </View>
+  <View style={styles.cardTextContainer}>
+    <Text style={styles.cardTitle}>Progress Visualization</Text>
+    <Text style={styles.cardDescription}>View bar graphs and charts of your progress</Text>
+  </View>
+  <MaterialIcons name="chevron-right" size={24} color="#B3A0FF" style={styles.cardArrow} />
+</TouchableOpacity>
+
 
           <TouchableOpacity style={styles.navCard} onPress={() => navigateToScreen('Progress')}>
             <View style={[styles.cardIcon, { backgroundColor: 'rgba(255, 107, 107, 0.2)' }]}>
@@ -146,15 +179,20 @@ const Dashboard = () => {
   </View>
   <MaterialIcons name="chevron-right" size={24} color="#B3A0FF" style={styles.cardArrow} />
 </TouchableOpacity>
-        </View>
-      </View>
-      <Footer />
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    <Footer />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  outcontainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
   container: {
+    marginTop: 70,
     flex: 1,
     backgroundColor: '#000',
   },
@@ -217,6 +255,7 @@ const styles = StyleSheet.create({
   cardsContainer: {
     flex: 1,
     paddingTop: 10,
+    marginBottom: 80,
   },
   navCard: {
     backgroundColor: '#1A1A1A',

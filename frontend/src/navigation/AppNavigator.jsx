@@ -56,6 +56,7 @@ import Dashboard from '../screens/ProfileAndSetting/Dashboard';
 import ProgressScreen from '../screens/ProfileAndSetting/Progress';
 import WorkoutCalendar from '../screens/ProfileAndSetting/WorkoutCalendar';
 import ProgressTracking from '../screens/ProfileAndSetting/TrackProgress';
+import ProgressVisualization from '../screens/ProfileAndSetting/ProgressVisualization';
 
 
 const Stack = createNativeStackNavigator();
@@ -115,6 +116,7 @@ const AppNavigator = () => {
         <Stack.Screen name="Progress" component={ProgressScreen} options={{ headerShown: false }}/>
         <Stack.Screen name="WorkoutCalendar" component={WorkoutCalendar} options={{ headerShown: false }}/>
         <Stack.Screen name="ProgressTracking" component={ProgressTracking} options={{ headerShown: false }}/>
+        <Stack.Screen name = "Visualization" component = {ProgressVisualization} options ={{headerShown:false}}/>
 
       </Stack.Navigator>
     </NavigationContainer>

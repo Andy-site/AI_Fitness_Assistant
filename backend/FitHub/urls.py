@@ -26,6 +26,8 @@ urlpatterns = [
     path('progress/exercise/', views.ExerciseProgressView.as_view(), name='exercise-progress'),
     path('start-exercise/', views.StartExerciseView.as_view(), name='start_exercise'),
     path('end-exercise/', views.EndExerciseView.as_view(), name='end_exercise'),
+    path('cancel-exercise/<int:workout_exercise_id>/', views.CancelExerciseView.as_view(), name='cancel-exercise'),
+
     path('log-exercise-performance/', views.LogExercisePerformanceView.as_view(), name='log_exercise_performance'),
     path('recommend-exercise/',views.RecommendExercisesView.as_view(),name='recommend-top-exercise'),
 
@@ -52,6 +54,8 @@ urlpatterns = [
 
     # Calorie Summary URL
     path('daily-calorie-summary/', views.DailyCalorieSummaryView.as_view(), name='daily_calorie_summary'),
+    path('visualization/', views.ProgressVisualizationAPIView.as_view(), name='progress_visualization'),
+    path('workout-stats/', views.WorkoutStatsView.as_view(), name='workout-stats'),
     path('calorie-goal/', views.CalorieGoalView.as_view(), name='calorie_goal'),
 
     #Home page URL

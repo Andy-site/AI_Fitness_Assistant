@@ -274,87 +274,89 @@ const [fetchedFromAPI, setFetchedFromAPI] = useState(isFromAPI);
   }, []);
 
   const renderMealPage = (meal, index) => {
-    return (
-      <View style={styles.mealPage} key={meal.id || index}>
-        <View style={styles.mealContainer}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.mealTitle}>{meal.meal}</Text>
-            <View style={styles.reminderContainer}>
-              <TouchableOpacity
-                style={styles.notifyButton}
-                onPress={() => setShowPicker(true)}
-              >
-                <Icon name="clock-o" size={20} color="#000" />
-                <Text style={styles.notifyButtonText}>Reminder</Text>
-              </TouchableOpacity>
+  const suggestions = Array.isArray(meal.suggestions) ? meal.suggestions : [];
 
-              {showPicker && (
-                <DateTimePicker
-                  key={pickerKey.current}
-                  mode="time"
-                  display="default"
-                  value={selectedTime}
-                  onChange={(event, selectedDate) => {
-                    if (event.type === 'dismissed') {
-                      setShowPicker(false);
-                      return;
-                    }
+  return (
+    <View style={styles.mealPage} key={meal.id || index}>
+      <View style={styles.mealContainer}>
+        <View style={styles.titleContainer}>
+          <Text style={styles.mealTitle}>{meal.meal}</Text>
+          <View style={styles.reminderContainer}>
+            <TouchableOpacity
+              style={styles.notifyButton}
+              onPress={() => setShowPicker(true)}
+            >
+              <Icon name="clock-o" size={20} color="#000" />
+              <Text style={styles.notifyButtonText}>Reminder</Text>
+            </TouchableOpacity>
 
-                    const now = new Date();
-                    const targetDate = new Date(selectedDate);
-                    targetDate.setFullYear(now.getFullYear());
-                    targetDate.setMonth(now.getMonth());
-                    targetDate.setDate(now.getDate());
-
-                    setSelectedTime(targetDate);
-                    pickerKey.current += 1;
-
-                    const currentMeal = mealPlan[activeMealIndex];
-                    const alarmTimeDisplay = `Today at ${targetDate.toLocaleTimeString([], {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true,
-                    })}`;
-
-                    triggerNotification(currentMeal.meal, alarmTimeDisplay, targetDate);
+            {showPicker && (
+              <DateTimePicker
+                key={pickerKey.current}
+                mode="time"
+                display="default"
+                value={selectedTime}
+                onChange={(event, selectedDate) => {
+                  if (event.type === 'dismissed') {
                     setShowPicker(false);
-                  }}
-                />
-              )}
-            </View>
-          </View>
+                    return;
+                  }
 
+                  const now = new Date();
+                  const targetDate = new Date(selectedDate);
+                  targetDate.setFullYear(now.getFullYear());
+                  targetDate.setMonth(now.getMonth());
+                  targetDate.setDate(now.getDate());
+
+                  setSelectedTime(targetDate);
+                  pickerKey.current += 1;
+
+                  const currentMeal = mealPlan[activeMealIndex];
+                  const alarmTimeDisplay = `Today at ${targetDate.toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true,
+                  })}`;
+
+                  triggerNotification(currentMeal.meal, alarmTimeDisplay, targetDate);
+                  setShowPicker(false);
+                }}
+              />
+            )}
+          </View>
+        </View>
+
+        {suggestions.length > 0 ? (
           <VirtualizedList
-            data={meal.suggestions || []}
+            data={suggestions}
             keyExtractor={(suggestion, i) => suggestion.id || i.toString()}
             renderItem={({ item: suggestion }) => (
               <View style={styles.suggestionContainer}>
                 <View style={styles.suggestionRow}>
                   <Text style={styles.suggestionText}>{suggestion.name}</Text>
                   <TouchableOpacity
-  style={[
-    styles.toggleButton,
-    meal.is_consumed ? styles.toggleButtonActive : {},
-  ]}
-  onPress={() => {
-    toggleConsumedStatus(index); // Call the toggle function
+                    style={[
+                      styles.toggleButton,
+                      meal.is_consumed ? styles.toggleButtonActive : {},
+                    ]}
+                    onPress={() => {
+                      toggleConsumedStatus(index);
 
-    // Show a toast notification with the meal name and status
-    ToastAndroid.show(
-      `${meal.name || 'Meal'} marked as ${meal.is_consumed ? 'Consumed' : 'Not Consumed'}`,
-      ToastAndroid.SHORT
-    );
-  }}
->
-  <Icon
-    name={meal.is_consumed ? 'check-circle' : 'circle-o'}
-    size={20}
-    color={meal.is_consumed ? '#000' : '#000'}
-  />
-  <Text style={styles.toggleButtonText}>
-    {meal.is_consumed ? 'Consumed' : 'Not Consumed'}
-  </Text>
-</TouchableOpacity>
+                      ToastAndroid.show(
+                        `${meal.name || 'Meal'} marked as ${meal.is_consumed ? 'Consumed' : 'Not Consumed'}`,
+                        ToastAndroid.SHORT
+                      );
+                    }}
+                  >
+                    <Icon
+                      name={meal.is_consumed ? 'check-circle' : 'circle-o'}
+                      size={20}
+                      color={meal.is_consumed ? '#000' : '#000'}
+                    />
+                    <Text style={styles.toggleButtonText}>
+                      {meal.is_consumed ? 'Consumed' : 'Not Consumed'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
                 <Text style={styles.ingredientTitle}>Ingredients:</Text>
                 {suggestion.ingredients.map((ingredient, i) => (
@@ -368,13 +370,17 @@ const [fetchedFromAPI, setFetchedFromAPI] = useState(isFromAPI);
                 </View>
               </View>
             )}
-            getItemCount={() => meal.suggestions.length}
+            getItemCount={() => suggestions.length}
             getItem={(data, index) => data[index]}
           />
-        </View>
+        ) : (
+          <Text style={{ padding: 10, fontStyle: 'italic' }}>No meal suggestions available.</Text>
+        )}
       </View>
-    );
-  };
+    </View>
+  );
+};
+
 
   return (
     <View style={styles.outerContainer}>
@@ -383,9 +389,9 @@ const [fetchedFromAPI, setFetchedFromAPI] = useState(isFromAPI);
         <View style={styles.macronutrientCard}>
           <Text style={styles.sectionTitle1}>Macronutrient</Text>
           <View style={styles.container}>
-            <Text style={styles.text}>Carbohydrates: {macronutrients?.carbohydrates}</Text>
-            <Text style={styles.text}>Proteins: {macronutrients?.proteins}</Text>
-            <Text style={styles.text}>Fats: {macronutrients?.fats}</Text>
+            <Text style={styles.text}>Carbohydrates: {macronutrients?.carbohydrates || '50%'}</Text>
+            <Text style={styles.text}>Proteins: {macronutrients?.proteins|| '30%'}</Text>
+            <Text style={styles.text}>Fats: {macronutrients?.fats||'20%'}</Text>
           </View>
         </View>
 
