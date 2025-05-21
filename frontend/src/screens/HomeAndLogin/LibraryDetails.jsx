@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     padding: 5,
     marginTop: 70,
     backgroundColor: '#000',
-    marginBottom:60,
+    marginBottom:70,
   },
   titleContainer: {
     flexDirection: 'row',
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   },
   title: { marginLeft: 10,fontSize: 20, fontWeight: 'bold', color: '#fff' },
   sectionHeader: {
-    backgroundColor: '#adde86',
+    backgroundColor: '#fff',
     padding: 10,
     // borderRadius: 5,
     marginBottom: 5,

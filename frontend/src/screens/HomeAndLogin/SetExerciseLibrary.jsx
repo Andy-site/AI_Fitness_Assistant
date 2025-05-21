@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   
   selectionText: {
     color: '#000',
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
     flexShrink: 1,
   },

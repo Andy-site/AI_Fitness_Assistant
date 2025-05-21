@@ -14,7 +14,7 @@ import {
 import Footer from '../../components/Footer';
 import { fetchUserDetails, fetchRecommendedExercises } from '../../api/fithubApi';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import LinearGradient from 'react-native-linear-gradient';
+import { Svg, Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
 import { capitalizeWords } from '../../utils/StringUtils';
 
 const API_BASE_URL = 'http://192.168.0.117:8000/';
@@ -28,6 +28,7 @@ const Home = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [bmi, setBmi] = useState(null);
   const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true); 
   const [page, setPage] = useState(1);
@@ -40,6 +41,7 @@ const Home = ({ navigation }) => {
         const userResponse = await fetchUserDetails();
         setUserData(userResponse);
         setFirstName(userResponse.first_name || 'User');
+        setLastName(userResponse.last_name || 'User');
 
         if (userResponse.profile_photo) {
           setProfileImage({
@@ -117,7 +119,7 @@ const Home = ({ navigation }) => {
       <ScrollView style={styles.container}>
         <View style={styles.headerWithProfile}>
           <View>
-            <Text style={styles.greeting}>Hi {firstName}!</Text>
+            <Text style={styles.greeting}>Hi {firstName} {lastName}!</Text>
             <Text style={styles.greeting2}>Personal Health Assistant</Text>
           </View>
           <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.profileImageButton}>
@@ -128,10 +130,7 @@ const Home = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.workoutButton} onPress={() => navigation.navigate('Workout')}>
-          <Text style={styles.favoriteButtonText}>Workout</Text>
-          <MaterialIcons name="fitness-center" size={24} color="#FF6B6B" />
-        </TouchableOpacity>
+        
 
         {bmi && (
           <View style={styles.bmiContainer}>
@@ -140,19 +139,25 @@ const Home = ({ navigation }) => {
             <Text style={styles.bmiCategory}>{getBmiCategory(bmi)}</Text>
 
             <View style={styles.bmiScaleContainer}>
-              <LinearGradient
-                colors={['#00FF00', '#FFFF00', '#FF8000', '#FF0000']}
-                style={styles.bmiScale}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              />
-              <MaterialIcons
-                name="arrow-drop-down"
-                size={30}
-                color="#FFFFFF"
-                style={[styles.bmiArrow, { left: `${getArrowPosition(bmi)}%` }]}
-              />
-            </View>
+  <Svg height="20" width="100%" style={styles.bmiScale}>
+    <Defs>
+      <SvgGradient id="bmiGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+        <Stop offset="0%" stopColor="#00FF00" />
+        <Stop offset="33%" stopColor="#FFFF00" />
+        <Stop offset="66%" stopColor="#FF8000" />
+        <Stop offset="100%" stopColor="#FF0000" />
+      </SvgGradient>
+    </Defs>
+    <Rect x="0" y="0" width="100%" height="100%" fill="url(#bmiGradient)" />
+  </Svg>
+
+  <MaterialIcons
+    name="arrow-drop-down"
+    size={40}
+    color="#FFFFFF"
+    style={[styles.bmiArrow, { left: `${getArrowPosition(bmi)}%` }]}
+  />
+</View>
           </View>
         )}
 
@@ -308,6 +313,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 15,
   },
+  bmiScaleContainer: {
+  position: 'relative',
+  height: 40,
+  marginHorizontal: 20,
+  marginTop: 10,
+},
+
+bmiScale: {
+  height: 20,
+  borderRadius: 10,
+  overflow: 'hidden',
+},
+
+bmiArrow: {
+  position: 'absolute',
+  top: 0,
+  zIndex: 1,
+},
+
   favoritesAndLibraryContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
