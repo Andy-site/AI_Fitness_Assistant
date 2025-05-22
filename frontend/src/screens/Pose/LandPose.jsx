@@ -6,7 +6,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 const LandPose = () => {
   const navigation = useNavigation();
 
-  const handleNextPress = () => navigation.navigate('ChooseDifficulty');
+  const handleNextPress = () => navigation.navigate('ChoosePose');
   const handleSkipPress = () => navigation.navigate('Home');
 
   return (
