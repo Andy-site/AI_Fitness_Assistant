@@ -7,7 +7,7 @@ from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from .serializers import UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer, UserProfileSerializer, ExerciseSerializer, FavoriteExerciseSerializer, ToggleFavoriteExerciseSerializer, MealPlanSerializer
-from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise, MealPlan, DailyCalorieSummary, ExerciseHistory, get_top_exercises
+from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise, MealPlan, DailyCalorieSummary, ExerciseHistory, get_top_exercises, get_top_meals_with_avg_calories
 import logging
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -362,7 +362,20 @@ class CancelExerciseView(APIView):
         except WorkoutExercise.DoesNotExist:
             return Response({"error": "Workout exercise not found or already deleted."}, status=status.HTTP_404_NOT_FOUND)
 
+class CalorieGoalView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def get(self, request):
+        user = request.user
+        calorie_goal = user.get_daily_calorie_goal()
+        duration_days = int(user.goal_duration.split()[0]) * 30 if user.goal_duration else 90
+
+        return Response({
+            "daily_calorie_goal": calorie_goal,
+            "goal_duration_days": duration_days,
+            "goal_type": user.goal
+        })
+    
 class WorkoutStatsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -474,6 +487,14 @@ class RecommendExercisesView(APIView):
         ]
 
         return Response({"recommended_exercises": recommended}, status=200)
+    
+class RecommendedMealView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        top_meals = get_top_meals_with_avg_calories(user)
+        return Response(top_meals)
 
 class FavoriteExerciseView(APIView):
     permission_classes = [IsAuthenticated]
@@ -1222,4 +1243,28 @@ class ProgressVisualizationAPIView(APIView):
                 'total_workout_calories': total_workout_calories,
                 'total_meal_calories': total_meal_calories,
             }
+        })
+
+
+class DailySummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        today = date.today()
+
+        # Get daily summary if exists
+        summary = user.daily_summaries.filter(date=today).first()
+        calories_consumed = summary.calories_consumed if summary else 0
+        calories_burned = summary.calories_burned if summary else 0
+
+        # Meals and workouts today
+        meals_eaten = MealPlan.objects.filter(user=user, is_consumed=True, created_at__date=today).count()
+        workouts_done = Workout.objects.filter(user=user, workout_date=today).count()
+
+        return Response({
+            "calories_consumed": calories_consumed,
+            "calories_burned": calories_burned,
+            "meals_eaten": meals_eaten,
+            "workouts_done": workouts_done,
         })

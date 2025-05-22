@@ -205,6 +205,14 @@ class CustomUser(AbstractUser):
             "workout_streak": self.get_workout_streak(),
             "avg_workout_duration": round(self.get_avg_workout_duration(), 2),
         }
+    
+    def get_daily_calorie_goal(self):
+        data = self.calculate_calories()
+        if self.goal == "Weight Loss":
+            return data.get("weight_loss", 1800)
+        elif self.goal == "Weight Gain":
+            return data.get("weight_gain", 1800)
+        return 1800
 
 
 class OTP(models.Model):
@@ -383,6 +391,10 @@ class ExerciseHistory(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='exercise_histories')
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='exercise_histories')
     workout = models.ForeignKey(Workout, on_delete=models.CASCADE, related_name='exercise_histories')
+    
+    #  New link to WorkoutExercise
+    workout_exercise = models.ForeignKey(WorkoutExercise, on_delete=models.CASCADE, related_name='exercise_histories', null=True, blank=True)
+    
     date = models.DateField(default=now)
     sets = models.IntegerField(default=1)
     reps_per_set = models.IntegerField(default=8)
@@ -395,6 +407,7 @@ class ExerciseHistory(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.exercise.name} on {self.date}"
+
     
 def get_top_exercises(user, top_n=10):
         """
@@ -420,3 +433,44 @@ def get_top_exercises(user, top_n=10):
         )
 
         return performances
+
+def get_top_meals_with_avg_calories(user, top_n=10):
+    # Get aggregated data
+    top_meals = (
+        MealPlan.objects
+        .filter(user=user, is_consumed=True)
+        .values('meal', 'name', 'dietary_restriction')
+        .annotate(
+            times_eaten=Count('id'),
+            avg_calories=Avg('calories')
+        )
+        .order_by('-times_eaten')[:top_n]
+    )
+
+    # Fetch matching meals with their ingredients
+    enriched_meals = []
+    for meal_data in top_meals:
+        meal_name = meal_data['name']
+        meal_obj = (
+            MealPlan.objects
+            .filter(user=user, name=meal_name, is_consumed=True)
+            .first()
+        )
+        meal_data['ingredients'] = meal_obj.ingredients if meal_obj else []
+        enriched_meals.append(meal_data)
+
+    return enriched_meals
+
+def get_today_summary(user):
+    today = date.today()
+    summary = DailyCalorieSummary.objects.filter(user=user, date=today).first()
+
+    meals_eaten = MealPlan.objects.filter(user=user, is_consumed=True, created_at__date=today).count()
+    workouts_done = Workout.objects.filter(user=user, workout_date=today).count()
+
+    return {
+        "calories_consumed": summary.calories_consumed,
+        "calories_burned": summary.calories_burned,
+        "meals_eaten": meals_eaten,
+        "workouts_done": workouts_done,
+    }

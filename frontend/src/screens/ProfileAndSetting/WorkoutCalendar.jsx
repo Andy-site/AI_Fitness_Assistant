@@ -46,7 +46,7 @@ const WorkoutCalendar = () => {
         // Fetch exercise progress
         const exerciseData = await fetchExerciseProgress();
         setExerciseProgress(exerciseData.exercise_progress);
-        console.log('Fetched exerciseProgress:', exerciseData.exercise_progress);
+        // console.log('Fetched exerciseProgress:', exerciseData.exercise_progress);
 
       } catch (error) {
         console.error('Error fetching calendar data:', error);
@@ -63,17 +63,18 @@ const WorkoutCalendar = () => {
     const selectedDateString = formatDate(selectedDate);
     const exercisesOnDate = [];
 
-    Object.keys(exerciseProgress).forEach((exerciseName) => {
-      const records = exerciseProgress[exerciseName];
-      records.forEach((record) => {
-        if (record.date === selectedDateString) {
-          exercisesOnDate.push({
-            exerciseName,
-            ...record,
-          });
-        }
-      });
+    Object.keys(exerciseProgress).forEach((categoryName) => {
+    const records = exerciseProgress[categoryName];
+    records.forEach((record) => {
+      if (record.date === selectedDateString) {
+        exercisesOnDate.push({
+          exerciseName: record.exercise, // <- Use this
+          ...record,
+        });
+      }
     });
+  });
+
 
     return exercisesOnDate;
   };

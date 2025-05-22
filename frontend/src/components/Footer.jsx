@@ -1,84 +1,67 @@
-import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, Image, StyleSheet, Keyboard, Text } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  Keyboard,
+} from 'react-native';
+import { useNavigation, useRoute, useNavigationState } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const Footer = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+  const isNavigating = useRef(false); // debounce flag
 
-  // Screen groupings for tab highlighting
-  const homeScreens = [
-    'Home',
-    
-  ];
-
+  // Group screen names for tab highlighting
+  const homeScreens = ['Home'];
   const workoutScreens = [
-    'Workout',
-    'Exercises',
-    'RepsAndSets',
-    'ExerciseSearch',
-    'ExerciseEquipment',
-    'FavoriteExercises',
-    'CreateLibrary',
-    'LibraryDetails',
-    'SetExerciseLibrary',
-    'ExeDetails',
+    'Workout', 'Exercises', 'RepsAndSets', 'ExerciseSearch',
+    'ExerciseEquipment', 'FavoriteExercises', 'CreateLibrary',
+    'LibraryDetails', 'SetExerciseLibrary', 'ExeDetails',
   ];
-
-  const poseScreens = [
-    'LandPose',
-    'PoseScreen',
-    'ChoosePose',
-    'ChooseDifficulty',
-  ];
-
-  const nutritionScreens = [
-    'MealSugg',
-    'LandNutri',
-    'Nutrichoices',
-    'MealDetails',
-    'CreateNutri',
-    'FoodSearch',
-  ];
-
-  const dashboardScreens = [
-    'Dashboard',
-    'Progress',
-    'WorkoutCalendar',
-    'ProgressTracking',
-    'Visualization',
-    'EditProfile',
-    'LogoutScreen',
-    'Notification',
-  ];
+  const poseScreens = ['LandPose', 'PoseScreen', 'ChoosePose', 'ChooseDifficulty'];
+  const nutritionScreens = ['MealSugg', 'LandNutri', 'Nutrichoices', 'MealDetails', 'CreateNutri', 'FoodSearch'];
+  const dashboardScreens = ['Dashboard', 'Progress', 'WorkoutCalendar', 'ProgressTracking', 'Visualization', 'EditProfile', 'LogoutScreen', 'Notification'];
 
   useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
-      setKeyboardVisible(true);
-    });
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardVisible(false);
-    });
+    const keyboardDidShow = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const keyboardDidHide = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
 
     return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
+      keyboardDidShow.remove();
+      keyboardDidHide.remove();
     };
   }, []);
 
   if (isKeyboardVisible) return null;
 
   const currentRoute = route.name;
+
   const isActiveTab = (screens) => screens.includes(currentRoute);
   const iconColor = (screens) => (isActiveTab(screens) ? '#e2f163' : '#fff');
   const iconSize = (screens, base) => (isActiveTab(screens) ? base + 3 : base);
 
+  const safeResetToHome = () => {
+    const current = navigation.getState().routes[navigation.getState().index].name;
+    if (current !== 'Home' && !isNavigating.current) {
+      isNavigating.current = true;
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
+      setTimeout(() => {
+        isNavigating.current = false;
+      }, 500);
+    }
+  };
+
   return (
     <View style={styles.footer}>
       {/* Home Tab */}
-      <TouchableOpacity style={styles.footerIconButton} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Home' }] })}>
+      <TouchableOpacity style={styles.footerIconButton} onPress={safeResetToHome}>
         <Image
           source={require('../assets/Images/Home.png')}
           style={[
@@ -91,7 +74,6 @@ const Footer = () => {
           ]}
           resizeMode="contain"
         />
-        <Text style={styles.footerLabel}>Home</Text>
       </TouchableOpacity>
 
       {/* Pose Tab */}
@@ -108,7 +90,6 @@ const Footer = () => {
           ]}
           resizeMode="contain"
         />
-        <Text style={styles.footerLabel}>Pose</Text>
       </TouchableOpacity>
 
       {/* Workout Tab */}
@@ -118,7 +99,6 @@ const Footer = () => {
           size={iconSize(workoutScreens, 33)}
           color={iconColor(workoutScreens)}
         />
-        <Text style={styles.footerLabel}>Workout</Text>
       </TouchableOpacity>
 
       {/* Nutrition Tab */}
@@ -135,7 +115,6 @@ const Footer = () => {
           ]}
           resizeMode="contain"
         />
-        <Text style={styles.footerLabel}>Nutrition</Text>
       </TouchableOpacity>
 
       {/* Dashboard Tab */}
@@ -152,7 +131,6 @@ const Footer = () => {
           ]}
           resizeMode="contain"
         />
-        <Text style={styles.footerLabel}>Dashboard</Text>
       </TouchableOpacity>
     </View>
   );

@@ -6,10 +6,10 @@ import {
   StyleSheet,
   ScrollView,
   SafeAreaView,
-  Dimensions
+  Dimensions,
 } from 'react-native';
 import * as Progress from 'react-native-progress';
-import { fetchCalorieGoal, fetchUserDetails,  fetchWorkoutStats } from '../../api/fithubApi';
+import { fetchCalorieGoal, fetchUserDetails, fetchWorkoutStats } from '../../api/fithubApi';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
@@ -22,10 +22,7 @@ const ProgressTracking = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [workoutStats, setWorkoutStats] = useState(null);
-  const [workoutLoading, setWorkoutLoading] = useState(false);
-  const [workoutError, setWorkoutError] = useState(null);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -33,8 +30,10 @@ const ProgressTracking = () => {
         setLoading(true);
         const userResponse = await fetchUserDetails();
         const calorieResponse = await fetchCalorieGoal();
+        const workoutData = await fetchWorkoutStats();
         setUserData(userResponse);
         setCalories(calorieResponse);
+        setWorkoutStats(workoutData);
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('Failed to load progress data');
@@ -43,25 +42,38 @@ const ProgressTracking = () => {
       }
     };
 
-    const fetchWorkoutData = async () => {
-      try {
-        setWorkoutLoading(true);
-        
-
-        // fetchWorkoutStats returns workout summary stats
-        const workoutData = await fetchWorkoutStats();
-   setWorkoutStats(workoutData);   
-      } catch (err) {
-        console.error('Workout stats error:', err);
-        setWorkoutError('Failed to load workout stats');
-      } finally {
-        setWorkoutLoading(false);
-      }
-    };
-
     fetchInitialData();
-    fetchWorkoutData();
   }, []);
+
+  const getTargetCalories = () => {
+    const goalType = (userData?.goal || '').toLowerCase();
+    if (!calories) return 1800;
+
+    switch (goalType) {
+      case 'weight gain':
+        return calories.weight_gain_calories ?? 1800;
+      case 'weight loss':
+        return calories.weight_loss_calories ?? 1800;
+      case 'maintain':
+        return calories.maintenance_calories ?? 1800;
+      default:
+        return 1800;
+    }
+  };
+
+  const getGoalLabel = () => {
+    const goalType = (userData?.goal || '').toLowerCase();
+    switch (goalType) {
+      case 'weight gain':
+        return 'Weight Gain';
+      case 'weight loss':
+        return 'Weight Loss';
+      case 'maintain':
+        return 'Maintenance';
+      default:
+        return 'Calorie Goal';
+    }
+  };
 
   if (loading) {
     return (
@@ -84,7 +96,6 @@ const ProgressTracking = () => {
     );
   }
 
-  // Progress Calculations
   const startDate = userData?.created_at ? new Date(userData.created_at) : new Date();
   const durationDays = calories?.goal_duration_days || 0;
   const endDate = new Date(startDate.getTime() + durationDays * 86400000);
@@ -94,7 +105,6 @@ const ProgressTracking = () => {
   const timelineProgress = Math.min((elapsedDays / totalDays) * 100, 100).toFixed(1);
   const isTodayInTimeline = today >= startDate && today <= endDate;
 
-  // Weight Goal Progress
   const goalWeight = userData?.goal_weight || 1;
   const currentWeight = userData?.estimated_weight || 0;
   const initialWeight = userData?.weight || 0;
@@ -105,7 +115,7 @@ const ProgressTracking = () => {
   const validProgress = isNaN(weightProgressPercentage) ? 0 : parseFloat(weightProgressPercentage.toFixed(2));
   const remainingProgress = parseFloat((100 - validProgress).toFixed(2));
 
-  const data = [
+  const pieData = [
     {
       name: 'Progress',
       population: validProgress,
@@ -127,7 +137,51 @@ const ProgressTracking = () => {
       <Header title="Progress Tracking" />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
 
-        {/* Weight Progress */}
+        {/* Calorie Target Section - Now at the Top */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionHeader}>Calorie Target</Text>
+          <View style={styles.goalCard}>
+            <View style={styles.goalHeaderRow}>
+              <MaterialIcons name="local-fire-department" size={24} color="#FF6B6B" />
+              <Text style={styles.goalTitle}>{getGoalLabel()} Target</Text>
+            </View>
+
+            <Text style={styles.goalSubText}>
+              {(() => {
+                const goal = (userData?.goal || '').toLowerCase();
+                if (goal === 'weight loss') return "To lose weight, aim to stay under this daily target.";
+                if (goal === 'weight gain') return "To gain weight, aim to exceed this daily target.";
+                if (goal === 'maintain') return "To maintain your weight, match this target consistently.";
+                return "Your personalized daily calorie goal.";
+              })()}
+            </Text>
+
+            <View style={styles.circleChartContainer}>
+              <Progress.Circle
+                progress={1}
+                size={140}
+                thickness={12}
+                showsText={true}
+                color="#FF6B6B"
+                unfilledColor="#333"
+                borderWidth={0}
+                textStyle={{
+                  color: '#FF6B6B',
+                  fontWeight: 'bold',
+                  fontSize: 16,
+                }}
+                formatText={() => `${getTargetCalories()} kcal`}
+              />
+              <Text style={{ color: '#AAA', marginTop: 10 }}>Daily Calorie Goal</Text>
+            </View>
+
+            <Text style={styles.calorieInfoText}>
+              Log meals to stay on track and help personalize future plans.
+            </Text>
+          </View>
+        </View>
+
+        {/* Weight Goal Progress */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionHeader}>Weight Goal Progress</Text>
           <View style={styles.goalCard}>
@@ -136,22 +190,16 @@ const ProgressTracking = () => {
               <Text style={styles.goalTitle}>Weight Journey</Text>
             </View>
             <View style={styles.pieChartWithStats}>
-              <View style={styles.pieChartContainer}>
-                <PieChart
-                  data={data}
-                  width={screenWidth * 0.8}
-                  height={180}
-                  chartConfig={{
-                    color: () => `rgba(0, 0, 0, 1)`,
-                  }}
-                  accessor={'population'}
-                  backgroundColor={'transparent'}
-                  paddingLeft={'15'}
-                  absolute
-                />
-              </View>
-
-              {/* Stats below pie chart */}
+              <PieChart
+                data={pieData}
+                width={screenWidth * 0.8}
+                height={180}
+                chartConfig={{ color: () => `rgba(0, 0, 0, 1)` }}
+                accessor={'population'}
+                backgroundColor={'transparent'}
+                paddingLeft={'15'}
+                absolute
+              />
               <View style={styles.goalStats}>
                 <Text style={styles.goalStatText}>Starting Weight: {initialWeight} kg</Text>
                 <Text style={styles.goalStatText}>Current Weight: {currentWeight} kg</Text>
@@ -160,7 +208,7 @@ const ProgressTracking = () => {
                   {weightDelta === 0
                     ? "You haven't changed your weight since starting."
                     : weightDelta > 0
-                      ? `Progress: +${weightDelta.toFixed(2)} kg `
+                      ? `Progress: +${weightDelta.toFixed(2)} kg`
                       : `Progress: -${Math.abs(weightDelta).toFixed(2)} kg`}
                 </Text>
                 <Text style={{ color: '#E2F163', fontWeight: 'bold', marginTop: 8 }}>
@@ -171,38 +219,7 @@ const ProgressTracking = () => {
           </View>
         </View>
 
-        {/* Calorie Intake */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionHeader}>Calorie Target</Text>
-          <View style={styles.goalCard}>
-            <View style={styles.goalHeaderRow}>
-              <MaterialIcons name="local-fire-department" size={24} color="#FF6B6B" />
-              <Text style={styles.goalTitle}>Daily Calorie Target</Text>
-            </View>
-            <Progress.Bar
-              progress={timelineProgress / 100}
-              width={null}
-              height={15}
-              color="#FF6B6B"
-              unfilledColor="#333"
-              borderWidth={0}
-              borderRadius={8}
-            />
-            <View style={styles.calorieStats}>
-              <Text style={styles.goalStatText}>
-                Target: {calories?.weight_gain_calories || '--'} kcal/day
-              </Text>
-              <Text style={styles.goalStatText}>
-                Progress: {timelineProgress}%
-              </Text>
-            </View>
-            <Text style={styles.calorieInfoText}>
-              Log meals daily to stay on track with your calorie intake.
-            </Text>
-          </View>
-        </View>
-
-        {/* Timeline Progress */}
+        {/* Timeline */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionHeader}>Timeline</Text>
           <View style={styles.goalCard}>
@@ -230,43 +247,26 @@ const ProgressTracking = () => {
           </View>
         </View>
 
-        {/* Workout Progress */}
+        {/* Workout Stats */}
         <View style={styles.workoutStats}>
           {workoutStats ? (
-  <>
-    <View style={styles.workoutStat}>
-      <Text style={styles.workoutValue}>{workoutStats.workouts_completed}</Text>
-      <Text style={styles.workoutLabel}>Completed</Text>
-    </View>
-    <View style={styles.workoutStat}>
-      <Text style={styles.workoutValue}>{workoutStats.workout_streak}</Text>
-      <Text style={styles.workoutLabel}>Streak</Text>
-    </View>
-    <View style={styles.workoutStat}>
-      <Text style={styles.workoutValue}>{workoutStats.avg_workout_duration.toFixed(1)}</Text>
-      <Text style={styles.workoutLabel}>Avg (min)</Text>
-    </View>
-  </>
-) : (
-  <Text>No workout stats available</Text>
-)}
-
-        </View>
-
-        {/* Tips */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionHeader}>Tips for Success</Text>
-          {[
-            'Eat high-protein meals post-workout.',
-            'Sleep 7–9 hours to enhance recovery.',
-            'Track your daily meals.',
-            'Stay hydrated throughout the day.',
-          ].map((tip, index) => (
-            <View key={index} style={styles.tipCard}>
-              <MaterialIcons name="lightbulb" size={24} color="#FFAA5A" />
-              <Text style={styles.tipText}>{tip}</Text>
-            </View>
-          ))}
+            <>
+              <View style={styles.workoutStat}>
+                <Text style={styles.workoutValue}>{workoutStats.workouts_completed}</Text>
+                <Text style={styles.workoutLabel}>Completed</Text>
+              </View>
+              <View style={styles.workoutStat}>
+                <Text style={styles.workoutValue}>{workoutStats.workout_streak}</Text>
+                <Text style={styles.workoutLabel}>Streak</Text>
+              </View>
+              <View style={styles.workoutStat}>
+                <Text style={styles.workoutValue}>{workoutStats.avg_workout_duration.toFixed(1)}</Text>
+                <Text style={styles.workoutLabel}>Avg (min)</Text>
+              </View>
+            </>
+          ) : (
+            <Text>No workout stats available</Text>
+          )}
         </View>
       </ScrollView>
       <Footer />
@@ -276,7 +276,7 @@ const ProgressTracking = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212' },
-  scrollView: { flex: 1 , marginBottom:30},
+  scrollView: { marginTop:55,flex: 1, marginBottom: 60 },
   content: { padding: 16 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' },
   loadingText: { color: '#FFF', marginTop: 10 },
@@ -287,18 +287,11 @@ const styles = StyleSheet.create({
   goalCard: { backgroundColor: '#1E1E1E', borderRadius: 12, padding: 16 },
   goalHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   goalTitle: { color: '#FFF', marginLeft: 8, fontSize: 18, fontWeight: '600' },
-  pieChartWithStats: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  pieChartContainer: {
-    marginBottom: 20,
-  },
-  goalStats: {
-    width: '100%',
-    paddingHorizontal: 20,
-    alignItems: 'flex-start',
-  },
+  goalSubText: { color: '#DDD', fontSize: 14, marginBottom: 10 },
+  circleChartContainer: { alignItems: 'center', marginVertical: 20 },
+  pieChartWithStats: { alignItems: 'center', marginBottom: 20 },
+  pieChartContainer: { marginBottom: 20 },
+  goalStats: { width: '100%', paddingHorizontal: 20, alignItems: 'flex-start' },
   goalStatText: { color: '#FFF', marginBottom: 6 },
   goalStatInfoText: { color: '#B3A0FF', fontSize: 14, marginTop: 6 },
   calorieStats: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
@@ -312,23 +305,10 @@ const styles = StyleSheet.create({
   timelineDates: { flexDirection: 'row', justifyContent: 'space-between' },
   timelineDate: { color: '#AAA', fontSize: 12 },
   timelineInfoText: { color: '#B3A0FF', marginTop: 10, fontWeight: '600' },
-  workoutStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginVertical: 16,
-  },
+  workoutStats: { flexDirection: 'row', justifyContent: 'space-around', marginVertical: 16 },
   workoutStat: { alignItems: 'center' },
   workoutValue: { fontSize: 20, fontWeight: 'bold', color: '#64DFDF' },
   workoutLabel: { fontSize: 14, color: '#AAA' },
-  tipCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#272727',
-    padding: 12,
-    borderRadius: 8,
-    marginVertical: 6,
-  },
-  tipText: { color: '#FFD700', marginLeft: 8, fontSize: 14, flex: 1 },
 });
 
 export default ProgressTracking;

@@ -244,23 +244,24 @@ export const verifyOtp = async (email, otp) => {
   }
 };
 
-
 export const fetchCalorieGoal = async () => {
+  const yourToken = await getAuthToken(); // Get the authentication token
   try {
-    const token = await getAuthToken(); // Get the authentication token
-    const response = await apiClient.get('calorie-goal/', {
+    const response = await axios.get(`${API_BASE_URL}user/calorie-goal/`, {
       headers: {
-        Authorization: `Bearer ${token}`, // Include the token in the headers
+        Authorization: `Bearer ${yourToken}`, // set up your auth token system
       },
     });
-    console.log('Calorie goal fetched successfully:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error fetching calorie goals:', error);
-    throw new Error('Failed to fetch calorie goals');
+    console.error("Error fetching calorie goal:", error);
+    return {
+      daily_calorie_goal: 1800,
+      goal_duration_days: 90,
+      goal_type: "Unknown"
+    };
   }
 };
-
 
 // **Fetch User Details**
 export const fetchUserDetails = async () => {
@@ -961,7 +962,15 @@ export const fetchMealPlan = async () => {
   }
 };
 
-
+export const fetchDailysSummary = async () => {
+  const token = await getAuthToken(); // or from storage/context
+  const response = await axios.get(`${API_BASE_URL}daily-summary/`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+  return response.data;
+};
 export const fetchBackendMeals = async () => {
   try {
     const token = await getAuthToken();
@@ -996,4 +1005,15 @@ export const fetchBackendMeals = async () => {
     console.error('Error fetching backend meals:', error.response?.data || error.message);
     throw error;
   }
+};
+
+
+export const fetchRecommendedMeals = async () => {
+  const token = await getAuthToken();
+  const response = await axios.get(`${API_BASE_URL}recommended-meals/`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data;
 };

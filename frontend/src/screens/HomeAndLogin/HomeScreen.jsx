@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// [No changes to imports]
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,88 +8,128 @@ import {
   Image,
   ActivityIndicator,
   ScrollView,
-  Dimensions,
   Modal,
-  FlatList
+  FlatList,
 } from 'react-native';
 import Footer from '../../components/Footer';
-import { fetchUserDetails, fetchRecommendedExercises } from '../../api/fithubApi';
+import {
+  fetchUserDetails,
+  fetchRecommendedExercises,
+  fetchRecommendedMeals,
+  fetchDailysSummary
+} from '../../api/fithubApi';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Svg, Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
+import { useFocusEffect } from '@react-navigation/native';
 import { capitalizeWords } from '../../utils/StringUtils';
+import { InteractionManager } from 'react-native';
+
 
 const API_BASE_URL = 'http://192.168.0.117:8000/';
-const screenWidth = Dimensions.get('window').width;
 
 const Home = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [userData, setUserData] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [mealDetailsVisible, setMealDetailsVisible] = useState(false);
+  const [selectedMeal, setSelectedMeal] = useState(null);
   const [bmi, setBmi] = useState(null);
-  const [firstName, setFirstName] = useState('');
+  const [firstName, setFirstName] = useState('User');
   const [lastName, setLastName] = useState('');
   const [exercises, setExercises] = useState([]);
-  const [loading, setLoading] = useState(true); 
-  const [page, setPage] = useState(1);
+  const [meals, setMeals] = useState([]);
+  const [dailySummary, setDailySummary] = useState({
+    calories_consumed: 0,
+    calories_burned: 0,
+    meals_eaten: 0,
+    workouts_done: 0,
+  });
 
+  const fetchData = async () => {
+    try {
+      const userResponse = await fetchUserDetails();
+      setUserData(userResponse);
+      setFirstName(userResponse.first_name || 'User');
+      setLastName(userResponse.last_name || '');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const userResponse = await fetchUserDetails();
-        setUserData(userResponse);
-        setFirstName(userResponse.first_name || 'User');
-        setLastName(userResponse.last_name || 'User');
-
-        if (userResponse.profile_photo) {
-          setProfileImage({
-            uri: userResponse.profile_photo.startsWith('http')
-              ? userResponse.profile_photo
-              : `${API_BASE_URL}${userResponse.profile_photo}`,
-          });
-        }
-
-        if (userResponse.weight && userResponse.height) {
-          const heightInMeters = userResponse.height / 100;
-          const calculatedBmi = userResponse.weight / (heightInMeters * heightInMeters);
-          setBmi(calculatedBmi.toFixed(1));
-        }
-      } catch (err) {
-        setError('Failed to load user data');
-        console.error(err);
-      } finally {
-        setIsLoading(false);
+      if (userResponse.profile_photo) {
+        setProfileImage({
+          uri: userResponse.profile_photo.startsWith('http')
+            ? userResponse.profile_photo
+            : `${API_BASE_URL}${userResponse.profile_photo}`,
+        });
       }
-    };
 
-    const fetchExercises = async () => {
-      try {
-        const data = await fetchRecommendedExercises();
-        setExercises(data.recommended_exercises);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching exercises:', error);
-        setLoading(false);
+      if (userResponse.weight && userResponse.height) {
+        const heightInMeters = userResponse.height / 100;
+        const calculatedBmi = userResponse.weight / (heightInMeters * heightInMeters);
+        setBmi(calculatedBmi.toFixed(1));
       }
-    };
-
-    fetchData();
-    fetchExercises();
-  }, []);
-
-  const handleLogout = () => {
-    navigation.navigate('LogoutScreen');
+    } catch (err) {
+      console.error('Error fetching user data', err);
+    }
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <Text style={styles.name}>{capitalizeWords(item.name)}</Text>
-      <Text style={styles.category}>Category: {capitalizeWords(item.category)}</Text>
-    </View>
-  );
+  const fetchRecommendations = async () => {
+    try {
+      const ex = await fetchRecommendedExercises();
+      const meals = await fetchRecommendedMeals();
+      setExercises(ex.recommended_exercises || []);
+      setMeals(meals || []);
+    } catch (err) {
+      console.error('Error fetching recommendations', err);
+    }
+  };
+
+  const fetchSummary = async () => {
+    try {
+      const data = await fetchDailysSummary();
+      setDailySummary(data);
+    } catch (err) {
+      console.error('Error fetching daily summary', err);
+    }
+  };
+
+  useFocusEffect(
+  useCallback(() => {
+    let isActive = true;
+
+    const task = InteractionManager.runAfterInteractions(async () => {
+      setIsLoading(true);
+      try {
+        await fetchData();
+        await fetchRecommendations();
+        await fetchSummary();
+      } catch (error) {
+        console.error("Error refreshing Home screen", error);
+      } finally {
+        if (isActive) setIsLoading(false);
+      }
+    });
+
+    return () => {
+      isActive = false;
+      task.cancel?.();
+      setExercises([]);
+      setMeals([]);
+      setModalVisible(false);
+      setMealDetailsVisible(false);
+      setSelectedMeal(null);
+    };
+  }, [])
+);
+
+
+  const handleLogout = () => {
+    setModalVisible(false);
+    setTimeout(() => navigation.navigate('LogoutScreen'), 300);
+  };
+
+  const handleEditProfile = () => {
+    setModalVisible(false);
+    setTimeout(() => navigation.navigate('EditProfile'), 300);
+  };
 
   const getBmiCategory = (bmiValue) => {
     if (bmiValue < 18.5) return 'Underweight';
@@ -116,114 +157,110 @@ const Home = ({ navigation }) => {
 
   return (
     <View style={styles.outcontainer}>
-      <ScrollView style={styles.container}>
-        <View style={styles.headerWithProfile}>
-          <View>
-            <Text style={styles.greeting}>Hi {firstName} {lastName}!</Text>
-            <Text style={styles.greeting2}>Personal Health Assistant</Text>
-          </View>
-          <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.profileImageButton}>
-            <Image
-              source={profileImage || require('../../assets/Images/default_user.png')}
-              style={styles.profileImage}
-            />
-          </TouchableOpacity>
+      <View style={styles.headerWithProfile}>
+        <View>
+          <Text style={styles.greeting}>Hi {firstName} {lastName}!</Text>
+          <Text style={styles.greeting2}>Personal Health Assistant</Text>
         </View>
+        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.profileImageButton}>
+          <Image
+            source={profileImage || require('../../assets/Images/default_user.png')}
+            style={styles.profileImage}
+          />
+        </TouchableOpacity>
+      </View>
 
-        
+      <ScrollView style={styles.container}>
 
         {bmi && (
           <View style={styles.bmiContainer}>
             <Text style={styles.sectionTitle}>Your BMI</Text>
             <Text style={styles.bmiValue}>{bmi}</Text>
             <Text style={styles.bmiCategory}>{getBmiCategory(bmi)}</Text>
-
             <View style={styles.bmiScaleContainer}>
-  <Svg height="20" width="100%" style={styles.bmiScale}>
-    <Defs>
-      <SvgGradient id="bmiGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-        <Stop offset="0%" stopColor="#00FF00" />
-        <Stop offset="33%" stopColor="#FFFF00" />
-        <Stop offset="66%" stopColor="#FF8000" />
-        <Stop offset="100%" stopColor="#FF0000" />
-      </SvgGradient>
-    </Defs>
-    <Rect x="0" y="0" width="100%" height="100%" fill="url(#bmiGradient)" />
-  </Svg>
-
-  <MaterialIcons
-    name="arrow-drop-down"
-    size={40}
-    color="#FFFFFF"
-    style={[styles.bmiArrow, { left: `${getArrowPosition(bmi)}%` }]}
-  />
-</View>
+              <Svg height="20" width="100%" style={styles.bmiScale}>
+                <Defs>
+                  <SvgGradient id="bmiGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <Stop offset="0%" stopColor="#00FF00" />
+                    <Stop offset="33%" stopColor="#FFFF00" />
+                    <Stop offset="66%" stopColor="#FF8000" />
+                    <Stop offset="100%" stopColor="#FF0000" />
+                  </SvgGradient>
+                </Defs>
+                <Rect x="0" y="0" width="100%" height="100%" fill="url(#bmiGradient)" />
+              </Svg>
+              <MaterialIcons
+                name="arrow-drop-down"
+                size={40}
+                color="#FFFFFF"
+                style={[styles.bmiArrow, { left: `${getArrowPosition(bmi)}%` }]}
+              />
+            </View>
           </View>
         )}
 
-        <View style={styles.favoritesAndLibraryContainer}>
-          <TouchableOpacity style={styles.favoriteButton} onPress={() => navigation.navigate('FavoriteExercises')}>
-            <Text style={styles.favoriteButtonText}>My Favorites</Text>
-            <MaterialIcons name="favorite" size={24} color="#e2f163" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.browseLibraryButton} onPress={() => navigation.navigate('CreateLibrary')}>
-            <Text style={styles.favoriteButtonText}>Browse Library</Text>
-            <MaterialIcons name="pageview" size={27} color="#b3a0ff" />
-          </TouchableOpacity>
+        <View style={styles.summaryCard}>
+          <Text style={styles.sectionTitle}>📅 Today's Summary</Text>
+          <View style={styles.summaryRow}>
+            <MaterialIcons name="fastfood" size={24} color="#e2f163" />
+            <Text style={styles.summaryLabel}>Meals Eaten:</Text>
+            <Text style={styles.summaryValue}>{dailySummary.meals_eaten}</Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <MaterialIcons name="fitness-center" size={24} color="#6BE5FF" />
+            <Text style={styles.summaryLabel}>Workouts Done:</Text>
+            <Text style={styles.summaryValue}>{dailySummary.workouts_done}</Text>
+          </View>
         </View>
 
-        <View style={styles.reccontainer}>
-  <Text style={styles.header}>Recommended Exercises</Text>
-  {loading ? (
-    <ActivityIndicator size="small" color="#b3a0ff" />
-  ) : (
-    <>
-      <View style={{ paddingHorizontal: 10 }}>
-  {exercises
-    .slice((page - 1) * 5, page * 5)
-    .map(item => (
-      <TouchableOpacity
-        key={item.id}
-        style={{ marginBottom: 10 }}
-        onPress={() => navigation.navigate('ExeDetails', { exerciseName: item.name,bodyPart: item.category,  })}
-      >
-        {renderItem({ item })}
-      </TouchableOpacity>
-    ))}
-</View>
+        <View style={styles.sliderSection}>
+          <Text style={styles.header}>🔥 Recommended Exercises</Text>
+          <FlatList
+            horizontal
+            data={exercises.slice(0, 10)}
+            keyExtractor={(item, index) => item.id?.toString() ?? `ex-${index}`}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('ExeDetails', {
+                  exerciseName: item.name,
+                  bodyPart: item.category,
+                })}
+                style={styles.sliderCard}
+              >
+                <Text style={styles.cardTitle}>{capitalizeWords(item.name)}</Text>
+                <Text style={styles.cardSubtitle}>Category: {capitalizeWords(item.category)}</Text>
+              </TouchableOpacity>
+            )}
+            showsHorizontalScrollIndicator={false}
+          />
+        </View>
 
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, paddingHorizontal: 10 }}>
-        <TouchableOpacity
-          onPress={() => setPage(prev => Math.max(prev - 1, 1))}
-          disabled={page === 1}
-          style={[styles.pageButton, page === 1 && styles.disabledButton]}
-        >
-          <Text style={styles.pageButtonText}>Previous</Text>
-        </TouchableOpacity>
-        <Text style={{ alignSelf: 'center', color:'#fff'}}>
-          Page {page} of {Math.ceil(exercises.length / 5)}
-        </Text>
-        <TouchableOpacity
-          onPress={() => setPage(prev => Math.min(prev + 1, Math.ceil(exercises.length / 5)))}
-          disabled={page === Math.ceil(exercises.length / 5)}
-          style={[styles.pageButton, page === Math.ceil(exercises.length / 5) && styles.disabledButton]}
-        >
-          <Text style={styles.pageButtonText}>Next</Text>
-        </TouchableOpacity>
-      </View>
-    </>
-  )}
-</View>
-
+        <View style={styles.sliderSection}>
+          <Text style={styles.header}>🍽️ Meals You Love</Text>
+          <FlatList
+            horizontal
+            data={meals.slice(0, 10)}
+            keyExtractor={(item, index) => item.id?.toString() ?? `meal-${index}`}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.sliderCard2}
+                onPress={() => {
+                  setSelectedMeal(item);
+                  setMealDetailsVisible(true);
+                }}
+              >
+                <Text style={styles.cardTitle}>{item.meal} - {item.name}</Text>
+                <Text style={styles.cardSubtitle}>
+                  {item.times_eaten}x • {item.dietary_restriction || 'No Restriction'}
+                </Text>
+              </TouchableOpacity>
+            )}
+            showsHorizontalScrollIndicator={false}
+          />
+        </View>
       </ScrollView>
 
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
+      <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Image
@@ -231,13 +268,7 @@ const Home = ({ navigation }) => {
               style={styles.modalImage}
               resizeMode="cover"
             />
-            <TouchableOpacity
-              style={styles.updateButton}
-              onPress={() => {
-                setModalVisible(false);
-                navigation.navigate('EditProfile');
-              }}
-            >
+            <TouchableOpacity style={styles.updateButton} onPress={handleEditProfile}>
               <Text style={styles.updateButtonText}>Update Profile</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.updateButton} onPress={handleLogout}>
@@ -250,197 +281,74 @@ const Home = ({ navigation }) => {
         </View>
       </Modal>
 
-      <Footer />
+      <Modal animationType="slide" transparent={true} visible={mealDetailsVisible} onRequestClose={() => setMealDetailsVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity style={{ alignSelf: 'flex-end' }} onPress={() => setMealDetailsVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#333" />
+            </TouchableOpacity>
+            <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>
+              {selectedMeal?.meal} - {selectedMeal?.name}
+            </Text>
+            <Text style={{ fontWeight: 'bold', marginBottom: 5 }}>Ingredients:</Text>
+            <ScrollView style={{ maxHeight: 150, width: '100%' }}>
+              {(selectedMeal?.ingredients || []).map((ing, idx) => (
+                <Text key={idx} style={{ color: '#333', marginBottom: 4 }}>• {ing}</Text>
+              ))}
+            </ScrollView>
+            <Text style={{ marginTop: 10, color: '#666' }}>
+              Dietary Restriction: {selectedMeal?.dietary_restriction || 'None'}
+            </Text>
+            <Text style={{ color: '#666' }}>Times Eaten: {selectedMeal?.times_eaten}</Text>
+          </View>
+        </View>
+      </Modal>
+
+      {!isLoading && <Footer />}
     </View>
   );
 };
 
+
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#212020',
-  },
-  loadingText: {
-    color: '#B3A0FF',
-    marginTop: 10,
-  },
-  outcontainer: {
-    flex: 1,
-    backgroundColor: '#212020',
-  },
-  container: {
-    flex: 1,
-    padding: 20,
-    marginBottom: 70,
-  },
-  headerWithProfile: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  greeting: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#B3A0FF',
-  },
-  greeting2: {
-    marginTop: 10,
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#B3A0FF',
-  },
-  profileImageButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-  },
-  workoutButton: {
-    backgroundColor: '#b3a0ff',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-    flexDirection: 'row',
-    width: '50%',
-    alignSelf: 'center',
-    alignItems: 'center',
-    marginVertical: 15,
-  },
-  bmiScaleContainer: {
-  position: 'relative',
-  height: 40,
-  marginHorizontal: 20,
-  marginTop: 10,
-},
-
-bmiScale: {
-  height: 20,
-  borderRadius: 10,
-  overflow: 'hidden',
-},
-
-bmiArrow: {
-  position: 'absolute',
-  top: 0,
-  zIndex: 1,
-},
-
-  favoritesAndLibraryContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 15,
-  },
-  favoriteButton: {
-    backgroundColor: '#b3a0ff',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  favoriteButtonText: {
-    color: '#000',
-    fontSize: 16,
-    marginRight: 5,
-  },
-  browseLibraryButton: {
-    backgroundColor: '#e2f163',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  reccontainer: {
-    marginTop: 20,
-    marginBottom:50,
-  },
-  header: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#fff',
-  },
-  card: {
+  outcontainer: { flex: 1, backgroundColor: '#212020' },
+  container: { flex: 1, padding: 20, marginBottom: 70 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#212020' },
+  loadingText: { color: '#B3A0FF', marginTop: 10 },
+  headerWithProfile: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, padding: 20 },
+  greeting: { fontSize: 20, fontWeight: '700', color: '#B3A0FF' },
+  greeting2: { marginTop: 10, fontSize: 16, fontWeight: '500', color: '#B3A0FF' },
+  profileImageButton: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden' },
+  profileImage: { width: '100%', height: '100%' },
+  sectionTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  bmiContainer: { marginVertical: 20, alignItems: 'center' },
+  bmiValue: { color: '#fff', fontSize: 40, fontWeight: 'bold', marginVertical: 10 },
+  bmiCategory: { color: '#fff', fontSize: 16, marginBottom: 10 },
+  bmiScaleContainer: { width: '100%', height: 20, marginTop: 10, position: 'relative' },
+  bmiScale: { height: 10, borderRadius: 5, width: '100%' },
+  bmiArrow: { position: 'absolute', top: -10 },
+  sliderSection: { marginTop: 20 },
+  header: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: '#fff' },
+  sliderCard: {
     backgroundColor: '#B3A0FF',
     borderRadius: 10,
-    padding: 10,
-    alignItems: 'center',
+    padding: 15,
+    marginRight: 10,
+    width: 200,
+    justifyContent: 'center',
+    
   },
-  image: {
-    width: '100%',
-    height: 150,
-    borderRadius: 8,
-    resizeMode: 'cover',
+  sliderCard2: {
+    backgroundColor: '#B3A0FF',
+    borderRadius: 10,
+    padding: 15,
+    marginRight: 10,
+    width: 200,
+    justifyContent: 'center',
+    marginBottom: 30,
   },
-  name: {
-    fontSize: 16,
-    fontWeight: '700',
-    color:'#fff',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  category: {
-    fontSize: 14,
-    color: '#e2f163',
-    marginTop: 5,
-  },
-  bmiContainer: {
-    marginVertical: 20,
-    alignItems: 'center',
-  },
-  sectionTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  bmiValue: {
-    color: '#fff',
-    fontSize: 40,
-    fontWeight: 'bold',
-    marginVertical: 10,
-  },
-  pageButton: {
-    backgroundColor: '#b3a0ff',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  disabledButton: {
-    backgroundColor: '#e2f163',
-  },
-  pageButtonText: {
-    color: '#000',
-    fontWeight: 'bold',
-  },
-  
-  bmiCategory: {
-    color: '#fff',
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  bmiScaleContainer: {
-    width: '100%',
-    height: 20,
-    marginTop: 10,
-    position: 'relative',
-  },
-  bmiScale: {
-    height: 10,
-    borderRadius: 5,
-    width: '100%',
-  },
-  bmiArrow: {
-    position: 'absolute',
-    top: -10,
-  },
+  cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
+  cardSubtitle: { fontSize: 13, color: '#e2f163', marginTop: 5 },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -452,6 +360,7 @@ bmiArrow: {
     padding: 20,
     borderRadius: 10,
     alignItems: 'center',
+    width: '80%',
   },
   modalImage: {
     width: 100,
@@ -467,15 +376,27 @@ bmiArrow: {
     width: '100%',
     alignItems: 'center',
   },
-  updateButtonText: {
-    color: '#000',
-    fontWeight: 'bold',
+  updateButtonText: { color: '#000', fontWeight: 'bold' },
+  cancelButton: { marginTop: 10 },
+  cancelText: { color: '#FF6B6B', fontWeight: 'bold' },
+  summaryCard: {
+    backgroundColor: '#2c2c2c',
+    borderRadius: 10,
+    padding: 15,
+    marginTop: 20,
   },
-  cancelButton: {
-    marginTop: 10,
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 5,
   },
-  cancelText: {
-    color: '#FF6B6B',
+  summaryLabel: {
+    flex: 1,
+    color: '#fff',
+    marginLeft: 10,
+  },
+  summaryValue: {
+    color: '#fff',
     fontWeight: 'bold',
   },
 });
