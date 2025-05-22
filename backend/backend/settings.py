@@ -9,50 +9,35 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-
 from pathlib import Path
 import os
+import dj_database_url
 from dotenv import load_dotenv
 from datetime import timedelta
-# Load environment variables from .env file
+
 load_dotenv()
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Path for media files
+# Environment-based secret key
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'unsafe-default')
+
+# Toggle DEBUG based on deployment
+DEBUG = not os.getenv('RENDER')
+
+ALLOWED_HOSTS = [os.getenv('RENDER_EXTERNAL_HOSTNAME', 'localhost')]
+
+# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Static files
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-CALORIE_API_URL = os.getenv('CALORIE_API_URL')
-CALORIE_API_KEY = os.getenv('CALORIE_API_KEY')
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-h(3sf+e)f(&b*b0307cba(%97kdviaokops%l-&6-evnreso4g'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-# Add these to settings.py
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')  # Read email from .env
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')   # Your Gmail app password
-DEFAULT_FROM_EMAIL = 'noreply@example.com'
-FRONTEND_URL = 'http://192.168.0.228:3000'
-
-ALLOWED_HOSTS = ['*']
-
-
-
-# Application definition
+# Installed apps
 INSTALLED_APPS = [
-    # Default Django apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -60,10 +45,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Third-party apps
     'allauth',
     'allauth.account',
-    'allauth.socialaccount',  # Optional, only if using social login
+    'allauth.socialaccount',
     'dj_rest_auth',
     'rest_framework',
     'rest_framework_simplejwt',
@@ -71,32 +55,13 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
 
-    # Your apps
     'FitHub',
 ]
 
-REST_AUTH = {
-    'TOKEN_MODEL': None,
-}
-
-# Configure JWT settings
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-}
-
-# Add JWT configuration (optional)
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': False,
-    'BLACKLIST_AFTER_ROTATION': True,
-}
-
+# Middleware
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -104,8 +69,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-     'corsheaders.middleware.CorsMiddleware',
-
     'allauth.account.middleware.AccountMiddleware',
 ]
 
@@ -129,78 +92,38 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-
 # Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'Gym',  # Name of the database you created
-        'USER': 'postgres',  # The user you created
-        'PASSWORD': 'Andy#@!',  # The password you assigned
-        'HOST': 'localhost',
-        'PORT': '5432',  # Default port for PostgreSQL
-    }
+    'default': dj_database_url.config(
+        default='postgresql://postgres:Andy#@!@localhost:5432/Gym',
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
 
 CONN_MAX_AGE = 60
 ATOMIC_REQUESTS = True
 
-
-# Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
-# Django-allauth settings
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_EMAIL_VERIFICATION = 'optional'  # Use 'mandatory' for production
-
-
-# Custom registration serializer
-REST_AUTH_REGISTER_SERIALIZERS = {
-    'REGISTER_SERIALIZER': 'your_app.serializers.CustomRegisterSerializer',
-}
-
-
-
-
 # Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
+# Email settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = 'noreply@example.com'
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
-
-STATIC_URL = 'static/'
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-AUTH_USER_MODEL = 'FitHub.CustomUser'
-
-
-REST_AUTH_REGISTER_SERIALIZERS = {
-    'REGISTER_SERIALIZER': 'your_app.serializers.CustomRegisterSerializer',
+# JWT config
+REST_USE_JWT = True
+REST_AUTH = {
+    'TOKEN_MODEL': None,
 }
-
-REST_USE_JWT = True 
-AUTHENTICATION_BACKENDS = [
-    'FitHub.backends.EmailBackend',  # Your custom backend
-    'django.contrib.auth.backends.ModelBackend',  # Default backend
-]
-
-# JWT Authentication
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -208,10 +131,36 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
     'NON_FIELD_ERRORS_KEY': 'detail',
 }
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+}
 
+# Django Allauth
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
 
+# Custom serializers and auth backend
+REST_AUTH_REGISTER_SERIALIZERS = {
+    'REGISTER_SERIALIZER': 'FitHub.serializers.CustomRegisterSerializer',
+}
+AUTHENTICATION_BACKENDS = [
+    'FitHub.backends.EmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
-CORS_ALLOW_ALL_ORIGINS = True  # For development only
+# Custom User model
+AUTH_USER_MODEL = 'FitHub.CustomUser'
+
+# CORS and CSRF
+CORS_ALLOW_ALL_ORIGINS = True  # For development; restrict in production
 CORS_ALLOW_CREDENTIALS = True
-CSRF_TRUSTED_ORIGINS = ['http://192.168.0.228:3000']
+CSRF_TRUSTED_ORIGINS = ['http://192.168.0.228:3000']  # Adjust for frontend
 
+
+# Default auto field
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
