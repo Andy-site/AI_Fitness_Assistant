@@ -233,7 +233,7 @@ const EditProfile = () => {
                 onValueChange={(itemValue) => setGoal(itemValue)}
                 style={styles.picker}
               >
-                <Picker.Item label="Maintain" value="Maintain" />
+                
                 <Picker.Item label="Weight Loss" value="Weight Loss" />
                 <Picker.Item label="Weight Gain" value="Weight Gain" />
               </Picker>
