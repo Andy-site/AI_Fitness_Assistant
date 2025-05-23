@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
       flex: 1,
       padding: 10,
       justifyContent: 'center',
-      backgroundColor: '#000',
+      backgroundColor: '#222',
       marginTop: 70,
     },
     label: {

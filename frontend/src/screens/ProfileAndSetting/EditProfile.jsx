@@ -297,7 +297,7 @@ const EditProfile = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: '#222' },
   scrollContainer: { flex: 1, marginTop: 70, marginBottom: 70 },
   profileImage: { width: 130, height: 130, borderRadius: 75 },
   addPhotoText: { fontSize: 18, color: '#fff', fontWeight: 'bold' },

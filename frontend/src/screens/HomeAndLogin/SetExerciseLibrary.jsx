@@ -189,7 +189,7 @@ const SetExerciseLibrary = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: '#222' },
   scrollView: { flex: 1,  marginBottom: 70 },
   selectionRow: {
     flexDirection: 'row',

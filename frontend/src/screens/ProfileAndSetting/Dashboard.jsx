@@ -117,8 +117,8 @@ const Dashboard = () => {
               <MaterialIcons name="calendar-today" size={28} color="#E2F163" />
             </View>
             <View style={styles.cardTextContainer}>
-              <Text style={styles.cardTitle}>Workout Calendar</Text>
-              <Text style={styles.cardDescription}>Track your workout streaks and history</Text>
+              <Text style={styles.cardTitle}> Calendar</Text>
+              <Text style={styles.cardDescription}>Track your workout and Meal streaks and history</Text>
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#B3A0FF" style={styles.cardArrow} />
           </TouchableOpacity>
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 70,
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#222',
   },
   loadingContainer: {
     flex: 1,

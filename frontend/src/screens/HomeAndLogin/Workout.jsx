@@ -150,6 +150,13 @@ const Workout = () => {
                 <View style={styles.actionButtons}>
                   <TouchableOpacity
                     style={styles.iconButton}
+                    onPress={() => navigation.navigate('FavoriteExercises')}
+                  >
+                    <Icon name="heart" size={20} color="#000" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.iconButton}
                     onPress={() => navigation.navigate('ExerciseSearch')}
                   >
                     <Icon name="search" size={20} color="#000" />
@@ -373,7 +380,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#222',
   },
   topRowContainer: {
     paddingHorizontal: 15,
@@ -384,6 +391,7 @@ const styles = StyleSheet.create({
   paddingVertical: 8,
   paddingHorizontal: 16,
   borderRadius: 5,
+  marginBottom: 10,
 },
 
 disabledButton: {

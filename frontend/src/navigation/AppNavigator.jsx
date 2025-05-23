@@ -46,7 +46,7 @@ import LogoutScreen from '../screens/ProfileAndSetting/LogoutScreen';
 import LandPose from '../screens/Pose/LandPose';
 import PoseScreen from '../screens/Pose/PoseScreen';
 import ChoosePose from '../screens/Pose/ChoosePose';
-import ChooseDifficulty from '../screens/Pose/ChooseDifficulty';
+import Instructions from '../screens/Pose/Instructions';
 
 
 import ExerciseSearch from '../screens/HomeAndLogin/ExerciseSearch';
@@ -57,70 +57,88 @@ import ProgressScreen from '../screens/ProfileAndSetting/Progress';
 import WorkoutCalendar from '../screens/ProfileAndSetting/WorkoutCalendar';
 import ProgressTracking from '../screens/ProfileAndSetting/TrackProgress';
 import ProgressVisualization from '../screens/ProfileAndSetting/ProgressVisualization';
+import PoseHistory from '../screens/Pose/PoseHistory';
+import CalorieVisualization from '../screens/Pose/CalorieVisualization';
+import PoseNavigation from '../screens/Pose/PoseNavigation';
 
 
 const Stack = createNativeStackNavigator();
-
 const AppNavigator = () => {
   return (
     <NavigationContainer>
+      <Stack.Navigator initialRouteName="LoginScreen">
+
+        {/* =========================  LOADING + LANDING ======================== */}
+        <Stack.Screen name="Landing" component={Landing} options={{ headerShown: false }} />
+        <Stack.Screen name="Loading1" component={Loading1} options={{ headerShown: false }} />
+        <Stack.Screen name="Loading2" component={Loading2} options={{ headerShown: false }} />
+        <Stack.Screen name="Loading3" component={Loading3} options={{ headerShown: false }} />
+        <Stack.Screen name="Loading4" component={Loading4} options={{ headerShown: false }} />
 
 
-        <Stack.Navigator initialRouteName="LoginScreen">
-        <Stack.Screen name="Landing" component={Landing}  options={{ headerShown: false }}/>
-        <Stack.Screen name="Loading1" component={Loading1}  options={{ headerShown: false }}/>
-        <Stack.Screen name="Loading2" component={Loading2}  options={{ headerShown: false }}/>
-        <Stack.Screen name="Loading3" component={Loading3} options ={{ headerShown: false }}/>
-        <Stack.Screen name="Loading4" component={Loading4} options={{ headerShown: false }}/>
-        <Stack.Screen name="Email" component= { EmailScreen } options={{ headerShown: false }} />
-        <Stack.Screen name="PasswordScreen" component={PasswordScreen} options={{ headerShown: false }}/>
-        <Stack.Screen name="UserInput" component={UserInput} options={{ headerShown: false }}/>
-        <Stack.Screen name="GoalScreen" component={GoalScreen} options={{ headerShown: false }}/>
-        <Stack.Screen name="RegisterScreen" component={RegisterScreen} options={{ headerShown: false }}/>
-        <Stack.Screen name="LoginScreen" component={LoginScreen} options={{ headerShown: false }}/>
-        <Stack.Screen name="ForgotPassword1" component={ForgotPassword1} options={{ headerShown: false }}/>
-        <Stack.Screen name="ForgotPassword2" component={ForgotPassword2} options={{ headerShown: false }}/>
-        <Stack.Screen name="ForgotPassword3" component={ForgotPassword3} options={{ headerShown: false }}/>
+        {/* =======================  AUTH + REGISTRATION ======================= */}
+        <Stack.Screen name="LoginScreen" component={LoginScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="RegisterScreen" component={RegisterScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Email" component={EmailScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="PasswordScreen" component={PasswordScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="UserInput" component={UserInput} options={{ headerShown: false }} />
+        <Stack.Screen name="GoalScreen" component={GoalScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="LogoutScreen" component={LogoutScreen} options={{ headerShown: false }} />
+
+        {/* ==========================  FORGOT PASSWORD ======================== */}
+        <Stack.Screen name="ForgotPassword1" component={ForgotPassword1} options={{ headerShown: false }} />
+        <Stack.Screen name="ForgotPassword2" component={ForgotPassword2} options={{ headerShown: false }} />
+        <Stack.Screen name="ForgotPassword3" component={ForgotPassword3} options={{ headerShown: false }} />
 
 
-        <Stack.Screen name="Home" component={Home} options={{ headerShown: false }}/>
-        <Stack.Screen name="Workout" component={Workout} options={{ headerShown: false }}/>
-        <Stack.Screen name="Exercises" component={Exercises} options={{ headerShown: false }}/>
-        <Stack.Screen name="ExeDetails" component={ExeDetails} options={{ headerShown: false }}/>
-        <Stack.Screen name="RepsAndSets" component={RepsAndSets} options={{ headerShown: false }}/>
-        <Stack.Screen name="CreateLibrary" component={CreateLibrary} options={{ headerShown: false }}/>
-        <Stack.Screen name="LibraryDetails" component={LibraryDetails} options={{ headerShown: false}}/>
-        <Stack.Screen name="SetExerciseLibrary" component={SetExerciseLibrary} options={{ headerShown:false}}/>
-        <Stack.Screen name="FavoriteExercises" component={FavoriteExercises} options={{headerShown:false}}/>
+        {/* ===============================  HOME =============================== */}
+        <Stack.Screen name="Home" component={Home} options={{ headerShown: false }} />
+        <Stack.Screen name="Dashboard" component={Dashboard} options={{ headerShown: false }} />
+        <Stack.Screen name="Notification" component={Notification} options={{ headerShown: false }} />
+        <Stack.Screen name="EditProfile" component={EditProfile} options={{ headerShown: false }} />
 
-        <Stack.Screen name="LandNutri" component={LandNutri} options={{ headerShown: false }}/>
-        <Stack.Screen name="MealSugg" component={MealSugg} options={{ headerShown: false }}/>
-        <Stack.Screen name="Nutrichoices" component={Nutrichoices} options={{ headerShown: false }}/>
-        <Stack.Screen name="MealDetails" component={MealDetails} options={{ headerShown: false }}/>
-        <Stack.Screen name="CreateNutri" component={CreateNutri} options={{ headerShown: false }}/>
-        <Stack.Screen name ="FoodSearch" component={FoodSearch} options={{headerShown: false}}/>
+        {/* ==============================  WORKOUT ============================== */}
+        <Stack.Screen name="Workout" component={Workout} options={{ headerShown: false }} />
+        <Stack.Screen name="Exercises" component={Exercises} options={{ headerShown: false }} />
+        <Stack.Screen name="ExeDetails" component={ExeDetails} options={{ headerShown: false }} />
+        <Stack.Screen name="RepsAndSets" component={RepsAndSets} options={{ headerShown: false }} />
+        <Stack.Screen name="CreateLibrary" component={CreateLibrary} options={{ headerShown: false }} />
+        <Stack.Screen name="LibraryDetails" component={LibraryDetails} options={{ headerShown: false }} />
+        <Stack.Screen name="SetExerciseLibrary" component={SetExerciseLibrary} options={{ headerShown: false }} />
+        <Stack.Screen name="FavoriteExercises" component={FavoriteExercises} options={{ headerShown: false }} />
 
-        <Stack.Screen name="Notification" component={Notification} options={{ headerShown: false}}/>
-        <Stack.Screen name="EditProfile" component = {EditProfile} options={{headerShown: false}}/>
-        <Stack.Screen name="LogoutScreen" component={LogoutScreen} options={{ headerShown: false}}/>
+        {/* ==========================  EXERCISE SEARCH ========================== */}
+        <Stack.Screen name="ExerciseSearch" component={ExerciseSearch} options={{ headerShown: false }} />
+        <Stack.Screen name="ExerciseEquipment" component={ExerciseEquipment} options={{ headerShown: false }} />
 
+        {/* ===============================  NUTRITION =============================== */}
+        <Stack.Screen name="LandNutri" component={LandNutri} options={{ headerShown: false }} />
+        <Stack.Screen name="MealSugg" component={MealSugg} options={{ headerShown: false }} />
+        <Stack.Screen name="Nutrichoices" component={Nutrichoices} options={{ headerShown: false }} />
+        <Stack.Screen name="MealDetails" component={MealDetails} options={{ headerShown: false }} />
+        <Stack.Screen name="CreateNutri" component={CreateNutri} options={{ headerShown: false }} />
+        <Stack.Screen name="FoodSearch" component={FoodSearch} options={{ headerShown: false }} />
 
-        <Stack.Screen name="LandPose" component={LandPose} options={{ headerShown: false}}/>
-        <Stack.Screen name="PoseScreen" component={PoseScreen} options={{ headerShown: false }}/>
-        <Stack.Screen name="ChoosePose" component={ChoosePose} options={{ headerShown: false }}/>
-        <Stack.Screen name="ChooseDifficulty" component={ChooseDifficulty} options={{ headerShown: false }}/>
-        <Stack.Screen name="ExerciseSearch" component={ExerciseSearch} options={{ headerShown: false }}/>
-        <Stack.Screen name="ExerciseEquipment" component={ExerciseEquipment} options={{ headerShown: false }}/>
+        {/* =============================  POSE ESTIMATION ============================= */}
+        <Stack.Screen name="LandPose" component={LandPose} options={{ headerShown: false }} />
+        <Stack.Screen name="PoseScreen" component={PoseScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="ChoosePose" component={ChoosePose} options={{ headerShown: false }} />
+        <Stack.Screen name="Instructions" component={Instructions} options={{ headerShown: false }} />
 
-        <Stack.Screen name="Dashboard" component={Dashboard} options={{ headerShown: false }}/>
-        <Stack.Screen name="Progress" component={ProgressScreen} options={{ headerShown: false }}/>
-        <Stack.Screen name="WorkoutCalendar" component={WorkoutCalendar} options={{ headerShown: false }}/>
-        <Stack.Screen name="ProgressTracking" component={ProgressTracking} options={{ headerShown: false }}/>
-        <Stack.Screen name = "Visualization" component = {ProgressVisualization} options ={{headerShown:false}}/>
+        {/* =========================  PROGRESS TRACKING ========================= */}
+        <Stack.Screen name="Progress" component={ProgressScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="WorkoutCalendar" component={WorkoutCalendar} options={{ headerShown: false }} />
+        <Stack.Screen name="ProgressTracking" component={ProgressTracking} options={{ headerShown: false }} />
+        <Stack.Screen name="Visualization" component={ProgressVisualization} options={{ headerShown: false }} />
+        <Stack.Screen name="CalorieVisualization" component={CalorieVisualization} options={{ headerShown: false }} />
+        <Stack.Screen name="PoseHistory" component={PoseHistory} options={{ headerShown: false }} />
+        <Stack.Screen name="PoseNavigation" component={PoseNavigation} options={{ headerShown: false }} />
+
 
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
+
 
 export default AppNavigator;

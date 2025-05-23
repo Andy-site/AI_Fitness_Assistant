@@ -115,7 +115,7 @@ const ExerciseByEquipment = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000', padding: 15 },
+  container: { flex: 1, backgroundColor: '#222', padding: 15 },
   filterContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   filterButton: { backgroundColor: '#E2F163', padding: 10, borderRadius: 8, alignItems: 'center', flex: 1 },
   filterButtonText: { color: '#000', fontWeight: 'bold' },

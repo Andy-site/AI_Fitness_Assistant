@@ -276,7 +276,7 @@ const ExeDetails = ({ route }) => {
 const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#222',
   },
   scrollViewContainer: {
     flexGrow: 1,

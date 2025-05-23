@@ -72,7 +72,9 @@ INSTALLED_APPS = [
     'corsheaders',
 
     # Your apps
-    'FitHub',
+   
+    'FitHub.apps.FitHubConfig',
+
 ]
 
 REST_AUTH = {

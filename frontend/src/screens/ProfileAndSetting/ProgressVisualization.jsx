@@ -280,6 +280,53 @@ const ProgressVisualization = () => {
               fromZero
             />
 
+            {/* Combined Chart from CalorieVisualization */}
+<Text style={[styles.chartLabel, { marginTop: 25 }]}>
+  🔥 Weekly Overview (Burned vs Consumed vs Net)
+</Text>
+<LineChart
+  data={{
+    labels: labels,
+    datasets: [
+      {
+        data: caloriesBurned,
+        color: () => 'tomato',
+        strokeWidth: 2,
+      },
+      {
+        data: caloriesConsumed,
+        color: () => '#3498db',
+        strokeWidth: 2,
+      },
+      {
+        data: caloriesBalance,
+        color: () => 'green',
+        strokeWidth: 2,
+      },
+    ],
+    legend: ['Burned', 'Consumed', 'Net'],
+  }}
+  width={screenWidth - 20}
+  height={260}
+  yAxisSuffix=" cal"
+  yLabelsOffset={12}
+  chartConfig={{
+    backgroundGradientFrom: '#1E2923',
+    backgroundGradientTo: '#08130D',
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    labelColor: () => '#E2F163',
+    propsForDots: {
+      r: '4',
+      strokeWidth: '1',
+      stroke: '#fff',
+    },
+  }}
+  bezier
+  style={styles.chartStyle}
+/>
+
+
             <View style={styles.summaryContainer}>
               <Text style={styles.summaryText}>Average Calories Burned: <Text style={styles.highlight}>{avgBurned} cal</Text></Text>
               <Text style={styles.summaryText}>Average Calories Consumed: <Text style={styles.highlight}>{avgConsumed} cal</Text></Text>
@@ -297,7 +344,7 @@ const ProgressVisualization = () => {
 const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#222',
   },
   container: {
     flex: 1,

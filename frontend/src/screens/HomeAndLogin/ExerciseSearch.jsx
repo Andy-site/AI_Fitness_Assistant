@@ -247,11 +247,11 @@ const ExerciseSearch = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#222',
   },
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#222',
   },
   searchContainer: {
     flexDirection: 'row',

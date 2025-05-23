@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ActivityIndicator, StyleSheet, ScrollView,
-  Alert, TouchableOpacity, KeyboardAvoidingView, Platform
+  Alert, TouchableOpacity, KeyboardAvoidingView, Platform, Modal
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
-
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { capitalizeWords } from '../../utils/StringUtils';
-import { fetchUserDetails, fetchBackendMeals, saveMealPlanToBackend } from '../../api/fithubApi';
+import {
+  fetchUserDetails,
+  fetchBackendMeals,
+  saveMealPlanToBackend,
+  fetchMealHistory 
+} from '../../api/fithubApi';
 
 const dietaryRestrictions = ['None', 'Vegetarian', 'Vegan', 'Gluten-Free', 'Keto', 'Paleo'];
 
@@ -22,7 +26,11 @@ const LandNutri = () => {
   const [currentWeight, setCurrentWeight] = useState('');
   const [goal, setGoal] = useState('');
   const [loading, setLoading] = useState(false);
-
+  const [mealHistory, setMealHistory] = useState([]);
+const [page, setPage] = useState(1);
+const ITEMS_PER_PAGE = 10;
+const [selectedMeal, setSelectedMeal] = useState(null);
+const [mealDetailsVisible, setMealDetailsVisible] = useState(false);
   const [dietaryRestriction, setDietaryRestriction] = useState('None');
   const [targetWeight, setTargetWeight] = useState('');
   const [activityLevel, setActivityLevel] = useState('Moderate');
@@ -46,8 +54,30 @@ const LandNutri = () => {
       }
     };
 
+   const loadMealHistory = async () => {
+  try {
+    const history = await fetchMealHistory();
+    console.log('Fetched meal history:', history);
+    setMealHistory(history);
+    setPage(1); // Reset to first page on reload
+  } catch (error) {
+    console.error('Error fetching meal history:', error);
+  }
+};
     getUserDetails();
+    loadMealHistory();
+  
   }, []);
+
+  const paginatedMeals = mealHistory.slice(
+  (page - 1) * ITEMS_PER_PAGE,
+  page * ITEMS_PER_PAGE
+);
+console.log("Selected Meal in Modal:", selectedMeal);
+
+const totalCount = mealHistory.length;
+const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
 
   const getNutritionAdvice = async () => {
     if (!userId) return;
@@ -56,7 +86,7 @@ const LandNutri = () => {
     const today = new Date().toISOString().split('T')[0];
 
     try {
-      const existing = await fetchBackendMeals(today); // ✅ Using correct date-filtered method
+      const existing = await fetchBackendMeals(today);
 
       if (existing && existing.length > 0) {
         navigation.navigate('MealDetails', {
@@ -67,7 +97,6 @@ const LandNutri = () => {
         return;
       }
 
-      // No data found — fetch from external API
       const options = {
         method: 'POST',
         url: 'https://ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com/nutritionAdvice',
@@ -111,7 +140,7 @@ const LandNutri = () => {
       });
 
     } catch (error) {
-      console.error('❌ Nutrition Advice Error:', error.response?.data || error.message);
+      console.error(' Nutrition Advice Error:', error.response?.data || error.message);
       Alert.alert('Error', 'Failed to get meal plan.');
     } finally {
       setLoading(false);
@@ -160,7 +189,86 @@ const LandNutri = () => {
             <Text style={styles.buttonText}>Plan Details</Text>
           )}
         </TouchableOpacity>
+
+       <Text style={[styles.sectionTitle, { marginTop: 30 }]}>Meal History</Text>
+
+{paginatedMeals.length === 0 ? (
+  <Text style={{ color: '#fff', marginTop: 10 }}>No meals found.</Text>
+) : (
+  paginatedMeals.map((meal, index) => (
+    <View key={index} style={styles.mealCard}>
+      <TouchableOpacity onPress={() => {
+  setSelectedMeal(meal);
+  setMealDetailsVisible(true);
+}}>
+  <Text style={styles.mealTitle}>{meal.name}</Text>
+
+      <Text style={styles.mealDesc}>{meal.meal} - {meal.calories} cal</Text>
+      <Text style={styles.mealDesc}>Consumed Date - {new Date(meal.created_at).toLocaleDateString()}</Text>
+</TouchableOpacity>
+    </View>
+  ))
+)}
+
+
+<View style={styles.paginationContainer}>
+  <TouchableOpacity
+    onPress={() => setPage(prev => Math.max(prev - 1, 1))}
+    disabled={page === 1}
+    style={[
+      styles.pageButton,
+      page === 1 && styles.disabledButton
+    ]}
+  >
+    <Text style={styles.pageButtonText}>Previous</Text>
+  </TouchableOpacity>
+
+  <Text style={styles.pageIndicator}>
+    Page {page} of {totalPages}
+  </Text>
+
+  <TouchableOpacity
+    onPress={() => setPage(prev => Math.min(prev + 1, totalPages))}
+    disabled={page === totalPages}
+    style={[
+      styles.pageButton,
+      page === totalPages && styles.disabledButton
+    ]}
+  >
+    <Text style={styles.pageButtonText}>Next</Text>
+  </TouchableOpacity>
+</View>
+
       </ScrollView>
+      {mealDetailsVisible && (
+  <Modal
+    animationType="slide"
+    transparent={true}
+    visible={mealDetailsVisible}
+    onRequestClose={() => setMealDetailsVisible(false)}
+  >
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContent}>
+        <TouchableOpacity style={{ alignSelf: 'flex-end' }} onPress={() => setMealDetailsVisible(false)}>
+          <Text style={{ fontSize: 20, fontWeight: 'bold' }}>✕</Text>
+        </TouchableOpacity>
+
+        <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#000' }}>
+  {selectedMeal?.meal} - {selectedMeal?.name}
+</Text>
+
+
+        <Text style={{ fontWeight: 'bold', marginBottom: 5 }}>Ingredients:</Text>
+        <ScrollView style={{ maxHeight: 150, width: '100%' }}>
+          {(selectedMeal?.ingredients || []).map((ing, idx) => (
+            <Text key={idx} style={{ color: '#333', marginBottom: 4 }}>• {ing}</Text>
+          ))}
+        </ScrollView>
+      </View>
+    </View>
+  </Modal>
+)}
+
       <Footer />
     </KeyboardAvoidingView>
   );
@@ -169,7 +277,7 @@ const LandNutri = () => {
 const styles = StyleSheet.create({
   outercontainer: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#222',
   },
   container: {
     flex: 1,
@@ -183,6 +291,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#eef',
     borderRadius: 10,
   },
+  modalOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+modalContent: {
+  width: '90%',
+  backgroundColor: '#fff',
+  borderRadius: 10,
+  padding: 20,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.25,
+  shadowRadius: 4,
+  elevation: 5,
+},
+
   title: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -230,6 +356,50 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 10,
   },
+  mealCard: {
+  marginTop: 10,
+  padding: 15,
+  backgroundColor: '#fff',
+  borderRadius: 8,
+},
+mealTitle: {
+  fontSize: 16,
+  fontWeight: 'bold',
+  marginBottom: 4,
+  color:'#b3a0ff',
+},
+mealDesc: {
+  fontSize: 14,
+  fontWeight: 'normal',
+  
+},
+paginationContainer: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginVertical: 15,
+  backgroundColor: '#333',
+  padding: 10,
+  borderRadius: 10,
+},
+pageButton: {
+  backgroundColor: '#e2f163',
+  paddingVertical: 8,
+  paddingHorizontal: 20,
+  borderRadius: 8,
+},
+pageButtonText: {
+  fontWeight: 'bold',
+  color: '#000',
+},
+pageIndicator: {
+  color: '#fff',
+  fontSize: 14,
+},
+disabledButton: {
+  opacity: 0.4,
+},
+
 });
 
 export default LandNutri;

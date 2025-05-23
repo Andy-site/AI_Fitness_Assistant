@@ -235,13 +235,13 @@ const LibraryDetails = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#000' },
-  outerContainer: { flex: 1, backgroundColor: '#000' },
+  safeArea: { flex: 1, backgroundColor: '#222' },
+  outerContainer: { flex: 1, backgroundColor: '#222' },
   innerContainer: {
     flex: 1,
     padding: 5,
     marginTop: 70,
-    backgroundColor: '#000',
+    backgroundColor: '#222',
     marginBottom:70,
   },
   titleContainer: {

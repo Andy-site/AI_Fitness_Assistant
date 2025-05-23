@@ -8,117 +8,172 @@ import {
   ScrollView,
   SafeAreaView,
 } from 'react-native';
-import { fetchWorkoutDates, fetchExerciseProgress } from '../../api/fithubApi';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {
+  fetchWorkoutDates,
+  fetchExerciseProgress,
+  fetchBackendMealsInRange,
+} from '../../api/fithubApi';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { capitalizeWords } from '../../utils/StringUtils';
 
 const WorkoutCalendar = () => {
   const [workoutDates, setWorkoutDates] = useState([]);
+  const [mealDates, setMealDates] = useState([]);
+  const [mealProgress, setMealProgress] = useState({});
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [month, setMonth] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [exerciseProgress, setExerciseProgress] = useState({});
 
-  // Format date to YYYY-MM-DD string
   const formatDate = (date) => {
     const d = new Date(date);
     let month = '' + (d.getMonth() + 1);
     let day = '' + d.getDate();
     const year = d.getFullYear();
-
     if (month.length < 2) month = '0' + month;
     if (day.length < 2) day = '0' + day;
-
     return [year, month, day].join('-');
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch workout dates
-        const workoutResponse = await fetchWorkoutDates();
-        setWorkoutDates(workoutResponse);
-        
-        // Fetch exercise progress
-        const exerciseData = await fetchExerciseProgress();
-        setExerciseProgress(exerciseData.exercise_progress);
-        // console.log('Fetched exerciseProgress:', exerciseData.exercise_progress);
+  const loadMealsForMonth = async () => {
+  const mealsByDate = {};
+  const mealDateList = [];
 
-      } catch (error) {
-        console.error('Error fetching calendar data:', error);
-      } finally {
-        setLoading(false);
+  const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
+  const lastDay = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+  const today = new Date();
+  const endDay = lastDay > today ? today : lastDay;
+
+  const startDateStr = formatDate(firstDay);
+  const endDateStr = formatDate(endDay);
+
+  try {
+    const rawMeals = await fetchBackendMealsInRange(startDateStr, endDateStr);
+
+    console.log('📦 Raw meals fetched:', rawMeals);
+
+    rawMeals.forEach((meal) => {
+      if (!meal.is_consumed) return;
+
+      // Extract date safely
+      const createdAt = meal.created_at || '';
+      const date = createdAt.includes('T') ? createdAt.split('T')[0] : null;
+
+      if (!date) {
+        console.warn('⚠️ Meal missing or invalid created_at:', meal);
+        return;
       }
-    };
 
-    fetchData();
-  }, []);
+      if (!mealsByDate[date]) mealsByDate[date] = [];
 
-  // Helper: Get exercises on selected date
+      mealsByDate[date].push({
+        meal: meal.meal || 'Unknown',
+        name: meal.name || 'Unnamed',
+        calories: meal.calories || 0,
+      });
+
+      if (!mealDateList.includes(date)) {
+        mealDateList.push(date);
+      }
+    });
+
+    console.log(' Processed mealsByDate:', mealsByDate);
+    console.log(' Meal date markers:', mealDateList);
+
+    setMealProgress(mealsByDate);
+    setMealDates(mealDateList);
+  } catch (error) {
+    console.error(' Failed to fetch and process meals:', error);
+  }
+};
+
+const getGroupedMealsForSelectedDate = () => {
+  const dateStr = formatDate(selectedDate);
+  const meals = mealProgress[dateStr] || [];
+
+  // Group meals by meal type
+  const grouped = meals.reduce((acc, meal) => {
+    const type = capitalizeWords(meal.meal || 'Other');
+    if (!acc[type]) acc[type] = [];
+    acc[type].push(meal);
+    return acc;
+  }, {});
+
+  console.log(' Grouped meals for selected date:', grouped);
+  return grouped;
+};
+
+
   const getExercisesForSelectedDate = () => {
-    const selectedDateString = formatDate(selectedDate);
-    const exercisesOnDate = [];
+  const dateStr = formatDate(selectedDate);
+  const allExercises = [];
 
-    Object.keys(exerciseProgress).forEach((categoryName) => {
-    const records = exerciseProgress[categoryName];
-    records.forEach((record) => {
-      if (record.date === selectedDateString) {
-        exercisesOnDate.push({
-          exerciseName: record.exercise, // <- Use this
-          ...record,
-        });
+  Object.keys(exerciseProgress).forEach((cat) => {
+    exerciseProgress[cat].forEach((e) => {
+      if (e.date === dateStr) {
+        allExercises.push({ ...e, exerciseName: e.exercise });
       }
     });
   });
 
+  // Deduplicate by exercise name, keep entry with highest set number
+  const uniqueByName = {};
+  allExercises.forEach((ex) => {
+    const name = ex.exerciseName;
+    if (!uniqueByName[name] || ex.sets > uniqueByName[name].sets) {
+      uniqueByName[name] = ex;
+    }
+  });
 
-    return exercisesOnDate;
+  return Object.values(uniqueByName);
+};
+
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const workoutResponse = await fetchWorkoutDates();
+      setWorkoutDates(workoutResponse);
+      const exerciseData = await fetchExerciseProgress();
+      setExerciseProgress(exerciseData.exercise_progress);
+      await loadMealsForMonth();
+    } catch (error) {
+      console.error('❌ Error loading calendar:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Check if date is a workout date
-  const isWorkoutDate = (date) => {
-    const formattedDate = formatDate(date);
-    return workoutDates.includes(formattedDate);
-  };
+  useEffect(() => {
+    fetchData();
+  }, [month]);
 
-  // Generate dates for the month view
+  const onDayPress = (date) => setSelectedDate(date);
+  const isWorkoutDate = (date) => workoutDates.includes(formatDate(date));
+  const isMealDate = (date) => mealDates.includes(formatDate(date));
+
   const generateMonthDates = () => {
     const year = month.getFullYear();
     const monthIndex = month.getMonth();
-    
-    // Get the first day of the month
     const firstDay = new Date(year, monthIndex, 1);
-    const startingDayOfWeek = firstDay.getDay(); // 0 for Sunday, 1 for Monday, etc.
-    
-    // Get the last day of the month
     const lastDay = new Date(year, monthIndex + 1, 0);
-    const totalDays = lastDay.getDate();
-    
-    // Create array for calendar grid
     const daysArray = [];
-    
-    // Add empty slots for days before the 1st of the month
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      daysArray.push(null);
-    }
-    
-    // Add actual dates
-    for (let i = 1; i <= totalDays; i++) {
+    for (let i = 0; i < firstDay.getDay(); i++) daysArray.push(null);
+    for (let i = 1; i <= lastDay.getDate(); i++) {
       daysArray.push(new Date(year, monthIndex, i));
     }
-    
     return daysArray;
   };
 
-  const changeMonth = (increment) => {
+  const changeMonth = (inc) => {
     const newMonth = new Date(month);
-    newMonth.setMonth(newMonth.getMonth() + increment);
+    newMonth.setMonth(newMonth.getMonth() + inc);
     setMonth(newMonth);
   };
+
+  const today = new Date();
+  const monthDates = generateMonthDates();
 
   if (loading) {
     return (
@@ -129,129 +184,107 @@ const WorkoutCalendar = () => {
     );
   }
 
-  const today = new Date();
-  const monthDates = generateMonthDates();
-
   return (
     <SafeAreaView style={styles.container}>
       <Header title="Workout Calendar" />
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          {/* Calendar View */}
           <View style={styles.calendarContainer}>
-            {/* Month Navigation */}
             <View style={styles.monthNavContainer}>
-              <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.navButton}>
-                <MaterialIcons name="chevron-left" size={24} color="#B3A0FF" />
+              <TouchableOpacity style={styles.navButton} onPress={() => changeMonth(-1)}>
+                <Text style={{ color: '#fff' }}>{'<'}</Text>
               </TouchableOpacity>
               <Text style={styles.monthYearText}>
-                {month.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                {month.toLocaleString('default', { month: 'long' })} {month.getFullYear()}
               </Text>
-              <TouchableOpacity onPress={() => changeMonth(1)} style={styles.navButton}>
-                <MaterialIcons name="chevron-right" size={24} color="#B3A0FF" />
+              <TouchableOpacity style={styles.navButton} onPress={() => changeMonth(1)}>
+                <Text style={{ color: '#fff' }}>{'>'}</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Weekday Headers */}
-            <View style={styles.weekdayHeader}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
-                <Text key={index} style={styles.weekdayText}>
-                  {day}
-                </Text>
-              ))}
-            </View>
-
-            {/* Calendar Grid */}
             <View style={styles.calendarGrid}>
               {monthDates.map((date, index) => {
-                if (!date) {
-                  return <View key={`empty-${index}`} style={styles.emptyDay} />;
-                }
-
-                const isToday = formatDate(date) === formatDate(today);
-                const isSelected = formatDate(date) === formatDate(selectedDate);
+                if (!date) return <View key={`empty-${index}`} style={styles.emptyDay} />;
+                const dateStr = formatDate(date);
+                const isToday = dateStr === formatDate(today);
+                const isSelected = dateStr === formatDate(selectedDate);
                 const hasWorkout = isWorkoutDate(date);
+                const hasMeal = isMealDate(date);
 
                 return (
                   <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.calendarDay,
-                      isToday && styles.today,
-                      isSelected && styles.selectedDay,
-                    ]}
-                    onPress={() => setSelectedDate(date)}
-                  >
-                    <Text style={[
-                      styles.calendarDayText,
-                      isToday && styles.todayText,
-                      isSelected && styles.selectedDayText,
-                    ]}>
-                      {date.getDate()}
-                    </Text>
-                    {hasWorkout && <View style={styles.workoutDot} />}
-                  </TouchableOpacity>
+  key={index}
+  style={[
+    styles.calendarDay,
+    isSelected && styles.selectedDay
+  ]}
+  onPress={() => onDayPress(date)}
+>
+  <Text
+    style={[
+      styles.calendarDayText,
+      isSelected && styles.selectedDayText,
+      isToday && styles.todayText
+    ]}
+  >
+    {date.getDate()}
+  </Text>
+  {hasWorkout && <View style={styles.workoutDot} />}
+  {hasMeal && <View style={styles.mealDot} />}
+</TouchableOpacity>
+
                 );
               })}
             </View>
           </View>
 
-          {/* Selected Date Info */}
+          {/* Selected Day Detail Section */}
           <View style={styles.selectedDateInfo}>
             <Text style={styles.selectedDateHeader}>
               Selected: {selectedDate.toDateString()}
             </Text>
-            
-            {isWorkoutDate(selectedDate) && (
-              <View style={styles.workoutIndicator}>
-                <MaterialIcons name="fitness-center" size={18} color="#E2F163" />
-                <Text style={styles.workoutText}>Workout Performed</Text>
-              </View>
+
+            {/* Exercises */}
+            <Text style={styles.exercisesSectionHeader}>Exercises</Text>
+            {getExercisesForSelectedDate().length > 0 ? (
+              getExercisesForSelectedDate().map((ex, i) => (
+                <View key={i} style={styles.exerciseCard}>
+                  <Text style={styles.exerciseName}>{capitalizeWords(ex.exerciseName)}</Text>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.exerciseDetail}>
+                      Sets: {ex.sets} | Reps: {ex.reps_per_set} | Weight: {ex.weight_per_set} kg
+                    </Text>
+                  </View>
+                  <Text style={styles.exerciseVolume}>Total Volume: {ex.total_volume} kg</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noExercisesText}>No exercises on this day.</Text>
             )}
 
-            {/* Exercises for Selected Date */}
-            <View style={styles.exercisesContainer}>
-              <Text style={styles.exercisesSectionHeader}>
-                <MaterialIcons name="assignment" size={18} color="#B3A0FF" />
-                {' '}Exercises on This Day
-              </Text>
-              
-              {getExercisesForSelectedDate().length > 0 ? (
-                getExercisesForSelectedDate().map((exercise, index) => (
-                  <View key={index} style={styles.exerciseCard}>
-                    <Text style={styles.exerciseName}>
-                      {capitalizeWords(exercise.exerciseName)}
-                    </Text>
-                    
-                    <View style={styles.detailRow}>
-                      <MaterialIcons name="fitness-center" size={16} color="#E2F163" />
-                      <Text style={styles.exerciseDetail}> Sets: {exercise.sets}</Text>
-                    </View>
-                  
-                    <View style={styles.detailRow}>
-                      <MaterialIcons name="repeat" size={16} color="#E2F163" />
-                      <Text style={styles.exerciseDetail}> Reps: {exercise.reps_per_set}</Text>
-                    </View>
-                  
-                    <View style={styles.detailRow}>
-                      <MaterialIcons name="fitness-center" size={16} color="#E2F163" />
-                      <Text style={styles.exerciseDetail}> Weight: {exercise.weight_per_set} kg</Text>
-                    </View>
-                  
-                    <View style={styles.detailRow}>
-                      <MaterialIcons name="whatshot" size={16} color="#fff" />
-                      <Text style={styles.exerciseVolume}>
-                        Total Volume: {exercise.total_volume} kg
-                      </Text>
-                    </View>
-                  </View>
-                ))
-              ) : (
-                <Text style={styles.noExercisesText}>
-                  No exercises logged on this day.
-                </Text>
-              )}
-            </View>
+            {/* Meals */}
+            {/* Meals */}
+<Text style={[styles.exercisesSectionHeader, { color: '#FFA726' }]}>Meals</Text>
+{Object.keys(getGroupedMealsForSelectedDate()).length > 0 ? (
+  Object.entries(getGroupedMealsForSelectedDate()).map(([mealType, meals], index) => (
+    <View key={index} style={{ marginBottom: 10 }}>
+      <Text style={{ color: '#FFA726', fontSize: 16, fontWeight: 'bold', marginBottom: 5 }}>
+        {mealType}
+      </Text>
+      {meals.map((meal, i) => (
+        <View key={i} style={{ backgroundColor: '#444', padding: 12, marginBottom: 5, borderRadius: 10 }}>
+          <Text style={{ fontSize: 15, fontWeight: '600', color: '#FFF' }}>
+            {capitalizeWords(meal.name)}
+          </Text>
+          <Text style={{ fontSize: 14, color: '#ccc' }}>Calories: {meal.calories}</Text>
+        </View>
+      ))}
+    </View>
+  ))
+) : (
+  <Text style={{ color: '#888' }}>No meals logged on this day.</Text>
+)}
+
           </View>
         </View>
       </ScrollView>
@@ -261,209 +294,81 @@ const WorkoutCalendar = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
+  container: { flex: 1, backgroundColor: '#222' },
   loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000',
+    flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#222',
   },
-  loadingText: {
-    color: '#B3A0FF',
-    marginTop: 10,
-    fontSize: 16,
-  },
-  scrollView: {
-    flex: 1,
-    marginBottom: 70,
-  },
-  content: {
-    padding: 16,
-    marginTop: 70, // To account for header
-    marginBottom: 20,
-  },
+  loadingText: { color: '#B3A0FF', marginTop: 10, fontSize: 16 },
+  scrollView: { flex: 1, marginBottom: 70 },
+  content: { padding: 16, marginTop: 70, marginBottom: 20 },
   calendarContainer: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 15,
-    padding: 18,
-    marginBottom: 20,
-    elevation: 5,
-    shadowColor: '#fff',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    borderLeftWidth: 2,
-    borderLeftColor: '#fff',
+    backgroundColor: '#1A1A1A', borderRadius: 15, padding: 18,
+    marginBottom: 20, elevation: 5, borderLeftWidth: 2, borderLeftColor: '#fff',
   },
   monthNavContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-    backgroundColor: '#252525',
-    borderRadius: 10,
-    padding: 8,
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 15, backgroundColor: '#252525',
+    borderRadius: 10, padding: 8,
   },
   navButton: {
-    padding: 5,
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 18,
-    backgroundColor: '#333',
+    padding: 5, width: 36, height: 36, alignItems: 'center',
+    justifyContent: 'center', borderRadius: 18, backgroundColor: '#333',
   },
-  monthYearText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  weekdayHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 10,
-    paddingVertical: 8,
-    backgroundColor: '#222',
-    borderRadius: 8,
-  },
-  weekdayText: {
-    color: '#B3A0FF',
-    fontSize: 14,
-    width: 40,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
+  monthYearText: { color: '#FFF', fontSize: 18, fontWeight: '600' },
   calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    backgroundColor: '#151515',
-    borderRadius: 10,
-    padding: 5,
+    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start',
+    backgroundColor: '#151515', borderRadius: 10, padding: 5,
   },
-  calendarDay: {
-    width: '14.28%',
-    aspectRatio: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 5,
-  },
-  emptyDay: {
-    width: '14.28%',
-    aspectRatio: 1,
-  },
-  calendarDayText: {
-    color: '#FFF',
-    fontSize: 16,
-  },
-  today: {
-    backgroundColor: 'rgba(179, 160, 255, 0.3)',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#B3A0FF',
-  },
-  todayText: {
-    color: '#E2F163',
-    fontWeight: 'bold',
-  },
-  selectedDay: {
-    backgroundColor: '#B3A0FF',
-    borderRadius: 20,
-  },
-  selectedDayText: {
-    color: '#000',
-    fontWeight: 'bold',
-  },
-  workoutDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#E2F163',
-    marginTop: 3,
-  },
+ calendarDay: {
+  width: '14.28%',
+  aspectRatio: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  padding: 5,
+  borderRadius: 20,
+},
+
+  emptyDay: { width: '14.28%', aspectRatio: 1 },
+calendarDayText: {
+  color: '#FFF',
+  fontSize: 16,
+},
+  mealDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FFA726', marginTop: 3 },
+  todayText: { color: '#E2F163', fontWeight: 'bold' },
+selectedDay: {
+  borderWidth: 2,
+  borderColor: '#B3A0FF',
+  borderRadius: 20,
+  padding: 5,
+  backgroundColor: 'transparent',
+  shadowColor: '#FFFFFF',
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 0.3,
+  shadowRadius: 2,
+  elevation: 4, 
+},
+selectedDayText: {
+  color: '#fff',
+  fontWeight: 'bold',
+},
+  workoutDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#E2F163', marginTop: 3 },
   selectedDateInfo: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 15,
-    padding: 18,
-    elevation: 4,
-    shadowColor: '#fff',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    borderLeftWidth: 2,
-    borderLeftColor: '#fff',
+    backgroundColor: '#1A1A1A', borderRadius: 15, padding: 18, elevation: 4,
+    borderLeftWidth: 2, borderLeftColor: '#fff',
   },
-  selectedDateHeader: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  workoutIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-    backgroundColor: 'rgba(226, 241, 99, 0.1)',
-    padding: 10,
-    borderRadius: 8,
-  },
-  workoutText: {
-    color: '#E2F163',
-    marginLeft: 8,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  exercisesContainer: {
-    marginTop: 10,
-  },
+  selectedDateHeader: { color: '#FFF', fontSize: 18, fontWeight: '600', marginBottom: 12 },
   exercisesSectionHeader: {
-    color: '#B3A0FF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-    backgroundColor: '#252525',
-    padding: 10,
-    borderRadius: 8,
+    color: '#B3A0FF', fontSize: 16, fontWeight: '600',
+    marginBottom: 12, backgroundColor: '#252525', padding: 10, borderRadius: 8,
   },
-  exerciseCard: {
-    backgroundColor: '#b3a0ff',
-    padding: 12,
-    marginBottom: 5,
-    borderRadius: 10,
-    elevation: 2,
-    
-  },
-  exerciseName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  
-    paddingVertical: 3,
-  },
-  exerciseDetail: {
-    fontSize: 15,
-    color: '#E2F163',
-  },
-  exerciseVolume: {
-    fontSize: 15,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
+  exerciseCard: { backgroundColor: '#b3a0ff', padding: 12, marginBottom: 5, borderRadius: 10 },
+  exerciseName: { fontSize: 18, fontWeight: 'bold', color: '#FFFFFF' },
+  detailRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 3 },
+  exerciseDetail: { fontSize: 15, color: '#E2F163' },
+  exerciseVolume: { fontSize: 15, color: '#FFFFFF', fontWeight: 'bold' },
   noExercisesText: {
-    color: '#888',
-    marginTop: 10,
-    textAlign: 'center',
-    padding: 20,
-    backgroundColor: '#222',
-    borderRadius: 8,
+    color: '#888', marginTop: 10, textAlign: 'center', padding: 20,
+    backgroundColor: '#222', borderRadius: 8,
   },
 });
 

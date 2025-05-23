@@ -1,13 +1,16 @@
 from calendar import monthrange
 from time import timezone
+from django.forms import model_to_dict
+from django.utils.dateparse import parse_date
+from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
 from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.conf import settings
-from .serializers import UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer, UserProfileSerializer, ExerciseSerializer, FavoriteExerciseSerializer, ToggleFavoriteExerciseSerializer, MealPlanSerializer
-from .models import CustomUser, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise, MealPlan, DailyCalorieSummary, ExerciseHistory, get_top_exercises, get_top_meals_with_avg_calories
+from .serializers import PoseEstimationSessionSerializer, PoseExerciseSetSummarySerializer, PoseFeedbackSerializer, UserRegistrationSerializer, WorkoutLibrarySerializer, WorkoutLibraryExerciseSerializer, UserProfileSerializer, ExerciseSerializer, FavoriteExerciseSerializer, ToggleFavoriteExerciseSerializer, MealPlanSerializer
+from .models import CustomUser, PoseEstimationSession, PoseExerciseSet, WorkoutExercise, ExercisePerformance, Workout, OTP, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise, MealPlan, DailyCalorieSummary, ExerciseHistory, get_top_exercises, get_top_meals_with_avg_calories
 import logging
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -1068,7 +1071,36 @@ class MealPlanStatsView(APIView):
             status=status.HTTP_200_OK,
         )
     
+class MealPlanRangeView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def get(self, request, *args, **kwargs):
+        start_date_str = request.query_params.get('start_date')
+        end_date_str = request.query_params.get('end_date')
+
+        if not start_date_str or not end_date_str:
+            return Response(
+                {"error": "start_date and end_date query parameters are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return Response(
+                {"error": "Invalid date format. Use YYYY-MM-DD."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        meals = MealPlan.objects.filter(
+            user=request.user,
+            created_at__date__range=(start_date, end_date)
+        ).order_by('created_at')
+
+        serializer = MealPlanSerializer(meals, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
 class DailyCalorieSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1268,3 +1300,124 @@ class DailySummaryView(APIView):
             "meals_eaten": meals_eaten,
             "workouts_done": workouts_done,
         })
+    
+
+class PoseEstimationSessionCreateView(APIView):
+    def post(self, request):
+        serializer = PoseEstimationSessionSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PoseFeedbackCreateView(APIView):
+    def post(self, request):
+        serializer = PoseFeedbackSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PoseEstimationSessionCompleteView(APIView):
+    def post(self, request, session_id):
+        session = get_object_or_404(PoseEstimationSession, id=session_id, user=request.user)
+        session.completed = True
+        session.ended_at = timezone.now()
+        session.save()
+        return Response({"message": "Session marked as completed."}, status=status.HTTP_200_OK)
+
+
+class MealHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        meals = (
+            MealPlan.objects
+            .filter(user=user, is_consumed=True)
+            .order_by('-created_at')
+        )
+
+        meals_data = [
+            {
+                **model_to_dict(meal),
+                'created_at': meal.created_at.isoformat(), 
+                'ingredients': meal.ingredients 
+            }
+            for meal in meals
+        ]
+
+        return Response({'meals': meals_data}, status=200)
+    
+
+class DailyFitnessSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, format=None):
+        user = request.user
+        query_date = request.query_params.get('date', None)
+        if query_date:
+            try:
+                target_date = date.fromisoformat(query_date)
+            except ValueError:
+                return Response({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=400)
+        else:
+            target_date = date.today()
+
+        pose_sets = PoseExerciseSet.objects.filter(user=user, date=target_date)
+        pose_burned = PoseExerciseSet.get_daily_calories(user, target_date)
+
+        workout_burned = Workout.objects.filter(
+            user=user, workout_date=target_date
+        ).aggregate(total=Sum('total_calories'))['total'] or 0
+
+        consumed = MealPlan.objects.filter(
+            user=user, is_consumed=True, created_at__date=target_date
+        ).aggregate(total=Sum('calories'))['total'] or 0
+
+        serializer = PoseExerciseSetSummarySerializer(pose_sets, many=True)
+
+        return Response({
+            "date": target_date,
+            "calories_burned": round(pose_burned + workout_burned, 2),
+            "calories_consumed": consumed,
+            "net_calories": round(consumed - (pose_burned + workout_burned), 2),
+            "pose_sets": serializer.data
+        })
+
+class CaloriesByPoseView(APIView):
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
+
+        if not start_date or not end_date:
+            return JsonResponse({"error": "start_date and end_date are required"}, status=400)
+
+        try:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+            if not start_date or not end_date:
+                raise ValueError
+        except ValueError:
+            return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD."}, status=400)
+
+        # Filter pose exercise sets by user and date range
+        queryset = PoseExerciseSet.objects.filter(
+            user=user,
+            date__range=(start_date, end_date)
+        ).select_related('session')
+
+        # Aggregate calories burned per pose_type per date
+        data = {}
+        for set_obj in queryset:
+            key = (set_obj.session.pose_type, set_obj.date.isoformat())
+            data[key] = data.get(key, 0) + set_obj.calories_burned
+
+        # Format response as a list of objects
+        response_data = [
+            {"pose_type": pose, "date": date, "calories_burned": round(cal, 2)}
+            for (pose, date), cal in sorted(data.items())
+        ]
+
+        return JsonResponse({"data": response_data})

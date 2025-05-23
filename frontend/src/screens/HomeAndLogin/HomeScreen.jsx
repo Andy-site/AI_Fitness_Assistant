@@ -61,11 +61,21 @@ const Home = ({ navigation }) => {
         });
       }
 
-      if (userResponse.weight && userResponse.height) {
-        const heightInMeters = userResponse.height / 100;
-        const calculatedBmi = userResponse.weight / (heightInMeters * heightInMeters);
-        setBmi(calculatedBmi.toFixed(1));
-      }
+      if (userResponse.height) {
+  const heightInMeters = userResponse.height / 100;
+
+  
+  const weight =
+    userResponse.estimated_weight && userResponse.estimated_weight > 0
+      ? userResponse.estimated_weight
+      : userResponse.weight;
+
+  if (weight && weight > 0) {
+    const calculatedBmi = weight / (heightInMeters * heightInMeters);
+    setBmi(calculatedBmi.toFixed(1));
+  }
+}
+
     } catch (err) {
       console.error('Error fetching user data', err);
     }
@@ -287,9 +297,10 @@ const Home = ({ navigation }) => {
             <TouchableOpacity style={{ alignSelf: 'flex-end' }} onPress={() => setMealDetailsVisible(false)}>
               <MaterialIcons name="close" size={24} color="#333" />
             </TouchableOpacity>
-            <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>
-              {selectedMeal?.meal} - {selectedMeal?.name}
-            </Text>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#000' }}>
+  {selectedMeal?.meal} - {selectedMeal?.name}
+</Text>
+
             <Text style={{ fontWeight: 'bold', marginBottom: 5 }}>Ingredients:</Text>
             <ScrollView style={{ maxHeight: 150, width: '100%' }}>
               {(selectedMeal?.ingredients || []).map((ing, idx) => (
@@ -313,7 +324,7 @@ const Home = ({ navigation }) => {
 const styles = StyleSheet.create({
   outcontainer: { flex: 1, backgroundColor: '#212020' },
   container: { flex: 1, padding: 20, marginBottom: 70 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#212020' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#222' },
   loadingText: { color: '#B3A0FF', marginTop: 10 },
   headerWithProfile: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, padding: 20 },
   greeting: { fontSize: 20, fontWeight: '700', color: '#B3A0FF' },

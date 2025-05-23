@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, Workout, WorkoutExercise, ExercisePerformance, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise, MealPlan
+from .models import CustomUser, PoseEstimationSession, PoseExerciseSet, PoseFeedback, Workout, WorkoutExercise, ExercisePerformance, WorkoutLibrary, WorkoutLibraryExercise, Exercise, FavoriteExercise, MealPlan
 import re
 from rest_framework import serializers
 from .models import CustomUser
@@ -215,3 +215,26 @@ class MealPlanSerializer(serializers.ModelSerializer):
         model = MealPlan
         fields = ['id', 'user', 'meal', 'name', 'ingredients', 'calories', 'is_consumed', 'created_at', 'dietary_restriction']
         read_only_fields = ['id', 'user', 'created_at']
+
+class PoseEstimationSessionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PoseEstimationSession
+        fields = ['id', 'pose_type', 'started_at', 'ended_at', 'completed']
+        read_only_fields = ['id', 'started_at', 'ended_at', 'completed']
+
+
+class PoseFeedbackSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = PoseFeedback
+            fields = '__all__'
+
+
+class PoseExerciseSetSummarySerializer(serializers.ModelSerializer):
+    exercise = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PoseExerciseSet
+        fields = ['set_number', 'exercise', 'reps', 'duration_seconds', 'calories_burned']
+
+    def get_exercise(self, obj):
+        return obj.exercise.name if obj.exercise else obj.session.pose_type

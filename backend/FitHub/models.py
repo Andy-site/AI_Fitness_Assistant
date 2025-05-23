@@ -474,3 +474,95 @@ def get_today_summary(user):
         "meals_eaten": meals_eaten,
         "workouts_done": workouts_done,
     }
+
+class PoseEstimationSession(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='pose_sessions')
+    pose_type = models.CharField(max_length=100)  # e.g. "Plank", "Squat"
+    started_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    completed = models.BooleanField(default=False)
+    feedback_score = models.FloatField(null=True, blank=True)
+
+    def duration(self):
+        if self.ended_at:
+            return (self.ended_at - self.started_at).total_seconds()
+        return None
+
+
+class PoseFeedback(models.Model):
+    session = models.ForeignKey(PoseEstimationSession, on_delete=models.CASCADE, related_name='feedbacks')
+    frame_id = models.IntegerField()
+    keypoints_json = models.JSONField()  
+    feedback_notes = models.TextField(blank=True, null=True)
+    confidence_score = models.FloatField()
+
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+
+
+class PoseExerciseSet(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='pose_exercise_sets')
+    session = models.OneToOneField(PoseEstimationSession, on_delete=models.CASCADE, related_name='pose_set')
+    exercise = models.ForeignKey(Exercise, on_delete=models.SET_NULL, null=True, blank=True)
+
+    set_number = models.IntegerField(default=1)
+    date = models.DateField(default=now)
+    reps = models.IntegerField(default=1)
+    duration_seconds = models.FloatField(default=0.0)
+    calories_burned = models.FloatField(default=0.0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:  # Only set on create
+            filters = {
+                'user': self.user,
+                'date': self.date,
+            }
+            if self.exercise:
+                filters['exercise'] = self.exercise
+            else:
+                filters['session__pose_type'] = self.session.pose_type
+
+            last_set = PoseExerciseSet.objects.filter(**filters).order_by('-set_number').first()
+            self.set_number = (last_set.set_number + 1) if last_set else 1
+
+        super().save(*args, **kwargs)
+
+    def calculate_calories(self):
+        met_values = {
+            'squat': 5.0,
+            'lunge': 4.5,
+        }
+
+        if self.exercise and self.exercise.met:
+            met = self.exercise.met
+        else:
+            pose_name = self.session.pose_type.strip().lower()
+            # Handle plural normalization
+            if pose_name.endswith('s'):
+                pose_name = pose_name[:-1]
+            met = met_values.get(pose_name, None)
+
+        if not met or self.duration_seconds <= 0:
+            self.calories_burned = 0
+            self.save(update_fields=['calories_burned'])
+            return 0
+
+        weight = self.user.weight
+        minutes = self.duration_seconds / 60
+        calories = met * weight * 0.0175 * minutes
+
+        self.calories_burned = round(calories, 2)
+        self.save(update_fields=['calories_burned'])
+        return self.calories_burned
+
+
+    @classmethod
+    def get_daily_calories(cls, user, date_val):
+        return cls.objects.filter(user=user, date=date_val).aggregate(
+            total_burned=Sum('calories_burned')
+        )['total_burned'] or 0
+
+    def __str__(self):
+        return f"{self.user.email} - {self.exercise.name if self.exercise else self.session.pose_type} Set {self.set_number} on {self.date}"

@@ -120,7 +120,7 @@ const UserInput = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     // padding: 20,
-    backgroundColor: '#000000',
+    backgroundColor: '#222',
     flexGrow: 1,
     justifyContent: 'center',
   },

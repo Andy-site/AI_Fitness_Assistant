@@ -83,7 +83,7 @@ const Exercises = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#222',
     alignItems: 'center',
     paddingTop: 20,
   },
