@@ -113,15 +113,10 @@ const Workout = () => {
   );
 
   const renderErrorState = () => (
-    <View style={styles.errorContainer}>
-      <Icon name="exclamation-circle" size={50} color="#E2F163" />
-      <Text style={styles.errorText}>{error}</Text>
-      <TouchableOpacity
-        style={styles.retryButton}
-        onPress={() => setPage(1)}
-      >
-        <Text style={styles.retryButtonText}>Retry</Text>
-      </TouchableOpacity>
+    <View style={styles.loadingContainer}>
+              <Text style={styles.loadingIcon}>⏳</Text>
+              <Text style={styles.loadingText}>Loading ...</Text>
+              <ActivityIndicator size="large" color="#E2F163" />
     </View>
   );
 
@@ -508,23 +503,22 @@ pageButtonText: {
     fontSize: 14,
     color: '#ffffff',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loaderBox: {
-    backgroundColor: 'rgba(25, 25, 25, 0.8)',
-    padding: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#E2F163',
-    fontSize: 16,
-    marginTop: 15,
-    fontWeight: '500',
-  },
+   loadingContainer: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: '#111',
+  padding: 20,
+},
+loadingIcon: {
+  fontSize: 35,
+  marginBottom: 10,
+},
+loadingText: {
+  color: '#ccc',
+  fontSize: 16,
+  marginBottom: 10,
+},
   modalContainer: {
     flex: 1,
     justifyContent: 'center',

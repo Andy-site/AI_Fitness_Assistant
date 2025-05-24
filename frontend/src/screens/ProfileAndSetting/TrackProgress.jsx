@@ -77,11 +77,13 @@ const ProgressTracking = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#B3A0FF" />
-        <Text style={styles.loadingText}>Loading your progress...</Text>
-      </View>
-    );
+    <View style={styles.loadingContainer}>
+      <Text style={styles.loadingIcon}>⏳</Text>
+      <Text style={styles.loadingText}>Loading ...</Text>
+      <ActivityIndicator size="large" color="#E2F163" />
+    </View>
+  );
+
   }
 
   if (error) {
@@ -278,8 +280,22 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#222' },
   scrollView: { marginTop:55,flex: 1, marginBottom: 60 },
   content: { padding: 16 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#222' },
-  loadingText: { color: '#FFF', marginTop: 10 },
+ loadingContainer: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: '#111',
+  padding: 20,
+},
+loadingIcon: {
+  fontSize: 35,
+  marginBottom: 10,
+},
+loadingText: {
+  color: '#ccc',
+  fontSize: 16,
+  marginBottom: 10,
+},
   errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { color: '#FF6B6B' },
   sectionContainer: { marginBottom: 24 },

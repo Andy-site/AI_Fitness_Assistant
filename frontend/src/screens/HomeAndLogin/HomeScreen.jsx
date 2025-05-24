@@ -192,12 +192,13 @@ const Home = ({ navigation }) => {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#B3A0FF" />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingIcon}>⏳</Text>
+          <Text style={styles.loadingText}>Loading ...</Text>
+          <ActivityIndicator size="large" color="#E2F163" />
+        </View>
+      );
+    }
 
   return (
     <View style={styles.outcontainer}>
@@ -407,8 +408,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '80%',
   },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#222' },
-  loadingText: { color: '#B3A0FF', marginTop: 10 },
+   loadingContainer: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: '#111',
+  padding: 20,
+},
+loadingIcon: {
+  fontSize: 35,
+  marginBottom: 10,
+},
+loadingText: {
+  color: '#ccc',
+  fontSize: 16,
+  marginBottom: 10,
+},
   modalImage: {
     width: 100,
     height: 100,

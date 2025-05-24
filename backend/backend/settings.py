@@ -92,14 +92,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-# Database
 DATABASES = {
-    'default': dj_database_url.config(
-        default='postgresql://postgres:Andy#@!@localhost:5432/Gym',
-        conn_max_age=600,
-        ssl_require=True
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'Gym',  # Name of the database you created
+        'USER': 'postgres',  # The user you created
+        'PASSWORD': 'Andy#@!',  # The password you assigned
+        'HOST': 'localhost',
+        'PORT': '5432',  # Default port for PostgreSQL
+    }
 }
+
 
 CONN_MAX_AGE = 60
 ATOMIC_REQUESTS = True

@@ -176,13 +176,14 @@ const getGroupedMealsForSelectedDate = () => {
   const monthDates = generateMonthDates();
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#B3A0FF" />
-        <Text style={styles.loadingText}>Loading workout calendar...</Text>
-      </View>
-    );
-  }
+  return (
+    <View style={styles.loadingContainer}>
+      <Text style={styles.loadingIcon}>⏳</Text>
+      <Text style={styles.loadingText}>Loading ...</Text>
+      <ActivityIndicator size="large" color="#E2F163" />
+    </View>
+  );
+}
 
   return (
     <SafeAreaView style={styles.container}>
@@ -295,10 +296,22 @@ const getGroupedMealsForSelectedDate = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#222' },
-  loadingContainer: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#222',
-  },
-  loadingText: { color: '#B3A0FF', marginTop: 10, fontSize: 16 },
+   loadingContainer: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: '#111',
+  padding: 20,
+},
+loadingIcon: {
+  fontSize: 35,
+  marginBottom: 10,
+},
+loadingText: {
+  color: '#ccc',
+  fontSize: 16,
+  marginBottom: 10,
+},
   scrollView: { flex: 1, marginBottom: 70 },
   content: { padding: 16, marginTop: 70, marginBottom: 20 },
   calendarContainer: {

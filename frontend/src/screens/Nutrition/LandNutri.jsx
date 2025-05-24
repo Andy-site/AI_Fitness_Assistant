@@ -34,6 +34,8 @@ const [mealDetailsVisible, setMealDetailsVisible] = useState(false);
   const [dietaryRestriction, setDietaryRestriction] = useState('None');
   const [targetWeight, setTargetWeight] = useState('');
   const [activityLevel, setActivityLevel] = useState('Moderate');
+  const [screenReady, setScreenReady] = useState(false);
+
 
   useEffect(() => {
     const getUserDetails = async () => {
@@ -68,6 +70,18 @@ const [mealDetailsVisible, setMealDetailsVisible] = useState(false);
     loadMealHistory();
   
   }, []);
+
+  useEffect(() => {
+  const prepareScreen = async () => {
+    
+    setTimeout(() => {
+      setScreenReady(true); // Wait 1 second before showing UI
+    }, 1000);
+  };
+
+  prepareScreen();
+}, []);
+
 
   const paginatedMeals = mealHistory.slice(
   (page - 1) * ITEMS_PER_PAGE,
@@ -146,6 +160,19 @@ const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
       setLoading(false);
     }
   };
+
+  
+
+if (!screenReady) {
+  return (
+    <View style={styles.loadingContainer}>
+      <Text style={styles.loadingIcon}>⏳</Text>
+      <Text style={styles.loadingText}>Loading Nutrition Info...</Text>
+      <ActivityIndicator size="large" color="#E2F163" />
+    </View>
+  );
+}
+
 
   return (
     <KeyboardAvoidingView
@@ -321,6 +348,23 @@ modalContent: {
     marginTop: 15,
     color: '#fff',
   },
+   loadingContainer: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: '#111',
+  padding: 20,
+},
+loadingIcon: {
+  fontSize: 35,
+  marginBottom: 10,
+},
+loadingText: {
+  color: '#ccc',
+  fontSize: 16,
+  marginBottom: 10,
+},
+
   inputContainer: {
     marginBottom: 20,
     backgroundColor: '#B3A0FF',
