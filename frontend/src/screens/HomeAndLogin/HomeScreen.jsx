@@ -1,5 +1,4 @@
-// [No changes to imports]
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +9,8 @@ import {
   ScrollView,
   Modal,
   FlatList,
+  BackHandler,
+  Alert,
 } from 'react-native';
 import Footer from '../../components/Footer';
 import {
@@ -23,7 +24,6 @@ import { Svg, Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-nati
 import { useFocusEffect } from '@react-navigation/native';
 import { capitalizeWords } from '../../utils/StringUtils';
 import { InteractionManager } from 'react-native';
-
 
 const API_BASE_URL = 'http://192.168.0.117:8000/';
 
@@ -40,14 +40,39 @@ const Home = ({ navigation }) => {
   const [exercises, setExercises] = useState([]);
   const [meals, setMeals] = useState([]);
   const [dailySummary, setDailySummary] = useState({
-    calories_consumed: 0,
-    calories_burned: 0,
     meals_eaten: 0,
     workouts_done: 0,
   });
 
+  // Safe Android Back Press Handling
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (modalVisible) {
+          setModalVisible(false);
+          return true;
+        }
+        if (mealDetailsVisible) {
+          setMealDetailsVisible(false);
+          return true;
+        }
+
+        Alert.alert("Exit App", "Do you want to exit?", [
+          { text: "Cancel", style: "cancel" },
+          { text: "Exit", onPress: () => BackHandler.exitApp() },
+        ]);
+        return true;
+      };
+
+      BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => BackHandler.removeEventListener("hardwareBackPress", onBackPress);
+    }, [modalVisible, mealDetailsVisible])
+  );
+
+  // Main data fetch
   const fetchData = async () => {
     try {
+      console.log('Fetching user details...');
       const userResponse = await fetchUserDetails();
       setUserData(userResponse);
       setFirstName(userResponse.first_name || 'User');
@@ -61,65 +86,82 @@ const Home = ({ navigation }) => {
         });
       }
 
-      if (userResponse.weight && userResponse.height) {
+      if (userResponse.height) {
         const heightInMeters = userResponse.height / 100;
-        const calculatedBmi = userResponse.weight / (heightInMeters * heightInMeters);
-        setBmi(calculatedBmi.toFixed(1));
+        const weight = userResponse.estimated_weight > 0
+          ? userResponse.estimated_weight
+          : userResponse.weight;
+
+        if (weight && weight > 0) {
+          const calculatedBmi = weight / (heightInMeters * heightInMeters);
+          setBmi(calculatedBmi.toFixed(1));
+        }
       }
     } catch (err) {
-      console.error('Error fetching user data', err);
+      console.error('Error fetching user data:', err);
     }
   };
 
   const fetchRecommendations = async () => {
     try {
+      console.log('Fetching recommendations...');
       const ex = await fetchRecommendedExercises();
       const meals = await fetchRecommendedMeals();
       setExercises(ex.recommended_exercises || []);
       setMeals(meals || []);
     } catch (err) {
-      console.error('Error fetching recommendations', err);
+      console.error('Error fetching recommendations:', err);
     }
   };
 
   const fetchSummary = async () => {
     try {
+      console.log('Fetching daily summary...');
       const data = await fetchDailysSummary();
+      console.log('Daily summary data:', data);
       setDailySummary(data);
     } catch (err) {
-      console.error('Error fetching daily summary', err);
+      console.error('Error fetching daily summary:', err);
     }
   };
 
   useFocusEffect(
-  useCallback(() => {
-    let isActive = true;
+    useCallback(() => {
+      let isActive = true;
 
-    const task = InteractionManager.runAfterInteractions(async () => {
-      setIsLoading(true);
-      try {
-        await fetchData();
-        await fetchRecommendations();
-        await fetchSummary();
-      } catch (error) {
-        console.error("Error refreshing Home screen", error);
-      } finally {
-        if (isActive) setIsLoading(false);
+      const task = InteractionManager.runAfterInteractions(async () => {
+        console.log("Home screen focused. Starting data fetch...");
+        try {
+          await fetchData();
+          await fetchRecommendations();
+          await fetchSummary();
+        } catch (error) {
+          console.error("Error in useFocusEffect:", error);
+        } finally {
+          if (isActive) {
+            console.log("Data fetch complete. Disabling loading.");
+            setIsLoading(false);
+          }
+        }
+      });
+
+      return () => {
+        isActive = false;
+        task.cancel?.();
+      };
+    }, [])
+  );
+
+  // Optional fallback timeout (safety net)
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isLoading) {
+        console.warn("Timeout fallback: Forcing isLoading to false.");
+        setIsLoading(false);
       }
-    });
-
-    return () => {
-      isActive = false;
-      task.cancel?.();
-      setExercises([]);
-      setMeals([]);
-      setModalVisible(false);
-      setMealDetailsVisible(false);
-      setSelectedMeal(null);
-    };
-  }, [])
-);
-
+    }, 10000); // 10 seconds
+    return () => clearTimeout(timeout);
+  }, [isLoading]);
 
   const handleLogout = () => {
     setModalVisible(false);
@@ -145,6 +187,8 @@ const Home = ({ navigation }) => {
     const percentage = Math.min((bmiValue / maxBmi) * 100, 100);
     return percentage;
   };
+
+  // ---------------- UI RENDER ----------------
 
   if (isLoading) {
     return (
@@ -287,9 +331,10 @@ const Home = ({ navigation }) => {
             <TouchableOpacity style={{ alignSelf: 'flex-end' }} onPress={() => setMealDetailsVisible(false)}>
               <MaterialIcons name="close" size={24} color="#333" />
             </TouchableOpacity>
-            <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>
-              {selectedMeal?.meal} - {selectedMeal?.name}
-            </Text>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#000' }}>
+  {selectedMeal?.meal} - {selectedMeal?.name}
+</Text>
+
             <Text style={{ fontWeight: 'bold', marginBottom: 5 }}>Ingredients:</Text>
             <ScrollView style={{ maxHeight: 150, width: '100%' }}>
               {(selectedMeal?.ingredients || []).map((ing, idx) => (
@@ -313,7 +358,7 @@ const Home = ({ navigation }) => {
 const styles = StyleSheet.create({
   outcontainer: { flex: 1, backgroundColor: '#212020' },
   container: { flex: 1, padding: 20, marginBottom: 70 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#212020' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#222' },
   loadingText: { color: '#B3A0FF', marginTop: 10 },
   headerWithProfile: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, padding: 20 },
   greeting: { fontSize: 20, fontWeight: '700', color: '#B3A0FF' },
@@ -362,6 +407,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '80%',
   },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#222' },
+  loadingText: { color: '#B3A0FF', marginTop: 10 },
   modalImage: {
     width: 100,
     height: 100,

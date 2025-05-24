@@ -5,8 +5,8 @@ import Header from '../../components/Header';
 
 const { width } = Dimensions.get('window');
 
-const ChoosePose = ({ navigation, route }) => {
-  const { mode } = route.params;
+const ChoosePose = ({ navigation }) => {
+
 
   // Removed the Lunge exercise
   const exercises = [
@@ -20,16 +20,15 @@ const ChoosePose = ({ navigation, route }) => {
       <Header title="Choose Exercise" />
 
       <View style={styles.container}>
-        <Text style={styles.sectionTitle}>{mode} Mode: Select Exercise</Text>
+        <Text style={styles.sectionTitle}> Select Exercise</Text>
 
         <View style={styles.buttonRow}>
           {exercises.map((exercise) => (
             <TouchableOpacity
               key={exercise.name}
               style={styles.selectButton}
-              onPress={() => navigation.navigate('PoseScreen', { 
-                mode: mode, 
-                exercise: exercise.name 
+              onPress={() => navigation.navigate('PoseScreen', {
+                exercise: exercise.name
               })}
             >
               <Text style={styles.buttonText}>{exercise.name}</Text>
@@ -46,7 +45,7 @@ const ChoosePose = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
-    backgroundColor: '#16213E', // Dark background color
+    backgroundColor: '#222', // Dark background color
   },
   container: {
     flex: 1,

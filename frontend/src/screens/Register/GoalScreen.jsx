@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  ToastAndroid,
+  Alert,
+} from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import NextButton from '../../components/NextButton';
 import { sendOtp, registerUser } from '../../api/fithubApi';
@@ -27,50 +36,88 @@ const GoalScreen = ({ navigation, route }) => {
 
   const userWeight = route.params?.weight || 0;
 
-  const handleNext = async () => {
-    if (!goal || !goalWeight || !goalDuration || !activityLevel) {
-      setError('Please fill in all fields');
-      return;
-    }
-
-    if (goal === 'Weight Loss' && parseFloat(goalWeight) >= parseFloat(userWeight)) {
-      setError(`Goal weight must be less than your current weight for weight loss. Your weight is ${userWeight}`);
-      return;
-    }
-
-    if (goal === 'Weight Gain' && parseFloat(goalWeight) <= parseFloat(userWeight)) {
-      setError(`Goal weight must be greater than your current weight for weight gain. Your weight is ${userWeight}`);
-      return;
-    }
-
-    const userData = {
-      ...route.params,
-      goal,
-      goal_weight: goalWeight,
-      goal_duration: `${goalDuration}`, 
-      activity_level: activityLevel,
-      first_name: route.params.firstName,
-      last_name: route.params.lastName,
-      email: route.params.email,
-    };
-
-    try {
-      const registrationResponse = await registerUser(userData);
-      console.log('Registration response:', registrationResponse);
-
-      console.log('Sending OTP to email:', userData.email);
-      await sendOtp(userData.email);
-
-      console.log('OTP sent successfully');
-      navigation.navigate('RegisterScreen', { email: userData.email });
-    } catch (error) {
-      console.error('Error during OTP sending:', error);
-      setError('Error during OTP sending.');
-    }
+  const showToast = (message) => {
+    ToastAndroid.show(message, ToastAndroid.SHORT);
   };
 
+  const handleNext = async () => {
+  setError('');
+
+  if (!goal || !goalWeight || !goalDuration || !activityLevel) {
+    const message = 'All fields are required';
+    setError(message);
+    showToast(message);
+    return;
+  }
+
+  const parsedGoalWeight = parseFloat(goalWeight);
+
+  if (goal === 'Weight Loss' && parsedGoalWeight >= parseFloat(userWeight)) {
+    const message = `Goal weight must be less than your current weight (${userWeight} kg)`;
+    setError(message);
+    showToast(message);
+    return;
+  }
+
+  if (goal === 'Weight Gain' && parsedGoalWeight <= parseFloat(userWeight)) {
+    const message = `Goal weight must be more than your current weight (${userWeight} kg)`;
+    setError(message);
+    showToast(message);
+    return;
+  }
+
+  const userData = {
+    ...route.params,
+    goal,
+    goal_weight: goalWeight,
+    goal_duration: `${goalDuration}`,
+    activity_level: activityLevel,
+    first_name: route.params.firstName,
+    last_name: route.params.lastName,
+    email: route.params.email,
+  };
+
+  try {
+    const registrationResponse = await registerUser(userData);
+
+    // Registration succeeded
+    console.log('Registration successful. Sending OTP...');
+    await sendOtp(userData.email);
+    console.log('OTP sent successfully');
+
+    navigation.navigate('RegisterScreen', { email: userData.email });
+
+  } catch (err) {
+    console.log('Registration or OTP error:', err);
+
+    const message =
+      typeof err === 'object' && err?.error
+        ? err.error
+        : 'An error occurred during registration.';
+
+    // Check if it's an email already registered case
+    if (message === 'Email already registered.') {
+      Alert.alert(
+        'Email Already Registered',
+        'This email is already registered. Please log in instead.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('LoginScreen', { email: userData.email }),
+          },
+        ],
+        { cancelable: false }
+      );
+    } else {
+      // setError(message);
+      showToast(message);
+    }
+  }
+};
+
+
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.title}>Select Your Goal</Text>
       <Text style={styles.subtitle}>What do you want to achieve?</Text>
 
@@ -81,9 +128,11 @@ const GoalScreen = ({ navigation, route }) => {
             style={[
               styles.optionButton,
               goal === item.value && styles.selectedButton,
-              error && styles.errorBorder,
             ]}
-            onPress={() => setGoal(item.value)}
+            onPress={() => {
+              setGoal(item.value);
+              setError('');
+            }}
             activeOpacity={0.7}
           >
             <Text
@@ -104,9 +153,8 @@ const GoalScreen = ({ navigation, route }) => {
           </Text>
         )}
 
-        {error ? (
-          <Text style={styles.errorMessage}>{error}</Text>
-        ) : (
+        {error && <Text style={styles.errorMessage}>{error}</Text>}
+        {!error && (
           <Text style={styles.helperText}>
             This will help us personalize your experience
           </Text>
@@ -114,40 +162,51 @@ const GoalScreen = ({ navigation, route }) => {
       </View>
 
       <Text style={styles.currentWeight}>Your current weight: {userWeight} kg</Text>
+
       <View style={styles.inputcontainer}>
         <TextInput
-          style={[styles.inputField, error && styles.errorBorder]}
+          style={styles.inputField}
           placeholder="Enter your goal weight (kg)"
           keyboardType="numeric"
           value={goalWeight}
-          onChangeText={setGoalWeight}
+          onChangeText={(text) => {
+            setGoalWeight(text);
+            setError('');
+          }}
         />
         <Text style={styles.unitText}>Weight in kilograms (kg)</Text>
 
         <Text style={styles.label}>Select Your Goal Duration</Text>
         <View style={styles.pickerContainer}>
           <Picker
-  selectedValue={goalDuration}
-  onValueChange={(itemValue) => setGoalDuration(itemValue)}
-  style={styles.picker}
->
-  {Array.from({ length: 12 }, (_, i) => {
-    const month = i + 1;
-    const label = `${month} Month${month > 1 ? 's' : ''}`;
-    const value = `${month} month`; // must match Django's expected format
-    return <Picker.Item key={month} label={label} value={value} />;
-  })}
-</Picker>
-
-
-
+            selectedValue={goalDuration}
+            onValueChange={(itemValue) => {
+              setGoalDuration(itemValue);
+              setError('');
+            }}
+            style={styles.picker}
+          >
+            {Array.from({ length: 12 }, (_, i) => {
+              const month = i + 1;
+              return (
+                <Picker.Item
+                  key={month}
+                  label={`${month} Month${month > 1 ? 's' : ''}`}
+                  value={`${month} month`}
+                />
+              );
+            })}
+          </Picker>
         </View>
 
         <Text style={styles.label}>Select Your Activity Level</Text>
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={activityLevel}
-            onValueChange={(itemValue) => setActivityLevel(itemValue)}
+            onValueChange={(itemValue) => {
+              setActivityLevel(itemValue);
+              setError('');
+            }}
             style={styles.picker}
           >
             {activityLevels.map((item, index) => (
@@ -160,20 +219,17 @@ const GoalScreen = ({ navigation, route }) => {
       <NextButton
         title="Finish Registration"
         onPress={handleNext}
-        disabled={!goal || !goalWeight || !goalDuration || !activityLevel}
-        style={!goal || !goalWeight || !goalDuration || !activityLevel ? { opacity: 0.5 } : {}}
       />
 
       <Text style={styles.debugText}>Debug Info: Weight = {userWeight} kg</Text>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
-    justifyContent: 'center',
+    backgroundColor: '#222',
   },
   title: {
     fontSize: 28,
@@ -201,10 +257,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     alignItems: 'center',
   },
-  inputcontainer: {
-    backgroundColor: '#b3a0ff',
-    padding: 20,
-  },
   selectedButton: {
     backgroundColor: '#e8f0fe',
     borderWidth: 2,
@@ -225,20 +277,22 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     marginLeft: 4,
   },
-  errorBorder: {
-    borderColor: '#FF5252',
-  },
   errorMessage: {
     color: '#FF5252',
     fontSize: 14,
     marginTop: 8,
     marginLeft: 4,
+    fontWeight: '500',
   },
   helperText: {
     color: '#fff',
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
+  },
+  inputcontainer: {
+    backgroundColor: '#b3a0ff',
+    padding: 20,
   },
   inputField: {
     backgroundColor: '#FFF',
@@ -255,12 +309,11 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     marginBottom: 10,
   },
-  currentWeight: {
+  label: {
     fontSize: 15,
-    color: '#fff',
-    marginBottom: 8,
-    marginLeft: 4,
-    textAlign: 'center',
+    fontWeight: '600',
+    color: '#232323',
+    marginBottom: 6,
   },
   pickerContainer: {
     backgroundColor: '#fff',
@@ -272,6 +325,13 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     width: '100%',
+  },
+  currentWeight: {
+    fontSize: 15,
+    color: '#fff',
+    marginBottom: 8,
+    marginLeft: 4,
+    textAlign: 'center',
   },
   debugText: {
     marginTop: 12,

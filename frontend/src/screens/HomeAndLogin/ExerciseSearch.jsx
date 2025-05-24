@@ -101,8 +101,10 @@ const ExerciseSearch = () => {
 
       if (exercisesData && exercisesData.results) {
         const filteredData = exercisesData.results.filter((exercise) =>
-          exercise.name.toLowerCase().startsWith(trimmedQuery.toLowerCase())
-        );
+  exercise.name.toLowerCase().startsWith(trimmedQuery.toLowerCase())
+);
+
+
         setFilteredExercises(filteredData);
       } else {
         setFilteredExercises([]);
@@ -247,11 +249,11 @@ const ExerciseSearch = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#222',
   },
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#222',
   },
   searchContainer: {
     flexDirection: 'row',

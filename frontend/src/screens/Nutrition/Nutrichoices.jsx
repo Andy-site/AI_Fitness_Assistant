@@ -57,7 +57,7 @@ const Nutrichoices = () => {
 const styles = StyleSheet.create({
   outercontainer: {
     flex: 1,
-    backgroundColor: '#000', // Dark gray background for a clean, gym-like feel
+    backgroundColor: '#222', // Dark gray background for a clean, gym-like feel
   },
   container: {
     flex: 1,

@@ -1,10 +1,12 @@
+
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions } from 'react-native';
 import HumanPose from 'react-native-human-pose';
-import Footer from '../../components/Footer';
-import Header from '../../components/Header';
 import { useKeepAwake } from '@unsw-gsbme/react-native-keep-awake';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { createPoseSession, sendPoseFeedback, completePoseSession } from '../../api/fithubApi';
+
+const { width, height } = Dimensions.get('window');
 
 const calculateAngle = (point1, point2, point3) => {
   if (!point1 || !point2 || !point3) return null;
@@ -23,15 +25,14 @@ const PoseScreen = ({ route }) => {
   useKeepAwake();
 
   const [poseError, setPoseError] = useState('');
-  const [currentPose, setCurrentPose] = useState(null);
-  const [isBackCamera, setIsBackCamera] = useState(false);
   const [personDetected, setPersonDetected] = useState(false);
-  const [debugInfo, setDebugInfo] = useState({});
-  const [lastFeedbackTime, setLastFeedbackTime] = useState(0);
   const [fps, setFps] = useState(0);
-  const lastFrameTime = useRef(Date.now());
   const [repCount, setRepCount] = useState(0);
   const [poseState, setPoseState] = useState('up');
+  const [isRecording, setIsRecording] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+  const lastFrameTime = useRef(Date.now());
+  const [isBackCamera, setIsBackCamera] = useState(false);
 
   const feedbackMessages = {
     Squat: {
@@ -40,57 +41,58 @@ const PoseScreen = ({ route }) => {
       perfect: "Perfect squat form! Keep it up!",
       sideways: "Please turn to face the camera for better analysis"
     },
-    Deadlift: {
-      formIncorrect: "Adjust your form",
-      almostCorrect: "Great deadlift form! Minor adjustments needed",
-      perfect: "Excellent deadlift technique! Maintain this form",
-      sideways: "Turn to show your side profile for better deadlift analysis"
-    }
+    Lunge: {
+      formIncorrect: "Step deeper and keep your torso upright",
+      almostCorrect: "Nice lunge! Slight tweak in depth or alignment needed",
+      perfect: "Excellent lunge form!",
+      sideways: "Keep your profile visible to the camera"
+    },
+   
   };
 
-  const getJoint = (side, name, landmarks) => {
-    return landmarks[`${side}${name}`] || landmarks[`${side === 'left' ? 'right' : 'left'}${name}`];
-  };
-
-  const checkPoseAccuracy = (pose) => {
+  const checkPoseAccuracy = (poses) => {
     const now = Date.now();
     const delta = now - lastFrameTime.current;
-    setFps((1000 / delta).toFixed(1));
+    const currentFps = (1000 / delta).toFixed(1);
+    setFps(currentFps);
     lastFrameTime.current = now;
 
-    if (!pose || !pose[0]?.pose) {
+    const bestPose = poses
+      .filter(p => p.pose?.keypoints && Object.keys(p.pose).length > 5)
+      .sort((a, b) => (b.pose?.score || 0) - (a.pose?.score || 0))[0];
+
+    if (!bestPose || !bestPose.pose) {
       setPersonDetected(false);
       return 'No person detected';
     }
 
     setPersonDetected(true);
-    const landmarks = pose[0].pose;
+    const landmarks = bestPose.pose;
+
+    const getValidSide = (landmarks) => {
+      const sides = ['right', 'left'];
+      for (const side of sides) {
+        const required = ['Hip', 'Knee', 'Ankle', 'Shoulder'];
+        const allPresent = required.every(j => landmarks[`${side}${j}`]);
+        if (allPresent) return side;
+      }
+      return null;
+    };
+
+    const side = getValidSide(landmarks);
+    if (!side) return 'Ensure full body is visible';
+
+    const getJoint = (name) => landmarks[`${side}${name}`];
+    const hip = getJoint('Hip');
+    const knee = getJoint('Knee');
+    const ankle = getJoint('Ankle');
+    const shoulder = getJoint('Shoulder');
+    const toe = getJoint('FootIndex');
+
+    const kneeAngle = calculateAngle(hip, knee, ankle);
+    const hipAngle = calculateAngle(shoulder, hip, knee);
+
     let errorMessage = '';
-    let debugData = {};
-    if (now - lastFeedbackTime < 250) return poseError;
-    setLastFeedbackTime(now);
-
-    const rightHip = getJoint('right', 'Hip', landmarks);
-    const rightKnee = getJoint('right', 'Knee', landmarks);
-    const rightAnkle = getJoint('right', 'Ankle', landmarks);
-    const rightShoulder = getJoint('right', 'Shoulder', landmarks);
-    const rightToe = getJoint('right', 'FootIndex', landmarks);
-    const rightEar = getJoint('right', 'Ear', landmarks);
-
-    if (!rightHip || !rightKnee || !rightAnkle || !rightShoulder || !rightToe) return 'Please ensure your full body is visible';
-
-    const kneeAngle = calculateAngle(rightHip, rightKnee, rightAnkle);
-    const hipAngle = calculateAngle(rightShoulder, rightHip, rightKnee);
-    const ankleAngle = calculateAngle(rightKnee, rightAnkle, rightToe);
-    const spineAngle = calculateAngle(rightShoulder, rightHip, rightAnkle);
-    const neckAngle = rightEar && calculateAngle(rightEar, rightShoulder, rightHip);
-
-    debugData.kneeAngle = kneeAngle?.toFixed(2);
-    debugData.hipAngle = hipAngle?.toFixed(2);
-    debugData.ankleAngle = ankleAngle?.toFixed(2);
-    debugData.spineAngle = spineAngle?.toFixed(2);
-    if (neckAngle) debugData.neckAngle = neckAngle?.toFixed(2);
-
     if (kneeAngle !== null && hipAngle !== null) {
       if (Math.abs(kneeAngle - 90) < 10 && Math.abs(hipAngle - 90) < 10) {
         errorMessage = feedbackMessages[exercise].perfect;
@@ -106,103 +108,142 @@ const PoseScreen = ({ route }) => {
         setPoseState('up');
         setRepCount(prev => prev + 1);
       }
-    } else {
-      errorMessage = 'Calculating angles...';
     }
 
-    setDebugInfo(debugData);
+    if (sessionId && hip && knee && ankle) {
+      const feedbackPayload = {
+        session: sessionId,
+        frame_id: Math.floor(now / 100),
+        keypoints_json: JSON.parse(JSON.stringify(landmarks)),
+        feedback_notes: errorMessage,
+        confidence_score: Number(currentFps) / 30,
+      };
+      console.log("Sending feedback payload:", feedbackPayload);
+      sendPoseFeedback(feedbackPayload).catch(err => console.warn('Pose feedback failed:', err.response?.data || err.message));
+    }
+
     return errorMessage;
   };
 
   const onPoseDetected = (pose) => {
+    if (!isRecording) return;
     const error = checkPoseAccuracy(pose);
     setPoseError(error);
-    setCurrentPose(pose);
   };
 
   const toggleCamera = () => setIsBackCamera(!isBackCamera);
 
+  const handleStartStopSession = async () => {
+    if (!isRecording) {
+      try {
+        const session = await createPoseSession(exercise);
+        setSessionId(session.id);
+        setIsRecording(true);
+      } catch (error) {
+        const message = error?.response?.data?.detail || error?.message || 'Could not start session';
+        Alert.alert('Error', message);
+      }
+    } else {
+      try {
+        await completePoseSession(sessionId);
+        setIsRecording(false);
+        Alert.alert('Session Completed', `You completed ${repCount} reps`);
+      } catch (error) {
+        Alert.alert('Error', error.response?.data?.detail || 'Could not stop session');
+      }
+    }
+  };
+
   return (
-    <View style={styles.outerContainer}>
-      <Header title={`${exercise} Pose`} />
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.feedbackContainer}>
-          {!personDetected ? (
-            <Text style={styles.errorText}>No person detected</Text>
-          ) : poseError.toLowerCase().includes("perfect") ? (
-            <Text style={styles.successText}>{poseError}</Text>
-          ) : poseError.toLowerCase().includes("great") || poseError.toLowerCase().includes("almost") ? (
-            <Text style={styles.almostText}>{poseError}</Text>
-          ) : (
-            <Text style={styles.errorText}>{poseError}</Text>
-          )}
-        </View>
+    <View style={styles.container}>
+      <HumanPose
+        height={height}
+        width={width}
+        enableKeyPoints={true}
+        enableSkeleton={true}
+        isBackCamera={isBackCamera}
+        color={'0,255,0'}
+        onPoseDetected={onPoseDetected}
+        estimation={{
+          frameRate: 30,
+          modelConfig: {
+            architecture: 'MobileNetV1',
+            outputStride: 16,
+            multiplier: 0.75,
+            quantBytes: 2,
+          },
+        }}
+      />
 
-        <Text style={{ color: 'white', fontSize: 14, marginBottom: 10 }}>FPS: {fps} | Reps: {repCount}</Text>
+      <View style={styles.overlayTop}>
+        <Text style={styles.overlayText}>FPS: {fps} | Reps: {repCount}</Text>
+        <Text style={styles.overlayText}>{poseError}</Text>
+      </View>
 
-        <View style={styles.cameraContainer}>
-          <HumanPose
-            height={350}
-            width={350}
-            enableKeyPoints={true}
-            enableSkeleton={true}
-            isBackCamera={isBackCamera}
-            color={'0,255,0'}
-            onPoseDetected={onPoseDetected}
-            estimation={{
-              frameRate: 30,
-              modelConfig: {
-                architecture: 'MobileNetV1',
-                outputStride: 8,
-                multiplier: 0.75,
-                quantBytes: 2
-              }
-            }}
+      <TouchableOpacity style={styles.floatingButton} onPress={handleStartStopSession}>
+        <View style={styles.iconCircle}>
+          <MaterialIcons
+            name={isRecording ? 'stop' : 'play-arrow'}
+            size={40}
+            color="#fff"
           />
-          <TouchableOpacity style={styles.cameraButton} onPress={toggleCamera}>
-            <MaterialIcons name="flip-camera-android" size={28} color="#FFF" />
-          </TouchableOpacity>
         </View>
+      </TouchableOpacity>
 
-        <View style={styles.debugContainer}>
-          <Text style={styles.debugTitle}>Debug Info:</Text>
-          {Object.entries(debugInfo).map(([key, value]) => (
-            <Text key={key} style={styles.debugText}>{key}: {value}°</Text>
-          ))}
-        </View>
-      </ScrollView>
-      <Footer />
+      <TouchableOpacity style={styles.cameraToggle} onPress={toggleCamera}>
+        <MaterialIcons name="flip-camera-android" size={28} color="#FFF" />
+      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  outerContainer: { flex: 1, backgroundColor: '#B3A0FF' },
-  container: { flex: 1, padding: 15, alignItems: 'center', marginTop: 70, marginBottom: 50 },
-  cameraContainer: { position: 'relative', width: 350, height: 350 },
-  cameraButton: {
-    position: 'absolute', bottom: 15, right: 15,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)', width: 50, height: 50, borderRadius: 25,
-    alignItems: 'center', justifyContent: 'center', zIndex: 10,
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  feedbackContainer: { width: '100%', paddingVertical: 10, marginTop: 15, marginBottom: 5, alignItems: 'center', borderRadius: 10 },
-  errorText: {
-    color: '#FF6B6B', fontSize: 16, fontWeight: '600', backgroundColor: 'rgba(255, 0, 0, 0.1)',
-    padding: 10, borderRadius: 8, textAlign: 'center', width: '95%',
+  overlayTop: {
+    position: 'absolute',
+    top: 40,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
   },
-  almostText: {
-    color: '#FFA500', fontSize: 16, fontWeight: '600', backgroundColor: 'rgba(255, 165, 0, 0.1)',
-    padding: 10, borderRadius: 8, textAlign: 'center', width: '95%',
+  overlayText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    marginVertical: 2,
   },
-  successText: {
-    color: '#4CAF50', fontSize: 18, fontWeight: '700', backgroundColor: 'rgba(76, 175, 80, 0.2)',
-    padding: 10, borderRadius: 8, textAlign: 'center', width: '95%',
+  floatingButton: {
+    position: 'absolute',
+    bottom: 50,
+    alignSelf: 'center',
+    zIndex: 10,
   },
-  debugContainer: {
-    marginTop: 10, padding: 10, backgroundColor: 'rgba(0,0,0,0.7)', borderRadius: 8, alignItems: 'center'
+  iconCircle: {
+    backgroundColor: '#000',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  debugTitle: { color: 'white', fontWeight: '700', marginBottom: 5 },
-  debugText: { color: 'white', fontSize: 12 }
+  cameraToggle: {
+    position: 'absolute',
+    bottom: 50,
+    right: 30,
+    backgroundColor: '#000',
+    padding: 10,
+    borderRadius: 25,
+  },
 });
 
 export default PoseScreen;

@@ -3,6 +3,7 @@ import { View, Text, TextInput, Button, FlatList, TouchableOpacity, StyleSheet, 
 import axios from 'axios';
 import Footer from '../../components/Footer';
 import Header from '../../components/Header';
+import { fetchMealHistory } from '../../api/fithubApi'; // adjust path as needed
 
 const CreateNutri = () => {
   const [searchTerm, setSearchTerm] = useState(''); // User input for searching
@@ -10,14 +11,31 @@ const CreateNutri = () => {
   const [loading, setLoading] = useState(false); // Loading state
   const [accessToken, setAccessToken] = useState(null); // OAuth 2.0 Access Token
   const isMounted = useRef(true); // Track component mounting state
+  const [mealHistory, setMealHistory] = useState([]);
+
+
+  const loadMealHistory = async () => {
+  const history = await fetchMealHistory();
+  setMealHistory(history);
+};
+
 
   // Cleanup function to set isMounted to false when the component is unmounted
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
+ useEffect(() => {
+  isMounted.current = true;
+
+  const init = async () => {
+    await authorize();
+    await loadMealHistory();
+  };
+
+  init();
+
+  return () => {
+    isMounted.current = false;
+  };
+}, []);
+
 
   
 
@@ -149,6 +167,7 @@ const CreateNutri = () => {
 
 const styles = StyleSheet.create({
   outerContainer: {
+    backgroundColor: '#222',
     flex: 1,
   },
   container: {

@@ -433,7 +433,7 @@ const [fetchedFromAPI, setFetchedFromAPI] = useState(isFromAPI);
 };
 
 const styles = StyleSheet.create({
-  outerContainer: { flex: 1, backgroundColor: '#000' },
+  outerContainer: { flex: 1, backgroundColor: '#222' },
   innercontainer: { flex: 1, marginTop: 60, padding: 15, marginBottom: 40 },
   macronutrientCard: { padding: 10, backgroundColor: '#B3A0FF', marginBottom: 20 },
   sectionTitle1: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: '#fff', textAlign: 'center' },

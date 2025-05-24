@@ -33,7 +33,7 @@ const equipmentList = [
   'sled machine', 'stability ball', 'olympic barbell', 'trap bar',
   'body weight', 'stationary bike'
 ];
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 20;
 
 const Workout = () => {
   const [loading, setLoading] = useState(true);
@@ -148,6 +148,13 @@ const Workout = () => {
                 </TouchableOpacity>
 
                 <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => navigation.navigate('FavoriteExercises')}
+                  >
+                    <Icon name="heart" size={20} color="#000" />
+                  </TouchableOpacity>
+
                   <TouchableOpacity
                     style={styles.iconButton}
                     onPress={() => navigation.navigate('ExerciseSearch')}
@@ -373,7 +380,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#222',
   },
   topRowContainer: {
     paddingHorizontal: 15,
@@ -384,6 +391,7 @@ const styles = StyleSheet.create({
   paddingVertical: 8,
   paddingHorizontal: 16,
   borderRadius: 5,
+  marginBottom: 10,
 },
 
 disabledButton: {
@@ -464,6 +472,7 @@ pageButtonText: {
   },
   scrollView: {
     flex: 1,
+    
   },
   scrollContainer: {
     paddingHorizontal: 15,

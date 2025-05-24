@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Animated, Dimensions } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Animated, Dimensions, ToastAndroid } from 'react-native';
 import NextButton from '../../components/NextButton';
 
 const { width } = Dimensions.get('window');
@@ -8,7 +8,7 @@ const EmailScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isValid, setIsValid] = useState(true);
-  const progressAnim = new Animated.Value(0); 
+  const progressAnim = new Animated.Value(0);
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -27,13 +27,27 @@ const EmailScreen = ({ navigation }) => {
   }, [email]);
 
   const handleNext = () => {
-    if (!email || !validateEmail(email)) {
+    console.log("Next button pressed");
+
+    if (!email.trim()) {
+  console.log("Email is empty");
+  const message = "Email address is required";
+  setErrorMessage(message);
+  setIsValid(false);
+  ToastAndroid.show(message, ToastAndroid.SHORT);
+  return;
+}
+
+
+    if (!validateEmail(email)) {
+      console.log("Invalid email format");
       setErrorMessage('Please enter a valid email address');
       setIsValid(false);
       return;
     }
 
-    // Animate progress bar to next step (33% for step 1)
+    console.log("Valid email. Navigating to PasswordScreen...");
+
     Animated.timing(progressAnim, {
       toValue: 0.33,
       duration: 300,
@@ -49,29 +63,30 @@ const EmailScreen = ({ navigation }) => {
       <Text style={styles.journeyText}>Let's start with your registration first</Text>
 
       <View style={styles.PurpleContainer}>
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Email Address</Text>
-        <TextInput
-          style={[styles.input, !isValid && email.length > 0 && styles.inputError]}
-          value={email}
-          onChangeText={setEmail}
-          placeholder="e.g., user@example.com"
-          placeholderTextColor="#232323"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
-      </View>
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Email Address</Text>
+          <TextInput
+            style={[styles.input, !isValid && styles.inputError]}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="e.g., user@example.com"
+            placeholderTextColor="#232323"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {errorMessage !== '' && (
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          )}
         </View>
+      </View>
 
       <NextButton
-        title="Next"
-        onPress={handleNext}
-        disabled={!isValid || !email}
-      />
+  title="Next"
+  onPress={handleNext}
+/>
 
-      {/* Progress Bar */}
+
       <View style={styles.progressContainer}>
         <Animated.View
           style={[
@@ -94,7 +109,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#222',
   },
   title: {
     fontSize: 28,
@@ -114,13 +129,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#B3A0FF',
     width: '100%',
     padding: 20,
-    // borderRadius: 20,
     marginBottom: 20,
   },
   inputContainer: {
     width: '100%',
     marginBottom: 30,
-  
   },
   label: {
     fontSize: 16,

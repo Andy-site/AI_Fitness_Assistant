@@ -160,7 +160,7 @@ const ProgressScreen = () => {
 const styles = StyleSheet.create({
   outercontainer: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#222',
   },
   dropdownWrapper: {
     marginHorizontal: 10,

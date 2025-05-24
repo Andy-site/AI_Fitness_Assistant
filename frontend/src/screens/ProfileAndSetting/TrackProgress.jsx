@@ -275,10 +275,10 @@ const ProgressTracking = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212' },
+  container: { flex: 1, backgroundColor: '#222' },
   scrollView: { marginTop:55,flex: 1, marginBottom: 60 },
   content: { padding: 16 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#222' },
   loadingText: { color: '#FFF', marginTop: 10 },
   errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { color: '#FF6B6B' },

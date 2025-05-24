@@ -27,10 +27,7 @@ export const registerUser = async (userData) => {
 export const loginUser = async (email, password) => {
   try {
     const loginUrl = `${API_BASE_URL}login/`;
-    
-
     const response = await apiClient.post('login/', { email, password });
-
 
     if (response.data.access && response.data.refresh) {
       await AsyncStorage.setItem('access_token', response.data.access);
@@ -52,8 +49,7 @@ export const loginUser = async (email, password) => {
       throw new Error('Missing access or refresh token in response');
     }
   } catch (error) {
-    console.error('Login error:', error.response?.data || error.message);
-    throw error;
+    console.log('Login error:', error.response?.data || error.message);
   }
 };
 
@@ -971,6 +967,8 @@ export const fetchDailysSummary = async () => {
   });
   return response.data;
 };
+
+
 export const fetchBackendMeals = async () => {
   try {
     const token = await getAuthToken();
@@ -1007,6 +1005,31 @@ export const fetchBackendMeals = async () => {
   }
 };
 
+export const fetchBackendMealsInRange = async (startDate, endDate) => {
+  try {
+    const token = await getAuthToken();
+
+    const response = await apiClient.get(
+      `/meal-plans/range/?start_date=${startDate}&end_date=${endDate}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const rawMeals = response.data;
+
+    return rawMeals;
+
+  } catch (error) {
+    console.error('Error fetching backend meals in range:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+
 
 export const fetchRecommendedMeals = async () => {
   const token = await getAuthToken();
@@ -1017,3 +1040,116 @@ export const fetchRecommendedMeals = async () => {
   });
   return response.data;
 };
+
+// Create a new pose session
+export const createPoseSession = async (poseType) => {
+  try {
+    const token = await getAuthToken();
+    const response = await axios.post(
+      `${API_BASE_URL}pose-session/`,
+      { pose_type: poseType },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+  } catch (error) {
+    console.error('Session creation failed:', error.response?.data || error.message);
+    Alert.alert('Error', 'Could not start pose session');
+  }
+};
+
+// Submit pose feedback
+export const sendPoseFeedback = async (feedbackData) => {
+  const token = await getAuthToken();
+  const response = await axios.post(
+    `${API_BASE_URL}pose-feedback/`,
+    feedbackData,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data;
+};
+
+// Mark a session as completed
+export const completePoseSession = async (sessionId) => {
+  const token = await getAuthToken();
+  const response = await axios.post(
+    `${API_BASE_URL}pose-session/${sessionId}/complete/`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data;
+};
+
+
+export const getCaloriesByPose = async (startDate, endDate) => {
+  try {
+    const token = await getAuthToken();
+    const response = await axios.get(
+      `${API_BASE_URL}calories-by-pose/`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          start_date: startDate,
+          end_date: endDate,
+        },
+      }
+    );
+
+    // Log response data as formatted JSON
+    console.log('Calories by pose data:', JSON.stringify(response.data, null, 2));
+
+    return response.data;
+  } catch (error) {
+    console.error('API error:', error.response?.data || error.message);
+    return { data: [] }; // return consistent JSON structure to avoid crashing UI
+  }
+};
+
+
+export const fetchMealHistory = async () => {
+  try {
+    const token = await getAuthToken(); // Get the authentication token
+    const response = await fetch(`${API_BASE_URL}meals/history/`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,  // For JWT-based auth
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch meal history: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.meals || [];
+  } catch (error) {
+    console.error('Error fetching meal history:', error);
+    return [];
+  }
+}
+
+
+export const fetchFullFitnessHistory = async () => {
+  const token = await getAuthToken();
+  const response = await fetch(`${API_BASE_URL}fitness-summary/`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  return await response.json();
+};
+

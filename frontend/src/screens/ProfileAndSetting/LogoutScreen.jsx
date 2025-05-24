@@ -62,7 +62,7 @@ const LogoutScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#212020',
+    backgroundColor: '#222',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
