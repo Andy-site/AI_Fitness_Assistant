@@ -1,6 +1,8 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions } from 'react-native';
+import { Alert } from 'react-native';
+
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import HumanPose from 'react-native-human-pose';
 import { useKeepAwake } from '@unsw-gsbme/react-native-keep-awake';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -111,16 +113,20 @@ const PoseScreen = ({ route }) => {
     }
 
     if (sessionId && hip && knee && ankle) {
-      const feedbackPayload = {
-        session: sessionId,
-        frame_id: Math.floor(now / 100),
-        keypoints_json: JSON.parse(JSON.stringify(landmarks)),
-        feedback_notes: errorMessage,
-        confidence_score: Number(currentFps) / 30,
-      };
-      console.log("Sending feedback payload:", feedbackPayload);
-      sendPoseFeedback(feedbackPayload).catch(err => console.warn('Pose feedback failed:', err.response?.data || err.message));
-    }
+  const feedbackPayload = {
+    session: sessionId,
+    frame_id: Math.floor(now / 100),
+    keypoints_json: JSON.parse(JSON.stringify(landmarks)),
+    feedback_notes: errorMessage,
+    confidence_score: Number(currentFps) / 30,
+    rep_count: repCount, 
+  };
+  console.log("Sending feedback payload:", feedbackPayload);
+  sendPoseFeedback(feedbackPayload).catch(err =>
+    console.warn('Pose feedback failed:', err.response?.data || err.message)
+  );
+}
+
 
     return errorMessage;
   };

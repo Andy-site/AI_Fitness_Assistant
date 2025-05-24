@@ -11,8 +11,8 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 
-// const API_BASE_URL = 'http://192.168.0.117:8000/';
-const API_BASE_URL = 'http://localhost:8000/';
+const API_BASE_URL = 'http://192.168.0.117:8000/';
+// const API_BASE_URL = 'http://localhost:8000/';
 
 const EditProfile = () => {
   const [firstName, setFirstName] = useState('');
@@ -263,6 +263,7 @@ const EditProfile = () => {
                 <Picker.Item label="Light" value="light" />
                 <Picker.Item label="Moderate" value="moderate" />
                 <Picker.Item label="Active" value="active" />
+                <Picker.Item label="Very Active" value="very active" />
               </Picker>
             </View>
           </View>

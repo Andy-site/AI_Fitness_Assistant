@@ -11,7 +11,7 @@ const ChoosePose = ({ navigation }) => {
   // Removed the Lunge exercise
   const exercises = [
     { name: 'Squat' },
-    { name: 'Deadlift' },
+    { name: 'Lunge' },
   ];
 
   return (

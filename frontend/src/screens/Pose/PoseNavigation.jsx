@@ -30,7 +30,7 @@ const PoseNavigation = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title="Pose Training" />
+      <Header title="Pose Estimation" />
 
       <View style={styles.welcomeTextContainer}>
         <Text style={styles.welcomeText}>Welcome Fitness Enthusiast,</Text>

@@ -21,7 +21,7 @@ const Footer = () => {
     'ExerciseEquipment', 'FavoriteExercises', 'CreateLibrary',
     'LibraryDetails', 'SetExerciseLibrary', 'ExeDetails',
   ];
-  const poseScreens = ['LandPose', 'PoseScreen', 'ChoosePose', 'ChooseDifficulty'];
+  const poseScreens = ['LandPose', 'PoseScreen', 'ChoosePose', 'PoseNavigation', 'Instructions', 'PoseHistory', 'CalorieVisualization'];
   const nutritionScreens = ['MealSugg', 'LandNutri', 'Nutrichoices', 'MealDetails', 'CreateNutri', 'FoodSearch'];
   const dashboardScreens = ['Dashboard', 'Progress', 'WorkoutCalendar', 'ProgressTracking', 'Visualization', 'EditProfile', 'LogoutScreen', 'Notification'];
 

@@ -124,6 +124,8 @@ const AppNavigator = () => {
         <Stack.Screen name="PoseScreen" component={PoseScreen} options={{ headerShown: false }} />
         <Stack.Screen name="ChoosePose" component={ChoosePose} options={{ headerShown: false }} />
         <Stack.Screen name="Instructions" component={Instructions} options={{ headerShown: false }} />
+        <Stack.Screen name="PoseNavigation" component={PoseNavigation} options={{ headerShown: false }} />
+        <Stack.Screen name="PoseHistory" component={PoseHistory} options={{ headerShown: false }} />
 
         {/* =========================  PROGRESS TRACKING ========================= */}
         <Stack.Screen name="Progress" component={ProgressScreen} options={{ headerShown: false }} />
@@ -131,8 +133,6 @@ const AppNavigator = () => {
         <Stack.Screen name="ProgressTracking" component={ProgressTracking} options={{ headerShown: false }} />
         <Stack.Screen name="Visualization" component={ProgressVisualization} options={{ headerShown: false }} />
         <Stack.Screen name="CalorieVisualization" component={CalorieVisualization} options={{ headerShown: false }} />
-        <Stack.Screen name="PoseHistory" component={PoseHistory} options={{ headerShown: false }} />
-        <Stack.Screen name="PoseNavigation" component={PoseNavigation} options={{ headerShown: false }} />
 
 
       </Stack.Navigator>

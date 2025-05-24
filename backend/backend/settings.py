@@ -25,7 +25,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'unsafe-default')
 # Toggle DEBUG based on deployment
 DEBUG = not os.getenv('RENDER')
 
-ALLOWED_HOSTS = [os.getenv('RENDER_EXTERNAL_HOSTNAME', 'localhost')]
+ALLOWED_HOSTS = [os.getenv('RENDER_EXTERNAL_HOSTNAME', 'localhost'),'192.168.0.117']
 
 # Media files
 MEDIA_URL = '/media/'
