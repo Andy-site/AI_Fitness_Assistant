@@ -87,7 +87,7 @@ const PoseHistory = () => {
                 </Text>
                 <View style={styles.details}>
                   <Text style={styles.exerciseText}>
-                    {set.exercise} – Set {set.set_number}
+                    {set.exercise} ~ Set {set.set_number}
                   </Text>
                   <View style={styles.badgeRow}>
                     <Text style={styles.badge}>🔥 {set.calories_burned} cal</Text>

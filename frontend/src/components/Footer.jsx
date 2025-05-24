@@ -6,16 +6,15 @@ import {
   StyleSheet,
   Keyboard,
 } from 'react-native';
-import { useNavigation, useRoute, useNavigationState } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const Footer = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
-  const isNavigating = useRef(false); // debounce flag
+  const isNavigating = useRef(false);
 
-  // Group screen names for tab highlighting
   const homeScreens = ['Home'];
   const workoutScreens = [
     'Workout', 'Exercises', 'RepsAndSets', 'ExerciseSearch',
@@ -44,24 +43,25 @@ const Footer = () => {
   const iconColor = (screens) => (isActiveTab(screens) ? '#e2f163' : '#fff');
   const iconSize = (screens, base) => (isActiveTab(screens) ? base + 3 : base);
 
-  const safeResetToHome = () => {
-    const current = navigation.getState().routes[navigation.getState().index].name;
-    if (current !== 'Home' && !isNavigating.current) {
+  const refreshOrNavigateToHome = () => {
+    if (!isNavigating.current) {
       isNavigating.current = true;
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Home' }],
-      });
+      if (currentRoute === 'Home') {
+        // Trigger a re-render by pushing Home with a different key or params
+        navigation.navigate('Home', { refresh: Date.now() }); // Send a changing param
+      } else {
+        navigation.navigate('Home');
+      }
       setTimeout(() => {
         isNavigating.current = false;
-      }, 500);
+      }, 300);
     }
   };
 
   return (
     <View style={styles.footer}>
       {/* Home Tab */}
-      <TouchableOpacity style={styles.footerIconButton} onPress={safeResetToHome}>
+      <TouchableOpacity style={styles.footerIconButton} onPress={refreshOrNavigateToHome}>
         <Image
           source={require('../assets/Images/Home.png')}
           style={[

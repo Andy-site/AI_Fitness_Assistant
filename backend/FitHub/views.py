@@ -1278,7 +1278,6 @@ class ProgressVisualizationAPIView(APIView):
             }
         })
 
-
 class DailySummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1286,22 +1285,21 @@ class DailySummaryView(APIView):
         user = request.user
         today = date.today()
 
-        # Get daily summary if exists
-        summary = user.daily_summaries.filter(date=today).first()
-        calories_consumed = summary.calories_consumed if summary else 0
-        calories_burned = summary.calories_burned if summary else 0
-
-        # Meals and workouts today
+        # Get meals eaten
         meals_eaten = MealPlan.objects.filter(user=user, is_consumed=True, created_at__date=today).count()
-        workouts_done = Workout.objects.filter(user=user, workout_date=today).count()
+
+        # Fetch all workout IDs for the user today
+        workout_ids = Workout.objects.filter(user=user, workout_date=today).values_list('id', flat=True)
+
+        workouts_done = WorkoutExercise.objects.filter(
+            workout_id__in=workout_ids,
+            total_time__isnull=False
+        ).count()
 
         return Response({
-            "calories_consumed": calories_consumed,
-            "calories_burned": calories_burned,
             "meals_eaten": meals_eaten,
             "workouts_done": workouts_done,
         })
-    
 
 class PoseEstimationSessionCreateView(APIView):
     def post(self, request):

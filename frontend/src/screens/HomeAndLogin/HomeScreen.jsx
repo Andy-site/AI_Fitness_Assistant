@@ -40,8 +40,6 @@ const Home = ({ navigation }) => {
   const [exercises, setExercises] = useState([]);
   const [meals, setMeals] = useState([]);
   const [dailySummary, setDailySummary] = useState({
-    calories_consumed: 0,
-    calories_burned: 0,
     meals_eaten: 0,
     workouts_done: 0,
   });
@@ -120,6 +118,7 @@ const Home = ({ navigation }) => {
     try {
       console.log('Fetching daily summary...');
       const data = await fetchDailysSummary();
+      console.log('Daily summary data:', data);
       setDailySummary(data);
     } catch (err) {
       console.error('Error fetching daily summary:', err);
