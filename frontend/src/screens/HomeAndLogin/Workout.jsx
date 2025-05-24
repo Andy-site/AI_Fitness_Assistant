@@ -33,7 +33,7 @@ const equipmentList = [
   'sled machine', 'stability ball', 'olympic barbell', 'trap bar',
   'body weight', 'stationary bike'
 ];
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 20;
 
 const Workout = () => {
   const [loading, setLoading] = useState(true);
@@ -472,6 +472,7 @@ pageButtonText: {
   },
   scrollView: {
     flex: 1,
+    
   },
   scrollContainer: {
     paddingHorizontal: 15,

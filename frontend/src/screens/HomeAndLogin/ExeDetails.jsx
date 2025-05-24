@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
-    marginBottom: 50,
+    marginBottom: 60,
   },
   startButtonText: {
     fontSize: 16,

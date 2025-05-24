@@ -37,8 +37,8 @@ function LoginScreen({ navigation }) {
   // Navigate to the Home screen after successful login
   navigation.navigate('Home');
 } catch (err) {
-  console.error('Login error:', err);
-  setError('Invalid email or password');
+  // console.error('Login error:', err);
+  // setError('Invalid email or password');
   Alert.alert('Error', err.message || 'An error occurred during login.');
 }
   }

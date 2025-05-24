@@ -101,8 +101,10 @@ const ExerciseSearch = () => {
 
       if (exercisesData && exercisesData.results) {
         const filteredData = exercisesData.results.filter((exercise) =>
-          exercise.name.toLowerCase().startsWith(trimmedQuery.toLowerCase())
-        );
+  exercise.name.toLowerCase().startsWith(trimmedQuery.toLowerCase())
+);
+
+
         setFilteredExercises(filteredData);
       } else {
         setFilteredExercises([]);

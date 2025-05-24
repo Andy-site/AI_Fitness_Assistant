@@ -27,10 +27,7 @@ export const registerUser = async (userData) => {
 export const loginUser = async (email, password) => {
   try {
     const loginUrl = `${API_BASE_URL}login/`;
-    
-
     const response = await apiClient.post('login/', { email, password });
-
 
     if (response.data.access && response.data.refresh) {
       await AsyncStorage.setItem('access_token', response.data.access);
@@ -52,8 +49,7 @@ export const loginUser = async (email, password) => {
       throw new Error('Missing access or refresh token in response');
     }
   } catch (error) {
-    console.error('Login error:', error.response?.data || error.message);
-    throw error;
+    console.log('Login error:', error.response?.data || error.message);
   }
 };
 
@@ -1145,38 +1141,15 @@ export const fetchMealHistory = async () => {
   }
 }
 
-export const fetchDailyFitnessSummary = async (date = null) => {
-  try {
-    const token = await getAuthToken(); // Get the authentication token
-    const query = date ? `?date=${date}` : '';
-    const response = await fetch(`${API_BASE_URL}fitness-summary/${query}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch fitness summary: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return {
-      date: data.date,
-      caloriesBurned: data.calories_burned,
-      caloriesConsumed: data.calories_consumed,
-      netCalories: data.net_calories,
-      poseSets: data.pose_sets,
-    };
-  } catch (error) {
-    console.error('Error fetching fitness summary:', error);
-    return {
-      date: null,
-      caloriesBurned: 0,
-      caloriesConsumed: 0,
-      netCalories: 0,
-      poseSets: [],
-    };
-  }
+export const fetchFullFitnessHistory = async () => {
+  const token = await getAuthToken();
+  const response = await fetch(`${API_BASE_URL}fitness-summary/`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  return await response.json();
 };
+

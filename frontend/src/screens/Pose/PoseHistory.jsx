@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   Animated,
 } from 'react-native';
-import { fetchDailyFitnessSummary } from '../../api/fithubApi';
+import { fetchFullFitnessHistory } from '../../api/fithubApi';
 import  Header  from '../../components/Header';
 import Footer from '../../components/Footer';
 
@@ -19,22 +19,18 @@ const PoseHistory = () => {
   const [selectedExercise, setSelectedExercise] = useState('Squat');
 
   useEffect(() => {
-    const loadHistory = async () => {
-      const logs = [];
-      for (let i = 0; i < 14; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const date = d.toISOString().split('T')[0];
-        const res = await fetchDailyFitnessSummary(date);
-        if (res.poseSets.length > 0) {
-          logs.push({ date: res.date, sets: res.poseSets });
-        }
-      }
-      setHistory(logs);
-      setLoading(false);
-    };
-    loadHistory();
-  }, []);
+  const loadAllHistory = async () => {
+    const res = await fetchFullFitnessHistory();
+    const logs = res
+      .filter(entry => entry.pose_sets.length > 0)
+      .map(entry => ({ date: entry.date, sets: entry.pose_sets }));
+
+    setHistory(logs);
+    setLoading(false);
+  };
+  loadAllHistory();
+}, []);
+
 
   if (loading) {
   return (
@@ -47,7 +43,7 @@ const PoseHistory = () => {
 }
 
   return (
-    <View style={styles.outerContainer}>
+    <View style={styles.outerContainer} >
       <Header title="Pose History" />
 
     <ScrollView style={styles.container}>
@@ -110,6 +106,10 @@ const PoseHistory = () => {
 };
 
 const styles = StyleSheet.create({
+    outerContainer: {
+        flex: 1,
+        backgroundColor: '#222',
+    },
   container: { padding: 16, backgroundColor: '#111' , marginTop: 70, marginBottom: 50},
   header: {
     fontSize: 22,

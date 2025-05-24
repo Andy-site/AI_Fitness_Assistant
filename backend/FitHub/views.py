@@ -621,7 +621,7 @@ class Meta:
     ]
 
 class ExerciseListPagination(PageNumberPagination):
-    page_size = 20  # Default limit to 20 exercises per request
+    page_size = 2000  # Default limit to 20 exercises per request
     page_size_query_param = 'limit'
     max_page_size = 2000  # Prevent excessive data retrieval
 
@@ -646,7 +646,8 @@ class ExerciseListView(ListAPIView):
         if equipment:
             queryset = queryset.filter(equipment=equipment)  # Uses idx_equipment
         if search_query:
-            queryset = queryset.filter(name__icontains=search_query)  # Uses idx_name
+            queryset = queryset.filter(name__istartswith=search_query)  # <-- NEW
+
 
         return queryset.order_by('name')  # Uses idx_name for optimized sorting
 
@@ -1348,42 +1349,77 @@ class MealHistoryView(APIView):
         ]
 
         return Response({'meals': meals_data}, status=200)
-    
+
 
 class DailyFitnessSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, format=None):
         user = request.user
-        query_date = request.query_params.get('date', None)
-        if query_date:
-            try:
-                target_date = date.fromisoformat(query_date)
-            except ValueError:
-                return Response({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=400)
-        else:
-            target_date = date.today()
+        start_date_str = request.query_params.get('start')
+        end_date_str = request.query_params.get('end')
+        single_date_str = request.query_params.get('date')
 
-        pose_sets = PoseExerciseSet.objects.filter(user=user, date=target_date)
-        pose_burned = PoseExerciseSet.get_daily_calories(user, target_date)
+        try:
+            if start_date_str and end_date_str:
+                start_date = date.fromisoformat(start_date_str)
+                end_date = date.fromisoformat(end_date_str)
+                if start_date > end_date:
+                    return Response({'error': 'start date must be before end date'}, status=400)
+                date_range = sorted(
+    [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)],
+    reverse=True
+)
 
-        workout_burned = Workout.objects.filter(
-            user=user, workout_date=target_date
-        ).aggregate(total=Sum('total_calories'))['total'] or 0
+            elif single_date_str:
+                date_range = [date.fromisoformat(single_date_str)]
+            else:
+               
+                earliest_pose_date = PoseExerciseSet.objects.filter(user=user).order_by('date').values_list('date', flat=True).first()
+                earliest_workout_date = Workout.objects.filter(user=user).order_by('workout_date').values_list('workout_date', flat=True).first()
+                earliest_meal_date = MealPlan.objects.filter(user=user).order_by('created_at').values_list('created_at', flat=True).first()
 
-        consumed = MealPlan.objects.filter(
-            user=user, is_consumed=True, created_at__date=target_date
-        ).aggregate(total=Sum('calories'))['total'] or 0
+                all_dates = [d for d in [earliest_pose_date, earliest_workout_date, earliest_meal_date] if d]
+                if not all_dates:
+                    return Response([])  # No history available
 
-        serializer = PoseExerciseSetSummarySerializer(pose_sets, many=True)
+                start_date = min(d.date() if hasattr(d, 'date') else d for d in all_dates)
+                end_date = date.today()
 
-        return Response({
-            "date": target_date,
-            "calories_burned": round(pose_burned + workout_burned, 2),
-            "calories_consumed": consumed,
-            "net_calories": round(consumed - (pose_burned + workout_burned), 2),
-            "pose_sets": serializer.data
-        })
+                date_range = sorted(
+    [start_date + timedelta(days=i) for i in range((end_date - start_date).days + 1)],
+    reverse=True
+)
+
+        except ValueError:
+            return Response({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=400)
+
+        summary_list = []
+
+        for target_date in date_range:
+            pose_sets = PoseExerciseSet.objects.filter(user=user, date=target_date)
+            pose_burned = PoseExerciseSet.get_daily_calories(user, target_date)
+
+            workout_burned = Workout.objects.filter(
+                user=user, workout_date=target_date
+            ).aggregate(total=Sum('total_calories'))['total'] or 0
+
+            consumed = MealPlan.objects.filter(
+                user=user, is_consumed=True, created_at__date=target_date
+            ).aggregate(total=Sum('calories'))['total'] or 0
+
+            serializer = PoseExerciseSetSummarySerializer(pose_sets, many=True)
+
+            summary_list.append({
+                "date": target_date,
+                "calories_burned": round(pose_burned + workout_burned, 2),
+                "calories_consumed": consumed,
+                "net_calories": round(consumed - (pose_burned + workout_burned), 2),
+                "pose_sets": serializer.data
+            })
+
+        return Response(summary_list)
+
 
 class CaloriesByPoseView(APIView):
     def get(self, request, *args, **kwargs):

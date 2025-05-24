@@ -241,7 +241,7 @@ const RepsAndSets = ({route}) => {
     clearInterval(intervalId);
     setIntervalId(null);
   }
-  navigation.navigate('Workout');
+  navigation.goBack();
 },
 
           },
