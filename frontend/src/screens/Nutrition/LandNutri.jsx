@@ -116,7 +116,7 @@ const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
         url: 'https://ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com/nutritionAdvice',
         params: { noqueue: '1' },
         headers: {
-          'x-rapidapi-key': 'cd885471a8mshe716357a6b4de6ap15f168jsn9658f7fd57d7',
+          'x-rapidapi-key': '593d5875bamsh49fb551853ec43cp1400f4jsn50b7759228bc',
           'x-rapidapi-host': 'ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com',
           'Content-Type': 'application/json',
         },
