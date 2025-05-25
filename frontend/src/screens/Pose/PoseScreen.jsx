@@ -5,7 +5,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-nati
 import HumanPose from 'react-native-human-pose';
 import { useKeepAwake } from '@unsw-gsbme/react-native-keep-awake';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { createPoseSession, sendPoseFeedback, completePoseSession } from '../../api/fithubApi';
+import { createPoseSession,  completePoseSession } from '../../api/fithubApi';
 
 const { width, height } = Dimensions.get('window');
 
@@ -152,9 +152,7 @@ const PoseScreen = ({ route }) => {
       rep_count: repCount,
     };
     console.log("Sending feedback payload:", feedbackPayload);
-    sendPoseFeedback(feedbackPayload).catch(err =>
-      console.warn('Pose feedback failed:', err.response?.data || err.message)
-    );
+    
   }
 
   return errorMessage;
