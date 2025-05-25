@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { Alert } from 'react-native';
-
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import HumanPose from 'react-native-human-pose';
 import { useKeepAwake } from '@unsw-gsbme/react-native-keep-awake';
@@ -12,14 +11,14 @@ const { width, height } = Dimensions.get('window');
 
 const calculateAngle = (point1, point2, point3) => {
   if (!point1 || !point2 || !point3) return null;
-  const vector1 = { x: point1.x - point2.x, y: point1.y - point2.y };
-  const vector2 = { x: point3.x - point2.x, y: point3.y - point2.y };
-  const dotProduct = vector1.x * vector2.x + vector1.y * vector2.y;
-  const magnitude1 = Math.sqrt(vector1.x ** 2 + vector1.y ** 2);
-  const magnitude2 = Math.sqrt(vector2.x ** 2 + vector2.y ** 2);
+  const vector1 = { x: point1.x - point2.x, y: point1.y - point2.y };  // Vector from point2 to point1
+  const vector2 = { x: point3.x - point2.x, y: point3.y - point2.y }; // Vector from point2 to point3
+  const dotProduct = vector1.x * vector2.x + vector1.y * vector2.y; // Dot product of the vectors A.B = Ax * Bx + Ay * By
+  const magnitude1 = Math.sqrt(vector1.x ** 2 + vector1.y ** 2); // Magnitude of vector1 Square root of (Ax^2 + Ay^2)
+  const magnitude2 = Math.sqrt(vector2.x ** 2 + vector2.y ** 2); // Magnitude of vector2 Square root of (Bx^2 + By^2)
   if (magnitude1 === 0 || magnitude2 === 0 || isNaN(dotProduct)) return null;
-  const cosTheta = Math.min(Math.max(dotProduct / (magnitude1 * magnitude2), -1), 1);
-  return Math.acos(cosTheta) * (180 / Math.PI);
+  const cosTheta = Math.min(Math.max(dotProduct / (magnitude1 * magnitude2), -1), 1); // Clamp value of cos Angle from -1 to 1 to avoid NaN from acos
+  return Math.acos(cosTheta) * (180 / Math.PI); // Math.acos gives angle in radians. Convert to degrees
 };
 
 const PoseScreen = ({ route }) => {
@@ -53,55 +52,56 @@ const PoseScreen = ({ route }) => {
   };
 
   const checkPoseAccuracy = (poses) => {
-    const now = Date.now();
-    const delta = now - lastFrameTime.current;
-    const currentFps = (1000 / delta).toFixed(1);
-    setFps(currentFps);
-    lastFrameTime.current = now;
+  const now = Date.now();
+  const delta = now - lastFrameTime.current;
+  const currentFps = (1000 / delta).toFixed(1);
+  setFps(currentFps);
+  lastFrameTime.current = now;
 
-    const bestPose = poses
-      .filter(p => p.pose?.keypoints && Object.keys(p.pose).length > 5)
-      .sort((a, b) => (b.pose?.score || 0) - (a.pose?.score || 0))[0];
+  const bestPose = poses
+    .filter(p => p.pose?.keypoints && Object.keys(p.pose).length > 5)
+    .sort((a, b) => (b.pose?.score || 0) - (a.pose?.score || 0))[0];
 
-    if (!bestPose || !bestPose.pose) {
-      setPersonDetected(false);
-      return 'No person detected';
-    }
+  if (!bestPose || !bestPose.pose) {
+    setPersonDetected(false);
+    return 'No person detected';
+  }
 
-    setPersonDetected(true);
-    const landmarks = bestPose.pose;
+  setPersonDetected(true);
+  const landmarks = bestPose.pose;
 
-    const getValidSide = (landmarks) => {
-      const sides = ['right', 'left'];
-      for (const side of sides) {
-        const required = ['Hip', 'Knee', 'Ankle', 'Shoulder'];
-        const allPresent = required.every(j => landmarks[`${side}${j}`]);
-        if (allPresent) return side;
-      }
-      return null;
-    };
+  const getJoint = (side, name) => landmarks[`${side}${name}`];
 
-    const side = getValidSide(landmarks);
-    if (!side) return 'Ensure full body is visible';
+  // Extract both sides for Lunge comparison
+  const leftHip = getJoint('left', 'Hip');
+  const leftKnee = getJoint('left', 'Knee');
+  const leftAnkle = getJoint('left', 'Ankle');
+  const leftShoulder = getJoint('left', 'Shoulder');
 
-    const getJoint = (name) => landmarks[`${side}${name}`];
-    const hip = getJoint('Hip');
-    const knee = getJoint('Knee');
-    const ankle = getJoint('Ankle');
-    const shoulder = getJoint('Shoulder');
-    const toe = getJoint('FootIndex');
+  const rightHip = getJoint('right', 'Hip');
+  const rightKnee = getJoint('right', 'Knee');
+  const rightAnkle = getJoint('right', 'Ankle');
+  const rightShoulder = getJoint('right', 'Shoulder');
+
+  let errorMessage = '';
+
+  if (exercise === 'Squat') {
+    const side = landmarks['leftKnee'] && landmarks['rightKnee'] ? 'left' : 'right';
+    const hip = getJoint(side, 'Hip');
+    const knee = getJoint(side, 'Knee');
+    const ankle = getJoint(side, 'Ankle');
+    const shoulder = getJoint(side, 'Shoulder');
 
     const kneeAngle = calculateAngle(hip, knee, ankle);
     const hipAngle = calculateAngle(shoulder, hip, knee);
 
-    let errorMessage = '';
     if (kneeAngle !== null && hipAngle !== null) {
       if (Math.abs(kneeAngle - 90) < 10 && Math.abs(hipAngle - 90) < 10) {
-        errorMessage = feedbackMessages[exercise].perfect;
+        errorMessage = feedbackMessages.Squat.perfect;
       } else if (Math.abs(kneeAngle - 90) < 20 && Math.abs(hipAngle - 90) < 20) {
-        errorMessage = feedbackMessages[exercise].almostCorrect;
+        errorMessage = feedbackMessages.Squat.almostCorrect;
       } else {
-        errorMessage = feedbackMessages[exercise].formIncorrect;
+        errorMessage = feedbackMessages.Squat.formIncorrect;
       }
 
       if (kneeAngle < 70 && poseState === 'up') {
@@ -112,24 +112,54 @@ const PoseScreen = ({ route }) => {
       }
     }
 
-    if (sessionId && hip && knee && ankle) {
-  const feedbackPayload = {
-    session: sessionId,
-    frame_id: Math.floor(now / 100),
-    keypoints_json: JSON.parse(JSON.stringify(landmarks)),
-    feedback_notes: errorMessage,
-    confidence_score: Number(currentFps) / 30,
-    rep_count: repCount, 
-  };
-  console.log("Sending feedback payload:", feedbackPayload);
-  sendPoseFeedback(feedbackPayload).catch(err =>
-    console.warn('Pose feedback failed:', err.response?.data || err.message)
-  );
+  } else if (exercise === 'Lunge') {
+    // Calculate knee angles for both legs
+    const leftKneeAngle = calculateAngle(leftHip, leftKnee, leftAnkle);
+    const rightKneeAngle = calculateAngle(rightHip, rightKnee, rightAnkle);
+
+    // Choose front leg 
+    const frontKneeAngle = leftKneeAngle < rightKneeAngle ? leftKneeAngle : rightKneeAngle;
+
+    // Torso uprightness 
+    const torsoAngle = calculateAngle(leftShoulder, leftHip, rightKnee) || calculateAngle(rightShoulder, rightHip, leftKnee);
+
+    if (frontKneeAngle !== null && torsoAngle !== null) {
+      if (Math.abs(frontKneeAngle - 90) < 10 && torsoAngle > 150) {
+        errorMessage = feedbackMessages.Lunge.perfect;
+      } else if (Math.abs(frontKneeAngle - 90) < 20) {
+        errorMessage = feedbackMessages.Lunge.almostCorrect;
+      } else {
+        errorMessage = feedbackMessages.Lunge.formIncorrect;
+      }
+
+      // Repetition detection
+      if (frontKneeAngle < 70 && poseState === 'up') {
+        setPoseState('down');
+      } else if (frontKneeAngle > 100 && poseState === 'down') {
+        setPoseState('up');
+        setRepCount(prev => prev + 1);
+      }
+    }
+  }
+
+  if (sessionId && landmarks) {
+    const feedbackPayload = {
+      session: sessionId,
+      frame_id: Math.floor(now / 100),
+      keypoints_json: JSON.parse(JSON.stringify(landmarks)),
+      feedback_notes: errorMessage,
+      confidence_score: Number(currentFps) / 30,
+      rep_count: repCount,
+    };
+    console.log("Sending feedback payload:", feedbackPayload);
+    sendPoseFeedback(feedbackPayload).catch(err =>
+      console.warn('Pose feedback failed:', err.response?.data || err.message)
+    );
+  }
+
+  return errorMessage;
 }
 
-
-    return errorMessage;
-  };
 
   const onPoseDetected = (pose) => {
     if (!isRecording) return;
